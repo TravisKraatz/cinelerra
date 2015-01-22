@@ -1,0 +1,154 @@
+include global_config
+
+EXRDIR := $(shell expr thirdparty/openexr* )
+ILMDIR := $(shell expr thirdparty/ilmbase* )
+GCC := g++
+
+DIRS := \
+	$(ILMDIR)/$(OBJDIR)/Half \
+	$(ILMDIR)/$(OBJDIR)/Iex \
+	$(ILMDIR)/$(OBJDIR)/Imath \
+	$(ILMDIR)/$(OBJDIR)/IlmThread \
+	$(EXRDIR)/$(OBJDIR)/IlmImf
+
+
+OBJS := \
+	$(ILMDIR)/$(OBJDIR)/Half/half.o \
+	$(ILMDIR)/$(OBJDIR)/Iex/IexBaseExc.o \
+	$(ILMDIR)/$(OBJDIR)/Iex/IexThrowErrnoExc.o \
+	$(ILMDIR)/$(OBJDIR)/IlmThread/IlmThreadMutex.o \
+	$(ILMDIR)/$(OBJDIR)/IlmThread/IlmThreadMutexPosix.o \
+	$(ILMDIR)/$(OBJDIR)/IlmThread/IlmThread.o \
+	$(ILMDIR)/$(OBJDIR)/IlmThread/IlmThreadPool.o \
+	$(ILMDIR)/$(OBJDIR)/IlmThread/IlmThreadPosix.o \
+	$(ILMDIR)/$(OBJDIR)/IlmThread/IlmThreadSemaphore.o \
+	$(ILMDIR)/$(OBJDIR)/IlmThread/IlmThreadSemaphorePosixCompat.o \
+	$(ILMDIR)/$(OBJDIR)/IlmThread/IlmThreadSemaphorePosix.o \
+	$(ILMDIR)/$(OBJDIR)/Imath/ImathBox.o \
+	$(ILMDIR)/$(OBJDIR)/Imath/ImathColorAlgo.o \
+	$(ILMDIR)/$(OBJDIR)/Imath/ImathFun.o \
+	$(ILMDIR)/$(OBJDIR)/Imath/ImathMatrixAlgo.o \
+	$(ILMDIR)/$(OBJDIR)/Imath/ImathRandom.o \
+	$(ILMDIR)/$(OBJDIR)/Imath/ImathShear.o \
+	$(ILMDIR)/$(OBJDIR)/Imath/ImathVec.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfB44Compressor.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfBoxAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfChannelListAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfChannelList.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfChromaticitiesAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfChromaticities.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfCompressionAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfCompressor.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfConvert.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfCRgbaFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfDoubleAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfEnvmapAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfEnvmap.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfFloatAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfFrameBuffer.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfFramesPerSecond.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfHeader.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfHuf.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfInputFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfIntAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfIO.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfKeyCodeAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfKeyCode.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfLineOrderAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfLut.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfMatrixAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfMisc.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfOpaqueAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfOutputFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfPizCompressor.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfPreviewImageAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfPreviewImage.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfPxr24Compressor.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfRationalAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfRational.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfRgbaFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfRgbaYca.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfRleCompressor.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfScanLineInputFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfStandardAttributes.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfStdIO.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfStringAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTestFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfThreading.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTileDescriptionAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTiledInputFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTiledMisc.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTiledOutputFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTiledRgbaFile.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTileOffsets.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTimeCodeAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfTimeCode.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfVecAttribute.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfVersion.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfWav.o \
+	$(EXRDIR)/$(OBJDIR)/IlmImf/ImfZipCompressor.o
+
+HEADERS := \
+	$(ILMDIR)/Half/toFloat.h
+
+OUTPUT := $(EXRDIR)/$(OBJDIR)/libexr.a
+CFLAGS += -DHAVE_CONFIG_H \
+	-I$(ILMDIR)/Iex/ \
+	-I$(ILMDIR)/Half/ \
+	-I$(ILMDIR)/Imath/ \
+	-I$(ILMDIR)/Imath/ \
+	-I$(ILMDIR)/config/ \
+	-I$(ILMDIR)/IlmThread \
+	-I$(EXRDIR)/IlmImf/ \
+	-I$(EXRDIR)/config/ \
+	-DPACKAGE=\"OpenEXR\" \
+	-DVERSION=\"1.2.1\" \
+	-DSTDC_HEADERS=1 \
+	-DHAVE_SYS_TYPES_H=1 \
+	-DHAVE_SYS_STAT_H=1 \
+	-DHAVE_STDLIB_H=1 \
+	-DHAVE_STRING_H=1 \
+	-DHAVE_MEMORY_H=1 \
+	-DHAVE_STRINGS_H=1 \
+	-DHAVE_INTTYPES_H=1 \
+	-DHAVE_STDINT_H=1 \
+	-DHAVE_UNISTD_H=1 \
+	-DHAVE_DLFCN_H=1 \
+	-DSTDC_HEADERS=1 \
+	-DHAVE_LIMITS_H=1 \
+	-DHAVE_UNISTD_H=1 \
+	-DHAVE_STRERROR=1 \
+	-DHAVE_IOS_BASE=1 \
+	-DHAVE_STL_LIMITS=1
+
+$(shell mkdir -p $(DIRS) )
+$(shell echo $(CFLAGS) > $(EXRDIR)/$(OBJDIR)/c_flags)
+$(shell echo $(OBJS) > $(EXRDIR)/$(OBJDIR)/objs)
+
+$(OUTPUT): $(OBJS)
+	ar rcs $(OUTPUT) `cat $(EXRDIR)/$(OBJDIR)/objs`
+
+
+$(OBJS): $(HEADERS)
+	$(GCC) -c `cat $(EXRDIR)/$(OBJDIR)/c_flags` $(subst $(OBJDIR)/,, $*.cpp) -o $*.o
+
+$(HEADERS):
+	$(GCC) `cat $(EXRDIR)/$(OBJDIR)/c_flags` $(ILMDIR)/Half/eLut.cpp -o $(ILMDIR)/$(OBJDIR)/Half/eLut
+	$(ILMDIR)/$(OBJDIR)/Half/eLut > $(ILMDIR)/Half/eLut.h
+	$(GCC) `cat $(EXRDIR)/$(OBJDIR)/c_flags` $(ILMDIR)/Half/toFloat.cpp -o $(ILMDIR)/$(OBJDIR)/Half/toFloat
+	$(ILMDIR)/$(OBJDIR)/Half/toFloat > $(ILMDIR)/Half/toFloat.h
+	$(GCC) `cat $(EXRDIR)/$(OBJDIR)/c_flags` $(EXRDIR)/IlmImf/b44ExpLogTable.cpp $(ILMDIR)/Half/half.cpp -o $(EXRDIR)/$(OBJDIR)/IlmImf/b44ExpLogTable
+	$(EXRDIR)/$(OBJDIR)/IlmImf/b44ExpLogTable > $(EXRDIR)/IlmImf/b44ExpLogTable.h
+
+
+
+clean:
+	rm -rf $(DIRS) \
+		$(ILMDIR)/Half/toFloat.h \
+		$(ILMDIR)/Half/eLut.h \
+		$(EXRDIR)/IlmImf/b44ExpLogTable.h
+
+
+
+
