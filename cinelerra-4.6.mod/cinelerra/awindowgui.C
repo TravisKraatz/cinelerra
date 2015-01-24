@@ -1363,7 +1363,7 @@ int AWindowAssets::selection_changed()
 
 void AWindowAssets::draw_background()
 {
-	BC_ListBox::draw_background();
+	clear_box(0,0,get_w(),get_h(),get_bg_surface());
 	set_color(RED);
 	set_font(LARGEFONT);
 	draw_text(get_w() - 
