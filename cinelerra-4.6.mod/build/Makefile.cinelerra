@@ -131,7 +131,7 @@ endif
 	cp -a models bin
 	cd bin && find -name '.svn' -exec rm -r {} \; -prune
 	rm -f bin/cutads
-	ln -s ../cinelerra/$(OBJDIR)/cutads bin/.
+	#ln -s ../cinelerra/$(OBJDIR)/cutads bin/.
 
 COMPILE = $(GCC) -c $(CFLAGS) $? -o $*.o
 
