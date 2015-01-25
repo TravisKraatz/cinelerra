@@ -26,6 +26,7 @@
 
 #include "arraylist.h"
 #include "bcsignals.inc"
+#include <stdio.h>
 #include <pthread.h>
 #include <signal.h>
 
@@ -66,7 +67,7 @@ public:
 
 	virtual void signal_handler(int signum);
 
-	static void dump_stack();
+	static void dump_stack(FILE *fp=stdout);
 
 #ifdef ENABLE_TRACE
 // Add a trace
@@ -180,9 +181,9 @@ public:
 	static void lock_locks(const char *s);
 	static void unlock_locks();
 
-	static void dump_traces();
-	static void dump_locks();
-	static void dump_buffers();
+	static void dump_traces(FILE *fp=stdout);
+	static void dump_locks(FILE *fp=stdout);
+	static void dump_buffers(FILE *fp=stdout);
 	static void set_sighup_exit(int enable);
 
 // Convert signum to text

@@ -22,9 +22,11 @@
 #ifndef THREAD_H
 #define THREAD_H
 
+#include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/syscall.h>
+
 static inline int gettid() { return syscall(SYS_gettid, 0, 0, 0); }
 
 // The thread does not autodelete by default.
@@ -65,6 +67,7 @@ public:
 	unsigned long get_tid();
 	static pthread_t get_self() { return pthread_self(); }
 	static void yield() { sched_yield(); }
+	static void dump_threads(FILE *fp=stdout);
 
 private:
 	bool synchronous;        // force join() to end

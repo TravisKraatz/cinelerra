@@ -53,6 +53,22 @@ static bc_locktrace_t* new_bc_locktrace(void *ptr,
 }
 
 
+static struct sigaction segv, old_segv;
+static void handle_segv(int n, siginfo_t * info, void *sc);
+
+static void uncatch_segv()
+{
+	sigaction(SIGSEGV, &old_segv, &segv);
+}
+
+static void catch_segv()
+{
+	struct sigaction old_segv, segv;
+	memset(&segv, 0, sizeof(segv));
+	segv.sa_sigaction = handle_segv;
+	segv.sa_flags = SA_SIGINFO;
+	sigaction(SIGSEGV,&segv,&old_segv);
+}
 
 
 
@@ -185,15 +201,15 @@ static const char* signal_titles[] =
 	"SIGTERM"
 };
 
-void BC_Signals::dump_stack()
+void BC_Signals::dump_stack(FILE *fp)
 {
 	void *buffer[256];
 	int total = backtrace (buffer, 256);
 	char **result = backtrace_symbols (buffer, total);
-	printf("BC_Signals::dump_stack\n");
+	fprintf(fp, "BC_Signals::dump_stack\n");
 	for(int i = 0; i < total; i++)
 	{
-		printf("%s\n", result[i]);
+		fprintf(fp, "%s\n", result[i]);
 	}
 }
 
@@ -360,20 +376,20 @@ BC_Signals::BC_Signals()
 {
 }
 
-void BC_Signals::dump_traces()
+void BC_Signals::dump_traces(FILE *fp)
 {
 // Dump trace table
 	if(execution_table.size)
 	{
 		for(int i = execution_table.current_value; i < execution_table.size; i++)
-			printf("    %s\n", (char*)execution_table.values[i]);
+			fprintf(fp,"    %s\n", (char*)execution_table.values[i]);
 		for(int i = 0; i < execution_table.current_value; i++)
-			printf("    %s\n", (char*)execution_table.values[i]);
+			fprintf(fp,"    %s\n", (char*)execution_table.values[i]);
 	}
 
 }
 
-void BC_Signals::dump_locks()
+void BC_Signals::dump_locks(FILE *fp)
 {
 // Dump lock table
 #ifdef TRACE_LOCKS
@@ -381,23 +397,23 @@ void BC_Signals::dump_locks()
 	for(int i = 0; i < lock_table.size; i++)
 	{
 		bc_locktrace_t *table = (bc_locktrace_t*)lock_table.values[i];
-		printf("    %p %s %s %p%s\n", table->ptr,
+		fprintf(fp,"    %p %s %s %p%s\n", table->ptr,
 			table->title, table->location, (void*)table->tid,
 			table->is_owner ? " *" : "");
 	}
 #endif
 }
 
-void BC_Signals::dump_buffers()
+void BC_Signals::dump_buffers(FILE *fp)
 {
 #ifdef TRACE_MEMORY
 	pthread_mutex_lock(lock);
 // Dump buffer table
-	printf("BC_Signals::dump_buffers: buffer table size=%d\n", memory_table.size);
+	fprintf(fp,"BC_Signals::dump_buffers: buffer table size=%d\n", memory_table.size);
 	for(int i = 0; i < memory_table.size; i++)
 	{
 		bc_buffertrace_t *entry = (bc_buffertrace_t*)memory_table.values[i];
-		printf("    %d %p %s\n", entry->size, entry->ptr, entry->location);
+		fprintf(fp,"    %d %p %s\n", entry->size, entry->ptr, entry->location);
 	}
 	pthread_mutex_unlock(lock);
 #endif
@@ -478,7 +494,7 @@ void BC_Signals::initialize2()
 	signal(SIGINT, signal_entry);
 	signal(SIGQUIT, signal_entry);
 	signal(SIGKILL, signal_entry);
-	signal(SIGSEGV, signal_entry);
+	catch_segv();
 	signal(SIGTERM, signal_entry);
 	signal(SIGFPE, signal_entry);
 	signal(SIGPIPE, signal_entry_recoverable);
@@ -719,6 +735,62 @@ int BC_Signals::unset_buffer(void *ptr)
 }
 
 
+#include <ucontext.h>
+#include <sys/wait.h>
+#include "thread.h"
+
+#if __i386__
+#define IP eip
+#endif
+#if __x86_64__
+#define IP rip
+#endif
+#ifndef IP
+#error gotta have IP
+#endif
+
+
+static void handle_segv(int n, siginfo_t * info, void *sc)
+{
+	uncatch_segv();
+	ucontext_t *uc = (ucontext_t *)sc;
+	struct sigcontext *c = (struct sigcontext *)&uc->uc_mcontext;
+	int pid = getpid(), tid = gettid();
+	fprintf(stderr,"** segv at %p in pid %d, tid %d\n",
+		(void*)c->IP, pid, tid);
+	char fn[256];
+	snprintf(fn, sizeof(fn), "/tmp/cinelerra_%d.dmp", pid);
+	FILE *fp = fopen(fn,"w");
+	if( fp ) {
+		fprintf(stderr,"writing debug data to %s\n", fn);
+		fprintf(fp,"** segv at %p in pid %d, tid %d\n",
+			(void*)c->IP, pid, tid);
+	}
+	else
+		fp = stdout;
+	Thread::dump_threads(fp);
+	BC_Signals::dump_traces(fp);
+	BC_Signals::dump_locks(fp);
+	BC_Signals::dump_buffers(fp);
+	if( fp != stdout ) { fclose(fp);  return; }
+	char cmd[1024];
+	sprintf(cmd, "exec /usr/bin/gdb /proc/%d/exe -p %d --batch --quiet "
+		"-ex \"thread apply all info registers\" "
+		"-ex \"thread apply all bt full\" "
+		"-ex \"quit\" >> %s 2>&1", pid, pid, fn);
+        pid = vfork();
+        if( pid < 0 ) {
+		fprintf(stderr,"** can't start gdb, dump abondoned\n");
+		return;
+	}
+	if( pid > 0 ) {
+		waitpid(pid,0,0);
+		fprintf(stderr,"** dump complete\n");
+		return;
+	}
+        char *const argv[4] = { (char*) "/bin/sh", (char*) "-c", cmd, 0 };
+        execvp(argv[0], &argv[0]);
+}
 
 
 

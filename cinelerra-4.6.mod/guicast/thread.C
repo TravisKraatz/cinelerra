@@ -54,13 +54,17 @@ public:
 
 static class the_list : public ArrayList<the_dbg*> {
 public:
+	static void dump_threads(FILE *fp);
 	 the_list() {}
-	~the_list() { remove_all_objects(); }
+	~the_list() {
+		MLocker mlkr;
+		remove_all_objects();
+	}
 } thread_list;
 
 static void dbg_add(pthread_t tid, const char *nm)
 {
-	MLocker mlkr();
+	MLocker mlkr;
 	int i = thread_list.size();
 	while( --i >= 0 && thread_list[i]->tid != tid );
 	if( i >= 0 ) {
@@ -73,7 +77,7 @@ static void dbg_add(pthread_t tid, const char *nm)
 
 static void dbg_del(pthread_t tid)
 {
-	MLocker mlkr();
+	MLocker mlkr;
 	int i = thread_list.size();
 	while( --i >= 0 && thread_list[i]->tid != tid );
 	if( i < 0 ) {
@@ -316,5 +320,15 @@ int Thread::get_realtime()
 unsigned long Thread::get_tid()
 {
 	return tid;
+}
+
+void Thread::dump_threads(FILE *fp)
+{
+	int i = thread_list.size();
+	while( --i >= 0 ) {
+		fprintf(fp, "thread %016lx, %s\n",
+			(unsigned long)thread_list[i]->tid,
+			thread_list[i]->name);
+	}
 }
 
