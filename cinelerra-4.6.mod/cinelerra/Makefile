@@ -52,7 +52,9 @@ SNDFILE_LIB :=
 THEORA_LIB := -ltheora
 EXR_LIBS := -lIlmImf -lIlmThread -lImath -lHalf -lIex
 OTHER_LIBS := -ltiff -lFLAC -lsndfile -lgif
+ifeq ($(HAVE_ESOUND), y)
 ESOUNDLIBS := -lesd
+endif
 EXR_INCLUDES := -I/usr/include/OpenEXR
 endif
 
