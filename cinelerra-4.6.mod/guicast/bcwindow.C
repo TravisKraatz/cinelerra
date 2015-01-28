@@ -69,6 +69,7 @@ BC_Window::~BC_Window()
 
 void BC_Window::set_default_x11_host(const char *host)
 {
+	if( !strcmp(host, default_x11_host) ) return;
 	strcpy(default_x11_host, host);
 	BC_DisplayInfo::top_border = -1;
 }

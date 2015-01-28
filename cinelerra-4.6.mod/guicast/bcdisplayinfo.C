@@ -33,7 +33,7 @@
 #define TEST_SIZE 128
 #define TEST_DSIZE 28
 #define TEST_SIZE2 164
-#define TEST_SIZE3 196
+
 int BC_DisplayInfo::top_border = -1;
 int BC_DisplayInfo::left_border = -1;
 int BC_DisplayInfo::bottom_border = -1;
@@ -61,6 +61,29 @@ void BC_DisplayInfo::parse_geometry(char *geom, int *x, int *y, int *width, int 
 	XParseGeometry(geom, x, y, (unsigned int*)width, (unsigned int*)height);
 }
 
+static void get_top_coords(Display *display, Window win, int &px,int &py, int &tx,int &ty)
+{
+	Window *pcwin;  unsigned int ncwin;
+	Window rwin = 0, cwin = 0, pwin = 0, root = 0;
+	int x=0, y=0, rx=0, ry=0, nx=0, ny=0;
+	unsigned int w=0, h=0, bdr=0, dp=0;
+	XQueryTree(display, win, &root, &pwin, &pcwin, &ncwin);
+	if( pcwin ) XFree(pcwin);
+	XTranslateCoordinates(display, pwin, root, 0,0, &px,&py, &cwin);
+//printf(" win=%lx, px/py=%d/%d\n", win, px,py);
+
+	for( int i=5; --i>=0; ) {
+		win = pwin;
+		XQueryTree(display, win, &root, &pwin, &pcwin, &ncwin);
+		if( pcwin ) XFree(pcwin);
+		if( pwin == root ) break;
+		XTranslateCoordinates(display, pwin, root, 0,0, &nx,&ny, &cwin);
+//printf(" win=%lx, nx/ny=%d/%d\n", win, nx,ny);
+	}
+	tx = nx;  ty = ny;
+}
+
+	
 void BC_DisplayInfo::test_window(int &x_out, 
 	int &y_out, 
 	int &x_out2, 
@@ -72,22 +95,23 @@ void BC_DisplayInfo::test_window(int &x_out,
 	BC_Display::lock_display("BC_DisplayInfo::test_window");
 #endif
 
-	unsigned long mask = CWEventMask | CWWinGravity;
-	XSetWindowAttributes attr;
-	XSizeHints size_hints;
-
 	x_out = 0;
 	y_out = 0;
-        //int x_out1 = 0;
-        //int y_out1 = 0;
+        int x_out1 = 0;
+        int y_out1 = 0;
 	x_out2 = 0;
 	y_out2 = 0;
+
+	unsigned long mask = CWEventMask | CWWinGravity | CWBackPixel;
+	XSetWindowAttributes attr;
 	attr.event_mask = StructureNotifyMask;
 	attr.win_gravity = SouthEastGravity;
+	attr.background_pixel = BlackPixel(display,screen);
 	Window win = XCreateWindow(display, rootwin, 
 			x_in, y_in, TEST_SIZE, TEST_SIZE, 
 			0, default_depth, InputOutput, 
 			vis, mask, &attr);
+	XSizeHints size_hints;
 	XGetNormalHints(display, win, &size_hints);
 	size_hints.flags = PPosition | PSize;
 	size_hints.x = x_in;
@@ -96,8 +120,9 @@ void BC_DisplayInfo::test_window(int &x_out,
 	size_hints.height = TEST_SIZE;
 	XSetStandardProperties(display, win, 
 		"x", "x", None, 0, 0, &size_hints);
+	XClearWindow(display, win);
 	XMapWindow(display, win); 
-	XFlush(display);  XSync(display, 0);
+	XFlush(display);  XSync(display, 0);  usleep(100000);
 
 	XEvent event;
 	int state = 0;
@@ -108,49 +133,49 @@ void BC_DisplayInfo::test_window(int &x_out,
  		if( event.xany.window != win ) continue;
 		if( event.type != ConfigureNotify ) continue;
 		Window cwin = 0;
-		int rx = 0, ry = 0;
+		int rx = 0, ry = 0, px = 0, py = 0, tx = 0, ty = 0;
 //printf("BC_DisplayInfo::test_window 1 state=%d x=%d y=%d w=%d h=%d bw=%d sev=%d\n",
 //  state, event.xconfigure.x, event.xconfigure.y,
 //  event.xconfigure.width, event.xconfigure.height,
 //  event.xconfigure.border_width, event.xconfigure.send_event);
+		get_top_coords(display,win, px,py, tx,ty);
+//printf("x_in,y_in=%d,%d dx,dy=%d,%d\n", x_in,y_in, x_in-tx,y_in-ty);
 		switch( state ) {
 		case 0: // Get creation config
 			XTranslateCoordinates(display, win, rootwin, 0,0, &rx,&ry, &cwin);
 			x_out = rx - x_in;
 			y_out = ry - y_in;
 			XMoveResizeWindow(display, win, x_in,y_in, TEST_SIZE2,TEST_SIZE2);
-			XFlush(display);  XSync(display, 0);
-			state = 1;
+			XFlush(display);  XSync(display, 0);  usleep(100000);
+			++state;
 			break;
 		case 1: // Get moveresize resizing
 			XTranslateCoordinates(display, win, rootwin, 0,0, &rx,&ry, &cwin);
-			//x_out1 = rx - x_in;
-			//y_out1 = ry - y_in;
+			x_out1 = px;
+			y_out1 = py;
 			x_in += TEST_DSIZE;  y_in += TEST_DSIZE;
 			XMoveResizeWindow(display, win, x_in,y_in, TEST_SIZE2,TEST_SIZE2);
-			XFlush(display);  XSync(display, 0);
-			state = 2;
+			XFlush(display);  XSync(display, 0);  usleep(100000);
+			++state;
 			break;
 		case 2: // Get moveresize move
 			XTranslateCoordinates(display, win, rootwin, 0,0, &rx,&ry, &cwin);
-			x_out2 = rx - x_in;
-			y_out2 = ry - y_in;
-			state = 3;
+			x_out2 = px - x_out1 - TEST_DSIZE;
+			y_out2 = py - y_out1 - TEST_DSIZE;
+			++state;
 			break;
 		}
  	}
-//printf("BC_DisplayInfo::test_window 3 x0,y0=%d,%d, x1,y1=%d,%d, x2,y2=%d,%d\n",
+//printf("\nBC_DisplayInfo::test_window 3 x0,y0=%d,%d, x1,y1=%d,%d, x2,y2=%d,%d\n",
 //  x_out,y_out, x_out1,y_out1, x_out2,y_out2);
+//printf("\nx_in,y_in=%d,%d\n", x_in,y_in);
 
 	XDestroyWindow(display, win);
 	XFlush(display);
 	XSync(display, 0);
 
-	x_out = MAX(0, x_out);
-	y_out = MAX(0, y_out);
-	x_out = MIN(x_out, 48);
-	y_out = MIN(y_out, 48);
-
+	x_out = MAX(0, MIN(x_out, 48));
+	y_out = MAX(0, MIN(y_out, 48));
 
 #ifdef SINGLE_THREAD
 	BC_Display::unlock_display();
@@ -169,11 +194,8 @@ void BC_DisplayInfo::init_borders()
 			100, 100);
 		right_border = left_border;
 		bottom_border = left_border;
-// printf("BC_DisplayInfo::init_borders border=%d %d auto=%d %d\n", 
-// left_border, 
-// top_border, 
-// auto_reposition_x, 
-// auto_reposition_y);
+//printf("BC_DisplayInfo::init_borders border=%d %d auto=%d %d\n", 
+//  left_border, top_border, auto_reposition_x, auto_reposition_y);
 	}
 }
 
@@ -217,12 +239,12 @@ void BC_DisplayInfo::init_window(const char *display_name, int show_error)
 	if((display = XOpenDisplay(display_name)) == NULL)
 	{
 		if(!show_error) return;
-		printf("BC_DisplayInfo::init_window: cannot open display \"%s\".\n",
+		fprintf(stderr, "BC_DisplayInfo::init_window: cannot open display \"%s\".\n",
 			display_name ? display_name : "");
 		if(getenv("DISPLAY") == NULL)
-    			printf("'DISPLAY' environment variable not set.\n");
+    			fprintf(stderr, "'DISPLAY' environment variable not set.\n");
 		if((display = XOpenDisplay(0)) == NULL) {
-			printf("BC_DisplayInfo::init_window: cannot connect to X server.\n");
+			fprintf(stderr, "BC_DisplayInfo::init_window: cannot connect to X server.\n");
 			exit(1);
 		}
  	}
