@@ -671,7 +671,6 @@ stop(int wait)
 		if( !wait ) Thread::cancel();
 	}
 	Thread::join();
-	mpeg_dev->tick_toc();
 }
 
 void DeviceMPEG_TOC_Builder::
@@ -686,7 +685,7 @@ run()
 {
 	Thread::enable_cancel();
 
-	while( !done && mpeg_dev->record_fd >= 0 ) {
+	while( !done ) {
 		Thread::disable_cancel();
 		mpeg_dev->tick_toc();
 		Thread::enable_cancel();
@@ -694,6 +693,7 @@ run()
 	}
 
 	Thread::disable_cancel();
+	mpeg_dev->tick_toc();
 	done = -1;
 }
 
