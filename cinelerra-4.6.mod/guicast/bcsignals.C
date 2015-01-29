@@ -53,24 +53,44 @@ static bc_locktrace_t* new_bc_locktrace(void *ptr,
 }
 
 
-static struct sigaction segv, old_segv;
-static void handle_segv(int n, siginfo_t * info, void *sc);
+static struct sigaction old_segv, old_intr;
+static void handle_dump(int n, siginfo_t * info, void *sc);
+bool BC_Signals::trap_sigsegv = false;
+bool BC_Signals::trap_sigintr = false;
 
-static void uncatch_segv()
+static void uncatch_sig(int sig, struct sigaction &old)
 {
-	sigaction(SIGSEGV, &old_segv, &segv);
+	struct sigaction act;
+	sigaction(sig, &old, &act);
 }
 
-static void catch_segv()
+static void catch_sig(int sig, struct sigaction &old)
 {
-	struct sigaction old_segv, segv;
-	memset(&segv, 0, sizeof(segv));
-	segv.sa_sigaction = handle_segv;
-	segv.sa_flags = SA_SIGINFO;
-	sigaction(SIGSEGV,&segv,&old_segv);
+	struct sigaction act;
+	memset(&act, 0, sizeof(act));
+	act.sa_sigaction = handle_dump;
+	act.sa_flags = SA_SIGINFO;
+	sigaction(sig, &act, &old);
 }
 
+static void uncatch_intr() { uncatch_sig(SIGINT, old_intr); }
+static void catch_intr() { catch_sig(SIGINT, old_intr); }
+static void uncatch_segv() { uncatch_sig(SIGSEGV, old_segv); }
+static void catch_segv() { catch_sig(SIGSEGV, old_segv); }
 
+void BC_Signals::set_catch_segv(bool v) {
+	if( v == trap_sigsegv ) return;
+	if( v ) catch_segv();
+	else uncatch_segv();
+	v = trap_sigsegv;
+}
+
+void BC_Signals::set_catch_intr(bool v) {
+	if( v == trap_sigintr ) return;
+	if( v ) catch_intr();
+	else uncatch_intr();
+	v = trap_sigintr;
+}
 
 typedef struct
 {
@@ -750,20 +770,22 @@ int BC_Signals::unset_buffer(void *ptr)
 #endif
 
 
-static void handle_segv(int n, siginfo_t * info, void *sc)
+static void handle_dump(int n, siginfo_t * info, void *sc)
 {
-	uncatch_segv();
+	uncatch_segv();  uncatch_intr();
 	ucontext_t *uc = (ucontext_t *)sc;
 	struct sigcontext *c = (struct sigcontext *)&uc->uc_mcontext;
 	int pid = getpid(), tid = gettid();
-	fprintf(stderr,"** segv at %p in pid %d, tid %d\n",
+	fprintf(stderr,"** %s at %p in pid %d, tid %d\n",
+		n==SIGSEGV? "segv" : n==SIGINT? "intr" : "trap",
 		(void*)c->IP, pid, tid);
 	char fn[256];
 	snprintf(fn, sizeof(fn), "/tmp/cinelerra_%d.dmp", pid);
 	FILE *fp = fopen(fn,"w");
 	if( fp ) {
 		fprintf(stderr,"writing debug data to %s\n", fn);
-		fprintf(fp,"** segv at %p in pid %d, tid %d\n",
+		fprintf(fp,"** %s at %p in pid %d, tid %d\n",
+			n==SIGSEGV? "segv" : n==SIGINT? "intr" : "trap",
 			(void*)c->IP, pid, tid);
 	}
 	else
@@ -772,12 +794,16 @@ static void handle_segv(int n, siginfo_t * info, void *sc)
 	BC_Signals::dump_traces(fp);
 	BC_Signals::dump_locks(fp);
 	BC_Signals::dump_buffers(fp);
-	if( fp != stdout ) { fclose(fp);  return; }
-	char cmd[1024];
-	sprintf(cmd, "exec /usr/bin/gdb /proc/%d/exe -p %d --batch --quiet "
+	if( fp != stdout ) fclose(fp);
+	char cmd[1024], *cp = cmd;
+	cp += sprintf(cp, "exec gdb /proc/%d/exe -p %d --batch --quiet "
 		"-ex \"thread apply all info registers\" "
 		"-ex \"thread apply all bt full\" "
-		"-ex \"quit\" >> %s 2>&1", pid, pid, fn);
+		"-ex \"quit\"", pid, pid);
+	if( fp != stdout )
+		cp += sprintf(cp," >> \"%s\"", fn);
+	cp += sprintf(cp," 2>&1");
+//printf("handle_dump:: pid=%d, cmd='%s'  fn='%s'\n",pid,cmd,fn);
         pid = vfork();
         if( pid < 0 ) {
 		fprintf(stderr,"** can't start gdb, dump abondoned\n");

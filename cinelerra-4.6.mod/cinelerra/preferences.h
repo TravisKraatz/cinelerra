@@ -84,6 +84,8 @@ public:
 	int index_count;
 // Use thumbnails in AWindow assets.
 	int use_thumbnails;
+	int trap_sigsegv;
+	int trap_sigintr;
 // Title of theme
 	char theme[BCTEXTLEN];
 	double render_preroll;

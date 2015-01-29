@@ -200,6 +200,9 @@ int PreferencesThread::apply_settings()
 	mwindow->preferences->copy_from(preferences);
 	mwindow->init_brender();
 
+	BC_Signals::set_catch_segv(mwindow->preferences->trap_sigsegv);
+	BC_Signals::set_catch_intr(mwindow->preferences->trap_sigintr);
+
 	if( preferences->file_forking )
 		MWindow::init_fileserver(mwindow->preferences);
 	else
@@ -288,6 +291,7 @@ int PreferencesThread::apply_settings()
 		mwindow->gui->flush();
 		mwindow->gui->unlock_window();
 	}
+
 	return 0;
 }
 

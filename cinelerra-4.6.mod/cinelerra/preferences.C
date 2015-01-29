@@ -74,6 +74,8 @@ Preferences::Preferences()
 	index_size = 0x300000;
 	index_count = 100;
 	use_thumbnails = 1;
+	trap_sigsegv = 0;
+	trap_sigintr = 0;
 	theme[0] = 0;
 	use_renderfarm = 0;
 	force_uniprocessor = 0;
@@ -171,6 +173,8 @@ void Preferences::copy_from(Preferences *that)
 
 	cache_size = that->cache_size;
 	force_uniprocessor = that->force_uniprocessor;
+	trap_sigsegv = that->trap_sigsegv;
+	trap_sigintr = that->trap_sigintr;
 	processors = that->processors;
 	real_processors = that->real_processors;
 	file_forking = that->file_forking;
@@ -286,6 +290,8 @@ int Preferences::load_defaults(BC_Hash *defaults)
 	index_size = defaults->get("INDEX_SIZE", index_size);
 	index_count = defaults->get("INDEX_COUNT", index_count);
 	use_thumbnails = defaults->get("USE_THUMBNAILS", use_thumbnails);
+	trap_sigsegv = defaults->get("TRAP_SIGSEGV", trap_sigsegv);
+	trap_sigintr = defaults->get("TRAP_SIGINTR", trap_sigintr);
 
 //	sprintf(global_plugin_dir, PLUGIN_DIR);
 //	defaults->get("GLOBAL_PLUGIN_DIR", global_plugin_dir);
@@ -385,6 +391,8 @@ int Preferences::save_defaults(BC_Hash *defaults)
 	defaults->update("INDEX_SIZE", index_size);
 	defaults->update("INDEX_COUNT", index_count);
 	defaults->update("USE_THUMBNAILS", use_thumbnails);
+	defaults->update("TRAP_SIGSEGV", trap_sigsegv);
+	defaults->update("TRAP_SIGINTR", trap_sigintr);
 //	defaults->update("GLOBAL_PLUGIN_DIR", global_plugin_dir);
 	defaults->update("THEME", theme);
 

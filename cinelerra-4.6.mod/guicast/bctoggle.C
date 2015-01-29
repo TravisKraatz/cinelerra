@@ -525,7 +525,8 @@ void BC_CheckBox::calculate_extents(BC_WindowBase *gui, int *w, int *h,
 
 int BC_CheckBox::handle_event()
 {
-	*value = get_value();
+	if( value ) 
+		*value = get_value();
 	return 1;
 }
 

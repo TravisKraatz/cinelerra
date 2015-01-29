@@ -819,6 +819,8 @@ void MWindow::init_preferences()
 	session->load_defaults(defaults);
 	// set x11_host, screens, window_config
 	screens = session->set_default_x11_host();
+	BC_Signals::set_catch_segv(preferences->trap_sigsegv);
+	BC_Signals::set_catch_intr(preferences->trap_sigintr);
 }
 
 void MWindow::clean_indexes()

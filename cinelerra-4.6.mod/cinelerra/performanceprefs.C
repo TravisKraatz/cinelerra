@@ -81,7 +81,6 @@ void PerformancePrefs::create_objects()
 		pwindow, 
 		this);
 	cache_size->create_objects();
-
 	y += 30;
 	add_subwindow(new BC_Title(x, y + 5, _("Seconds to preroll renders:")));
 	PrefsRenderPreroll *preroll = new PrefsRenderPreroll(pwindow, 
@@ -90,7 +89,15 @@ void PerformancePrefs::create_objects()
 		y);
 	preroll->create_objects();
 	y += 30;
-	add_subwindow(new PrefsForceUniprocessor(pwindow, x, y));
+	PrefsForceUniprocessor *force_1cpu = new PrefsForceUniprocessor(pwindow, x, y);
+	add_subwindow(force_1cpu);
+
+	int x1 = force_1cpu->get_x() + force_1cpu->get_w() + 50;
+	int y1 = force_1cpu->get_y();
+
+	add_subwindow(new PrefsTrapSigSEGV(pwindow, x1, y1));
+	y1 += 30;
+	add_subwindow(new PrefsTrapSigINTR(pwindow, x1, y1));
 	y += 30;
 	add_subwindow(new PrefsFileForking(pwindow, x, y));
 
@@ -487,6 +494,41 @@ int PrefsForceUniprocessor::handle_event()
 	pwindow->thread->preferences->force_uniprocessor = get_value();
 	return 1;
 }
+
+PrefsTrapSigSEGV::PrefsTrapSigSEGV(PreferencesWindow *pwindow, int x, int y)
+ : BC_CheckBox(x, 
+ 	y, 
+	pwindow->thread->preferences->trap_sigsegv,
+	_("trap sigSEGV"))
+{
+	this->pwindow = pwindow;
+}
+PrefsTrapSigSEGV::~PrefsTrapSigSEGV()
+{
+}
+int PrefsTrapSigSEGV::handle_event()
+{
+	pwindow->thread->preferences->trap_sigsegv = get_value();
+	return 1;
+}
+
+PrefsTrapSigINTR::PrefsTrapSigINTR(PreferencesWindow *pwindow, int x, int y)
+ : BC_CheckBox(x, 
+ 	y, 
+	pwindow->thread->preferences->trap_sigintr,
+	_("trap sigINT"))
+{
+	this->pwindow = pwindow;
+}
+PrefsTrapSigINTR::~PrefsTrapSigINTR()
+{
+}
+int PrefsTrapSigINTR::handle_event()
+{
+	pwindow->thread->preferences->trap_sigintr = get_value();
+	return 1;
+}
+
 
 PrefsFileForking::PrefsFileForking(PreferencesWindow *pwindow, int x, int y)
  : BC_CheckBox(x, 

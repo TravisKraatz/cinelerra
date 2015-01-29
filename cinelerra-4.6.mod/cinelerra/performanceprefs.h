@@ -121,9 +121,27 @@ class PrefsForceUniprocessor : public BC_CheckBox
 public:
 	PrefsForceUniprocessor(PreferencesWindow *pwindow, int x, int y);
 	~PrefsForceUniprocessor();
-	
 	int handle_event();
 	
+	PreferencesWindow *pwindow;
+};
+
+class PrefsTrapSigSEGV : public BC_CheckBox
+{
+public:
+	PrefsTrapSigSEGV(PreferencesWindow *pwindow, int x, int y);
+	~PrefsTrapSigSEGV();
+	int handle_event();
+	
+	PreferencesWindow *pwindow;
+};
+
+class PrefsTrapSigINTR : public BC_CheckBox
+{
+public:
+	PrefsTrapSigINTR(PreferencesWindow *pwindow, int x, int y);
+	~PrefsTrapSigINTR();
+	int handle_event();
 	
 	PreferencesWindow *pwindow;
 };

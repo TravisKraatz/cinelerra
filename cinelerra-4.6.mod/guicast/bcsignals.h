@@ -185,11 +185,14 @@ public:
 	static void dump_locks(FILE *fp=stdout);
 	static void dump_buffers(FILE *fp=stdout);
 	static void set_sighup_exit(int enable);
+	static void set_catch_segv(bool v);
+	static void set_catch_intr(bool v);
 
 // Convert signum to text
 	static const char* sig_to_str(int number);
 
 	static BC_Signals *global_signals;
+	static bool trap_sigsegv, trap_sigintr;
 };
 
 
