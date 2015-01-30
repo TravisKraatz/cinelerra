@@ -560,9 +560,9 @@ sync(int64_t pos)
     if( (access_type & io_THREADED) ) {
       if( pos ) {
         zerrs("threaded sync before buffer "_LD" < "_LD"\n", pos, start_pos);
-        src->restart();
-        file_nudge = pos;
-        result = 1;
+        int64_t mid_pos = start_pos + size/2;
+        file_nudge += mid_pos - pos;
+        pos = mid_pos;
       }
       else {
         restart(0);  /* allow fake seek to start */
