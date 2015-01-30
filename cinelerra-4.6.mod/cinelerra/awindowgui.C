@@ -339,7 +339,6 @@ AWindowGUI::~AWindowGUI()
 	atransitions.remove_all_objects();
 	vtransitions.remove_all_objects();
 	displayed_assets[1].remove_all_objects();
-	custom.remove_all_objects();
 	delete file_icon;
 	delete audio_icon;
 	delete video_icon;
@@ -595,12 +594,6 @@ int AWindowGUI::close_event()
 
 int AWindowGUI::get_custom_icon(PluginServer *plugin, BC_Pixmap **iconp, VFrame **vframep)
 {
-	for( int i=0; i<custom.size(); ++i ) {
-		if( custom[i]->plugin == plugin ) {
-			*iconp = custom[i]->icon;
-			if( vframep ) *vframep = custom[i]->vframe;
-		}
-	}
 	char png_path[BCTEXTLEN];
 	strncpy(&png_path[0], plugin->path, sizeof(png_path)-10);
 	char *sfx = strrchr(&png_path[0], '.');
@@ -612,12 +605,13 @@ int AWindowGUI::get_custom_icon(PluginServer *plugin, BC_Pixmap **iconp, VFrame 
 	if( !S_ISREG(st.st_mode) ) return 1;
 	if( st.st_size == 0 ) return 1;
 	VFrame *vframe = 0;
-	int len = st.st_size, ret = 0, w = 0, h = 0;  unsigned n = len;
-	uint8_t *bfr = new uint8_t[sizeof(n)+len], *bp = bfr;
-	for( int i=sizeof(n); --i>=0; ++bp,n>>=8 ) *bp = n;
+	int ret = 0, w = 0, h = 0;
+	unsigned n = st.st_size;
+	uint8_t *bfr = new uint8_t[sizeof(n)+n], *bp = bfr;
+	for( int i=sizeof(n); --i>=0; ++bp ) *bp = n>>(8*i);
 	int fd = open(png_path, O_RDONLY);
 	if( fd < 0 ) ret = 1;
-	if( !ret && read(fd, bp, len) != len ) ret = 1;
+	if( !ret && read(fd, bp, n) != n ) ret = 1;
 	if( !ret ) {
 		vframe = new VFrame(bfr);
 		if( (w=vframe->get_w()) <= 0 ||
@@ -630,7 +624,6 @@ int AWindowGUI::get_custom_icon(PluginServer *plugin, BC_Pixmap **iconp, VFrame 
 	       	icon->draw_vframe(vframe, 0,0, w,h, 0,0);
 		*iconp = icon;
 		if( vframep ) *vframep = vframe;
-		custom.append(new AWindowImage(plugin, icon, vframe));
 	}
 	delete [] bfr;
 	return ret;

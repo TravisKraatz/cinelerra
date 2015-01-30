@@ -116,18 +116,6 @@ public:
 	~AWindowRemovePlugin();
 };
 
-class AWindowImage {
-public:
-	PluginServer *plugin;
-	VFrame *vframe;
-	BC_Pixmap *icon;
-
-	AWindowImage(PluginServer *p, BC_Pixmap *i, VFrame *v) {
-		plugin = p;  vframe = v;  icon = i;
-	}
-	~AWindowImage() {}
-};
-
 class AWindowGUI : public BC_Window
 {
 public:
@@ -209,8 +197,6 @@ public:
 	FolderListMenu *folderlist_menu;
 // Temporary for reading picons from files
 	VFrame *temp_picon;
-// custom plugin icon data
-	ArrayList<AWindowImage*> custom;
 
 	AWindowRemovePlugin *remove_plugin;
 private:

@@ -77,8 +77,13 @@ extern "C" {
 #define ZMIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef isizeof
 #define isizeof(x) ((int)sizeof(x))
+#endif
+#ifndef lengthof
 #define lengthof(x) ((int)(sizeof(x)/sizeof(x[0])))
+#endif
+
 #define zlikely(x)   __builtin_expect((x),1)
 #define zunlikely(x) __builtin_expect((x),0)
 
