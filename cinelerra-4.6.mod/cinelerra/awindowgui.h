@@ -23,6 +23,7 @@
 #define AWINDOWGUI_H
 
 #include "arraylist.h"
+#include "bcdialog.h"
 #include "assetpopup.inc"
 #include "asset.inc"
 #include "assets.inc"
@@ -84,6 +85,48 @@ public:
 	PluginServer *plugin;
 };
 
+class AWindowRemovePlugin;
+
+class AWindowRemovePluginGUI : public BC_Window {
+public:
+	AWindow *awindow;
+	AWindowRemovePlugin *thread;
+	PluginServer *plugin;
+	ArrayList<BC_ListBoxItem*> plugin_list;
+	BC_Pixmap *icon;
+	VFrame *icon_vframe;
+	BC_ListBox *list;
+
+	void create_objects();
+
+	AWindowRemovePluginGUI(AWindow *awindow, AWindowRemovePlugin *thread,
+		 int x, int y, PluginServer *plugin);
+	~AWindowRemovePluginGUI();
+};
+
+class AWindowRemovePlugin : public BC_DialogThread {
+public:
+	AWindow *awindow;
+	PluginServer *plugin;
+	BC_Window* new_gui();
+	void handle_close_event(int result);
+	int remove_plugin(PluginServer *plugin, ArrayList<BC_ListBoxItem*> &folder);
+
+	AWindowRemovePlugin(AWindow *awindow, PluginServer *plugin);
+	~AWindowRemovePlugin();
+};
+
+class AWindowImage {
+public:
+	PluginServer *plugin;
+	VFrame *vframe;
+	BC_Pixmap *icon;
+
+	AWindowImage(PluginServer *p, BC_Pixmap *i, VFrame *v) {
+		plugin = p;  vframe = v;  icon = i;
+	}
+	~AWindowImage() {}
+};
 
 class AWindowGUI : public BC_Window
 {
@@ -119,6 +162,11 @@ public:
 	Indexable* selected_asset();
 	PluginServer* selected_plugin();
 	AssetPicon* selected_folder();
+	bool protected_pixmap(BC_Pixmap *pixmap);
+
+	int get_custom_icon(PluginServer *plugin, BC_Pixmap **iconp, VFrame **vframep);
+	int get_plugin_icon(PluginServer *plugin, BC_Pixmap **iconp, VFrame **vframep);
+	int get_plugin_images(PluginServer *plugin, BC_Pixmap **iconp, VFrame **vframep);
 
 	MWindow *mwindow;
 	AWindow *awindow;
@@ -161,7 +209,10 @@ public:
 	FolderListMenu *folderlist_menu;
 // Temporary for reading picons from files
 	VFrame *temp_picon;
+// custom plugin icon data
+	ArrayList<AWindowImage*> custom;
 
+	AWindowRemovePlugin *remove_plugin;
 private:
 	void update_folder_list();
 	void update_asset_list();

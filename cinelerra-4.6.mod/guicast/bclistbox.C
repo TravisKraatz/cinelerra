@@ -4128,6 +4128,7 @@ int BC_ListBox::keypress_event()
 			result = 1;
 			break;
 
+		case DELETE:
 		case HOME:
 		case END:
 			result = 0;

@@ -38,6 +38,7 @@
 #include "file.h"
 #include "filesystem.h"
 #include "indexable.h"
+#include "keys.h"
 #include "language.h"
 #include "localsession.h"
 #include "mainmenu.h"
@@ -52,7 +53,10 @@
 #include "vwindowgui.h"
 #include "vwindow.h"
 
-
+#include<stdio.h>
+#include<unistd.h>
+#include<fcntl.h>
+#include<sys/stat.h>
 
 
 AssetPicon::AssetPicon(MWindow *mwindow, 
@@ -102,25 +106,14 @@ AssetPicon::AssetPicon(MWindow *mwindow,
 	this->plugin = plugin;
 }
 
+
 AssetPicon::~AssetPicon()
 {
 	if(indexable) indexable->remove_user();
 	if(edl) edl->remove_user();
-	if(icon)
-	{
-		if(icon != gui->file_icon &&
-			icon != gui->audio_icon &&
-			icon != gui->folder_icon &&
-			icon != gui->clip_icon &&
-			icon != gui->video_icon &&
-			icon != gui->veffect_icon &&
-			icon != gui->vtransition_icon &&
-			icon != gui->aeffect_icon &&
-			icon != gui->atransition_icon) 
-		{
-			delete icon;
-			delete icon_vframe;
-		}
+	if( icon && !gui->protected_pixmap(icon) ) {
+		delete icon;
+		delete icon_vframe;
 	}
 }
 
@@ -288,65 +281,7 @@ void AssetPicon::create_objects()
 	{
 		strcpy(name, _(plugin->title));
 		set_text(name);
-		if(plugin->picon)
-		{
-			if(plugin->picon->get_color_model() == BC_RGB888)
-			{
-				icon = new BC_Pixmap(gui, 
-					plugin->picon->get_w(), 
-					plugin->picon->get_h());
-				icon->draw_vframe(plugin->picon,
-					0,
-					0,
-					plugin->picon->get_w(), 
-					plugin->picon->get_h(),
-					0,
-					0);
-			}
-			else
-			{
-				icon = new BC_Pixmap(gui, 
-					plugin->picon, 
-					PIXMAP_ALPHA);
-			}
-			icon_vframe = new VFrame(*plugin->picon);
-		}
-		else
-		if(plugin->audio)
-		{
-			if(plugin->transition)
-			{
-				icon = gui->atransition_icon;
-				icon_vframe = mwindow->theme->get_image("atransition_icon");
-			}
-			else
-			{
-				icon = gui->aeffect_icon;
-				icon_vframe = mwindow->theme->get_image("aeffect_icon");
-			}
-		}
-		else
-		if(plugin->video)
-		{
-			if(plugin->transition)
-			{
-				icon = gui->vtransition_icon;
-				icon_vframe = mwindow->theme->get_image("vtransition_icon");
-			}
-			else
-			{
-				icon = gui->veffect_icon;
-				icon_vframe = mwindow->theme->get_image("veffect_icon");
-			}
-		}
-
-
-		if(!icon)
-		{		
-			icon = gui->file_icon;
-			icon_vframe = BC_WindowBase::get_resources()->type_to_icon[ICON_UNKNOWN];
-		}
-
+		gui->get_plugin_images(plugin, &icon, &icon_vframe);
 		set_icon(icon);
 		set_icon_vframe(icon_vframe);
 	}
@@ -392,6 +327,7 @@ AWindowGUI::AWindowGUI(MWindow *mwindow, AWindow *awindow)
 	assetlist_menu = 0;
 	folderlist_menu = 0;
 	temp_picon = 0;
+	remove_plugin = 0;
 }
 
 AWindowGUI::~AWindowGUI()
@@ -403,6 +339,7 @@ AWindowGUI::~AWindowGUI()
 	atransitions.remove_all_objects();
 	vtransitions.remove_all_objects();
 	displayed_assets[1].remove_all_objects();
+	custom.remove_all_objects();
 	delete file_icon;
 	delete audio_icon;
 	delete video_icon;
@@ -417,6 +354,20 @@ AWindowGUI::~AWindowGUI()
 	delete assetlist_menu;
 	delete folderlist_menu;
 	if(temp_picon) delete temp_picon;
+	delete remove_plugin;
+}
+
+bool AWindowGUI::protected_pixmap(BC_Pixmap *icon)
+{
+	return  icon == file_icon ||
+		icon == audio_icon ||
+		icon == folder_icon ||
+		icon == clip_icon ||
+		icon == video_icon ||
+		icon == veffect_icon ||
+		icon == vtransition_icon ||
+		icon == aeffect_icon ||
+		icon == atransition_icon; 
 }
 
 void AWindowGUI::create_objects()
@@ -642,19 +593,207 @@ int AWindowGUI::close_event()
 	return 1;
 }
 
+int AWindowGUI::get_custom_icon(PluginServer *plugin, BC_Pixmap **iconp, VFrame **vframep)
+{
+	for( int i=0; i<custom.size(); ++i ) {
+		if( custom[i]->plugin == plugin ) {
+			*iconp = custom[i]->icon;
+			if( vframep ) *vframep = custom[i]->vframe;
+		}
+	}
+	char png_path[BCTEXTLEN];
+	strncpy(&png_path[0], plugin->path, sizeof(png_path)-10);
+	char *sfx = strrchr(&png_path[0], '.');
+	if( !sfx ) return 1;
+	if( strcmp(sfx, ".plugin") && strcmp(sfx,".so") ) return 1;
+	strcpy(sfx, ".png");
+	struct stat st;
+	if( stat(png_path, &st) ) return 1;
+	if( !S_ISREG(st.st_mode) ) return 1;
+	if( st.st_size == 0 ) return 1;
+	VFrame *vframe = 0;
+	int len = st.st_size, ret = 0, w = 0, h = 0;  unsigned n = len;
+	uint8_t *bfr = new uint8_t[sizeof(n)+len], *bp = bfr;
+	for( int i=sizeof(n); --i>=0; ++bp,n>>=8 ) *bp = n;
+	int fd = open(png_path, O_RDONLY);
+	if( fd < 0 ) ret = 1;
+	if( !ret && read(fd, bp, len) != len ) ret = 1;
+	if( !ret ) {
+		vframe = new VFrame(bfr);
+		if( (w=vframe->get_w()) <= 0 ||
+		    (h=vframe->get_h()) <= 0 ||
+		    vframe->get_data() == 0 ) ret = 1;
+		if( ret ) delete vframe;
+	}
+	if( !ret ) {
+		BC_Pixmap *icon = new BC_Pixmap(this, w, h);
+	       	icon->draw_vframe(vframe, 0,0, w,h, 0,0);
+		*iconp = icon;
+		if( vframep ) *vframep = vframe;
+		custom.append(new AWindowImage(plugin, icon, vframe));
+	}
+	delete [] bfr;
+	return ret;
+}
+
+int AWindowGUI::get_plugin_icon(PluginServer *plugin, BC_Pixmap **iconp, VFrame **vframep)
+{
+	BC_Pixmap *icon = 0;
+	VFrame *vframe = 0;
+	VFrame *picon = plugin->picon;
+	if( picon ) {
+		int w = picon->get_w(), h = picon->get_h();
+		if( picon->get_color_model() == BC_RGB888) {
+			icon = new BC_Pixmap(this, w, h);
+			icon->draw_vframe(picon, 0,0, w,h, 0,0);
+		}
+		else
+			icon = new BC_Pixmap(this, picon, PIXMAP_ALPHA);
+		if( vframep )
+			vframe = new VFrame(*picon);
+	}
+	else if( plugin->audio ) {
+		icon = plugin->transition ? atransition_icon : aeffect_icon;
+		if( vframep ) vframe = mwindow->theme->get_image(
+			 plugin->transition ? "atransition_icon" : "aeffect_icon");
+	}
+	else if( plugin->video ) {
+		icon = plugin->transition ? vtransition_icon : veffect_icon;
+		if( vframep ) vframe = mwindow->theme->get_image(
+			 plugin->transition ? "vtransition_icon" : "veffect_icon");
+	}
+	else {
+		icon = file_icon;
+		if( vframep )
+			vframe = BC_WindowBase::get_resources()->type_to_icon[ICON_UNKNOWN];
+	}
+	*iconp = icon;
+	if( vframep )
+		*vframep = vframe;
+	return 0;
+}
+
+int AWindowGUI::get_plugin_images(PluginServer *plugin, BC_Pixmap **iconp, VFrame **vframep)
+{
+	if( !get_custom_icon(plugin, iconp, vframep) ) return 0;
+	if( !get_plugin_icon(plugin, iconp, vframep) ) return 0;
+	return 1;
+}
+
+AWindowRemovePluginGUI::
+AWindowRemovePluginGUI(AWindow *awindow, AWindowRemovePlugin *thread,
+	int x, int y, PluginServer *plugin)
+ : BC_Window(PROGRAM_NAME ": Remove plugin", x,y, 500,200, 50, 50, 1, 0, 1, -1, "", 1)
+{
+	this->awindow = awindow;
+	this->thread = thread;
+	this->plugin = plugin;
+	awindow->gui->get_plugin_images(plugin, &icon, 0);
+	plugin_list.append(new BC_ListBoxItem(plugin->title, icon));
+}
+
+AWindowRemovePluginGUI::
+~AWindowRemovePluginGUI()
+{
+	if( !awindow->gui->protected_pixmap(icon) )
+		delete icon;
+	plugin_list.remove_all();
+}
+
+void AWindowRemovePluginGUI::create_objects()
+{
+	BC_Button *ok_button = new BC_OKButton(this);
+	add_subwindow(ok_button);
+	BC_Button *cancel_button = new BC_CancelButton(this);
+	add_subwindow(cancel_button);
+	int x = 10, y = 10;
+	BC_Title *title = new BC_Title(x, y, _("remove plugin?"));
+	add_subwindow(title);
+	y += title->get_h() + 5;
+	list = new BC_ListBox(x, y,
+                get_w() - 20, ok_button->get_y() - y - 5, LISTBOX_TEXT, &plugin_list,
+                0, 0, 1, 0, 0, LISTBOX_SINGLE, ICON_LEFT, 0);
+	add_subwindow(list);
+	show_window();
+}
+
+int AWindowRemovePlugin::remove_plugin(PluginServer *plugin, ArrayList<BC_ListBoxItem*> &folder)
+{
+	int ret = 0;
+	for( int i=0; i<folder.size(); ) {
+		AssetPicon *picon = (AssetPicon *)folder[i];
+		if( picon->plugin == plugin ) {
+			folder.remove_number(i);
+			delete picon;  ++ret;
+			continue;
+		}
+		++i;
+	}
+	return ret;
+}
+
+void AWindowRemovePlugin::handle_close_event(int result)
+{
+	if( !result ) {
+		printf("remove %s\n", plugin->path);
+		remove(plugin->path);
+		awindow->mwindow->plugindb->remove(plugin);
+		if( plugin->audio ) {
+			if( plugin->transition )
+				remove_plugin(plugin, awindow->gui->atransitions);
+			else
+				remove_plugin(plugin, awindow->gui->aeffects);
+		}
+		else if( plugin->video ) {
+			if( plugin->transition )
+				remove_plugin(plugin, awindow->gui->vtransitions);
+			else
+				remove_plugin(plugin, awindow->gui->veffects);
+		}
+		awindow->gui->update_assets();
+	}
+}
+
+AWindowRemovePlugin::
+AWindowRemovePlugin(AWindow *awindow, PluginServer *plugin)
+ : BC_DialogThread()
+{
+	this->awindow = awindow;
+	this->plugin = plugin;
+}
+
+AWindowRemovePlugin::
+~AWindowRemovePlugin()
+{
+}
+
+BC_Window* AWindowRemovePlugin::new_gui()
+{
+	int x = awindow->gui->get_abs_cursor_x(0);
+	int y = awindow->gui->get_abs_cursor_y(0);
+	AWindowRemovePluginGUI *gui = new AWindowRemovePluginGUI(awindow, this, x, y, plugin);
+	gui->create_objects();
+	return gui;
+}
 
 int AWindowGUI::keypress_event()
 {
-	switch(get_keypress())
-	{
-		case 'w':
-		case 'W':
-			if(ctrl_down())
-			{
-				close_event();
-				return 1;
-			}
-			break;
+	switch(get_keypress()) {
+	case 'w': case 'W':
+		if(ctrl_down()) {
+			close_event();
+			return 1;
+		}
+		break;
+	case DELETE:
+		if(shift_down()) {
+			PluginServer* plugin = selected_plugin();
+			if( !plugin ) break;
+			remove_plugin = new AWindowRemovePlugin(awindow, plugin);
+			unlock_window();
+			remove_plugin->start();
+			lock_window();
+		}
 	}
 	return 0;
 }
