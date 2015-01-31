@@ -121,6 +121,10 @@ int BC_MenuBar::add_menu(BC_Menu* menu)
 
 int BC_MenuBar::focus_out_event()
 {
+	for(int i = 0; i < menu_titles.total; i++) {
+		if( menu_titles.values[i]->active )
+			return 0;
+	}
 	deactivate();
 	return 0;
 }
