@@ -117,11 +117,12 @@ static int pretab2[22] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
  */
 
 #define BITSHIFT ((int)(sizeof(int32_t)-1) * 8)
-#define REFRESH_MASK while(num < BITSHIFT) { \
-  mask |= stream->get_bits(8) << (BITSHIFT - num); \
-  num += 8; \
-  part2remain -= 8; \
-}
+#define REFRESH_MASK if( num < BITSHIFT ) { \
+  if( -part2remain >= num ) break; \
+  do { \
+    mask |= stream->get_bits(8) << (BITSHIFT-num); \
+    num += 8; part2remain -= 8; \
+} while( num < BITSHIFT ); }
 
 int zaudio_decoder_layer_t::
 dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
@@ -222,6 +223,7 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
         }
         else if( x != 0 ) {
           max[lwin] = cb;
+          if( -part2remain >= num ) break;
           vv = ispow[x]*v;
           *xrpnt = mask < 0 ? -vv : vv;
           --num;
@@ -243,6 +245,7 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
         }
         else if( y != 0 ) {
           max[lwin] = cb;
+          if( -part2remain >= num ) break;
           vv = ispow[y]*v;
           *xrpnt = mask < 0 ? -vv : vv;
           --num;
@@ -254,7 +257,7 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
       }
     }
 
-    for( ;l3 && (part2remain + num > 0); l3--) {
+    for( ;l3 && -part2remain < num; l3--) {
       huffman_t *h = htc + l3_info->count1table_select;
       val = h->table;
 
@@ -263,10 +266,6 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
         if( mask < 0 ) val -= a;
         --num;
         mask <<= 1;
-      }
-      if( part2remain + num <= 0 ) {
-        num -= part2remain + num;
-        break;
       }
 
       for( i=0; i<4; ++i ) {
@@ -289,7 +288,7 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
         }
         if( (a & (0x8 >> i)) ) {
           max[lwin] = cb;
-          if(part2remain + num <= 0) break;
+          if( -part2remain >= num ) break;
           *xrpnt = mask < 0 ?  -v : v;
           --num;
           mask <<= 1;
@@ -369,6 +368,7 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
         }
         else if( x ) {
           max = cb;
+          if( -part2remain >= num ) break;
           vv = ispow[x]*v;
           *xrpnt++ = mask < 0 ? -vv : vv;
           --num;
@@ -389,6 +389,7 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
         }
         else if( y != 0 ) {
           max = cb;
+          if( -part2remain >= num ) break;
           vv = ispow[y]*v;
           *xrpnt++ = mask < 0 ? -vv : vv;
           --num;
@@ -400,7 +401,7 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
     }
 
     /* short (count1table) values */
-    for( ; l3 && num > -part2remain; l3-- ) {
+    for( ; l3 && -part2remain < num; l3-- ) {
       huffman_t *h = htc + l3_info->count1table_select;
       val = h->table;
       REFRESH_MASK;
@@ -408,10 +409,6 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
         if( mask < 0 ) val -= a;
         --num;
         mask <<= 1;
-      }
-      if( num <= -part2remain ) {
-        num = -part2remain;
-        break;
       }
 
       for( i=0; i<4; ++i ) {
@@ -426,7 +423,7 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
         }
         if( (a & (0x8 >> i)) ) {
           max = cb;
-          if( part2remain + num <= 0 ) break;
+          if( -part2remain >= num ) break;
           *xrpnt++ = mask < 0 ? -v : v;
           --num;
           mask <<= 1;
@@ -440,14 +437,14 @@ dequantize_sample(float xr[SBLIMIT][SSLIMIT], int *scf,
     l3_info->maxb = longLimit[sfreq][l3_info->maxbandl];
   }
 
-  part2remain += num;
+  while( xrpnt < &xr[SBLIMIT][0] ) *xrpnt++ = 0.0;
 
+  part2remain += num;
   stream->start_reverse();
   stream->get_bits_reverse(num);
   stream->start_forward();
+
 //zmsgs("3 %d %04x\n", stream->bit_number, stream->show_bits(16));
-  num = 0;
-  while( xrpnt < &xr[SBLIMIT][0] ) *xrpnt++ = 0.0;
   while( part2remain > 16 ) {
     stream->get_bits(16); /* Dismiss stuffing Bits */
     part2remain -= 16;
