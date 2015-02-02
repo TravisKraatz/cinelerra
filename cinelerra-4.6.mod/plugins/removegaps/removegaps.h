@@ -92,6 +92,7 @@ class RemoveGaps : public PluginAClient
 public:
 	RemoveGaps(PluginServer *server);
 	~RemoveGaps();
+	VFrame *new_picon();
 
 	PLUGIN_CLASS_MEMBERS2(RemoveGapsConfig)
 

@@ -41,7 +41,6 @@
 
 
 
-
 class VideoScopeEffect;
 class VideoScopeEngine;
 class VideoScopeWindow;
@@ -103,6 +102,7 @@ class VideoScopeEffect : public PluginVClient
 public:
 	VideoScopeEffect(PluginServer *server);
 	~VideoScopeEffect();
+	VFrame *new_picon();
 
 
 	PLUGIN_CLASS_MEMBERS2(VideoScopeConfig)
@@ -120,6 +120,9 @@ public:
 
 
 
+
+#include "picon_png.h"
+NEW_PICON_MACRO(VideoScopeEffect)
 
 
 

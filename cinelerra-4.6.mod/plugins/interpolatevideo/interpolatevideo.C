@@ -33,6 +33,9 @@
 
 
 
+#include "picon_png.h"
+NEW_PICON_MACRO(InterpolateVideo)
+
 
 
 
@@ -74,8 +77,6 @@ int InterpolateVideoConfig::equivalent(InterpolateVideoConfig *config)
 
 
 REGISTER_PLUGIN(InterpolateVideo)
-
-
 
 
 

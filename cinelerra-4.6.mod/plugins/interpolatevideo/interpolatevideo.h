@@ -75,6 +75,7 @@ class InterpolateVideo : public PluginVClient
 public:
 	InterpolateVideo(PluginServer *server);
 	~InterpolateVideo();
+	VFrame *new_picon();
 
 	PLUGIN_CLASS_MEMBERS2(InterpolateVideoConfig)
 

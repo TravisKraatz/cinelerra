@@ -66,6 +66,8 @@
 REGISTER_PLUGIN(Vocoder)
 
 
+#include "picon_png.h"
+NEW_PICON_MACRO(Vocoder)
 
 
 //#define USE_BANDWIDTH

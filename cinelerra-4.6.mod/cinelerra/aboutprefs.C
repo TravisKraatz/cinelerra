@@ -124,6 +124,7 @@ void AboutPrefs::create_objects()
 	credits.append(new BC_ListBoxItem("Paolo Rampino"));
 	credits.append(new BC_ListBoxItem("Petter Reinholdtsen"));
 	credits.append(new BC_ListBoxItem("Nicola Ferralis"));
+	credits.append(new BC_ListBoxItem("Michael Collins"));
 
 	BC_ListBox *listbox;
 	add_subwindow(listbox = new BC_ListBox(x, 

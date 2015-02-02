@@ -40,6 +40,9 @@
 
 REGISTER_PLUGIN(EchoCancel)
 
+#include "picon_png.h"
+NEW_PICON_MACRO(EchoCancel)
+
 EchoCancelConfig::EchoCancelConfig()
 {
 	level = 0.0;

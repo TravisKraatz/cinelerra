@@ -41,6 +41,8 @@
 
 REGISTER_PLUGIN(RemoveGaps);
 
+#include "picon_png.h"
+NEW_PICON_MACRO(RemoveGaps)
 
 
 RemoveGapsConfig::RemoveGapsConfig()

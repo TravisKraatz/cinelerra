@@ -105,6 +105,7 @@ class OverlayAudio : public PluginAClient
 public:
 	OverlayAudio(PluginServer *server);
 	~OverlayAudio();
+	VFrame *new_picon();
 
 	int is_multichannel();
 	int is_realtime();
@@ -122,6 +123,8 @@ public:
 
 
 
+#include "picon_png.h"
+NEW_PICON_MACRO(OverlayAudio)
 
 
 

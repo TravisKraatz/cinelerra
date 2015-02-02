@@ -273,6 +273,7 @@ class Spectrogram : public PluginAClient
 public:
 	Spectrogram(PluginServer *server);
 	~Spectrogram();
+	VFrame *new_picon();
 	
 	PLUGIN_CLASS_MEMBERS2(SpectrogramConfig)
 	int is_realtime();

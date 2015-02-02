@@ -40,6 +40,9 @@
 
 REGISTER_PLUGIN(Spectrogram)
 
+#include "picon_png.h"
+NEW_PICON_MACRO(Spectrogram)
+
 #define HALF_WINDOW (config.window_size / 2)
 
 SpectrogramConfig::SpectrogramConfig()

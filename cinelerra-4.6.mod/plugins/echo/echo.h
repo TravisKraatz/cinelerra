@@ -155,6 +155,7 @@ public:
 
 	Echo(PluginServer *server);
 	~Echo();
+	VFrame *new_picon();
 	
 	PLUGIN_CLASS_MEMBERS2(EchoConfig)
 	int is_realtime();

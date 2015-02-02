@@ -39,6 +39,9 @@
 
 REGISTER_PLUGIN(Echo)
 
+#include "picon_png.h"
+NEW_PICON_MACRO(Echo)
+
 EchoConfig::EchoConfig()
 {
 	level = 0.0;

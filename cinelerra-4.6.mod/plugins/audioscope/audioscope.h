@@ -250,6 +250,7 @@ class AudioScope : public PluginAClient
 public:
 	AudioScope(PluginServer *server);
 	~AudioScope();
+	VFrame *new_picon();
 	
 	PLUGIN_CLASS_MEMBERS2(AudioScopeConfig)
 	int is_realtime();
