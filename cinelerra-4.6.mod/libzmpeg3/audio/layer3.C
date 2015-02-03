@@ -747,15 +747,15 @@ do_layer3(uint8_t *zframe, int zframe_size, float **zoutput, int render)
   zframe_size -= 4;
 
   /* flip/init buffer */
-  bsbuf_old = bsbuf;
-  bsbuf = bsspace[bsnum] + 512;
+  bsbuf = &bsspace[bsnum][512];
   bsnum ^= 1;
   /* Copy frame into history buffer */
   memcpy(bsbuf, zframe, zframe_size);
 //zmsgs(" %d %02x%02x%02x%02x\n", first_frame, 
 // (uint8_t)bsbuf[0], (uint8_t)bsbuf[1], (uint8_t)bsbuf[2], (uint8_t)bsbuf[3]);
 
-
+  int prev_len = -1;
+  uint8_t *ptr = 0;
   if( !first_frame ) {
     /* Set up bitstream to use buffer */
     stream->use_ptr(bsbuf);
@@ -787,12 +787,16 @@ do_layer3(uint8_t *zframe, int zframe_size, float **zoutput, int render)
     /* Step back */
     if( sideinfo.main_data_begin >= 512 ) return output_offset;
     if( sideinfo.main_data_begin ) {
+      prev_len = sideinfo.main_data_begin;
+      uint8_t *prev = prev_bsbuf + prev_framesize - prev_len;
 //zmsgs(" 7 %ld %d %ld\n", ssize, sideinfo.main_data_begin, prev_framesize);
-      memcpy(bsbuf + ssize - sideinfo.main_data_begin, 
-        bsbuf_old + prev_framesize - sideinfo.main_data_begin, 
-        sideinfo.main_data_begin);
-      stream->use_ptr(bsbuf + ssize - sideinfo.main_data_begin);
+      ptr = bsbuf + ssize - prev_len;
+      memcpy(ptr, prev, prev_len);
+      past_framesize += prev_framesize;
     }
+  }
+  if( ptr && past_framesize >= prev_len ) {
+    stream->use_ptr(ptr);
     for( gr=0; gr<granules; ++gr ) {
       float hybridIn [2][SBLIMIT][SSLIMIT];
       float hybridOut[2][SSLIMIT][SBLIMIT];
@@ -886,11 +890,10 @@ do_layer3(uint8_t *zframe, int zframe_size, float **zoutput, int render)
       output_offset += 32 * SSLIMIT;
     }
   }
-  else {
-    first_frame = 0;
-  }
 
 //zmsg(" 12\n");
+  first_frame = 0;
+  prev_bsbuf = bsbuf;
   prev_framesize = zframe_size;
   return output_offset;
 }
@@ -900,8 +903,10 @@ layer_reset()
 {
 //zmsg("1\n");
   first_frame = 1;
+  past_framesize = 0;
   bsnum = 0;
-  bsbuf = bsspace[1] + 512;
+  bsbuf = &bsspace[1][512];
+  prev_bsbuf = 0;
 /*  prev_framesize = 0; */
 /*  memset(bsspace, 0, sizeof(bsspace)); */
   memset(mp3_block, 0, sizeof(mp3_block));
@@ -1053,11 +1058,11 @@ layer3_header(uint8_t *data)
 zaudio_decoder_layer_t::
 audio_decoder_layer_t()
 {
-  bsbuf = bsspace[1] + 512;
   bo = 1;
   channels = -1;
   stream = new bits_t(0, 0);
   init_decode_tables();
+  layer_reset();
 }
 
 zaudio_decoder_layer_t::

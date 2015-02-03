@@ -1043,12 +1043,12 @@ public:
       new_memset(0);
       bits_t *stream;
       // Layer 3
-      uint8_t *bsbuf, *bsbuf_old;
+      uint8_t *bsbuf, *prev_bsbuf;
       uint8_t bsspace[2][MAXFRAMESIZE + 512]; // MAXFRAMESIZE
       int bsnum;
       // For mp3 current framesize without header.  For AC3 current framesize with header.
       long framesize;
-      long prev_framesize;
+      long prev_framesize, past_framesize;
       int channels;
       int samplerate;
       int single;
