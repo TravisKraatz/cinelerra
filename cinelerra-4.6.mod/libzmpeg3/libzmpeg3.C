@@ -445,19 +445,20 @@ check_sig(char *path)
       result = 1;
   
       /* Test file extension. */
-      if( ext ) {
-        if( strncasecmp(ext, ".ifo", 4) && 
-            strncasecmp(ext, ".mp2", 4) && 
-            strncasecmp(ext, ".mp3", 4) &&
-            strncasecmp(ext, ".m1v", 4) &&
-            strncasecmp(ext, ".m2v", 4) &&
-            strncasecmp(ext, ".m2s", 4) &&
-            strncasecmp(ext, ".mpg", 4) &&
-            strncasecmp(ext, ".vob", 4) &&
-            strncasecmp(ext, ".ts", 4) &&
-            strncasecmp(ext, ".vts", 4) &&
-            strncasecmp(ext, ".mpeg", 4) &&
-            strncasecmp(ext, ".ac3", 4) )
+      if( ext ) {  ++ext;
+        if( strcasecmp(ext, "ifo") && 
+            strcasecmp(ext, "mp2") && 
+            strcasecmp(ext, "mp3") &&
+            strcasecmp(ext, "m1v") &&
+            strcasecmp(ext, "m2v") &&
+            strcasecmp(ext, "m2s") &&
+            strcasecmp(ext, "mpg") &&
+            strcasecmp(ext, "vob") &&
+            strcasecmp(ext, "ts") &&
+            strcasecmp(ext, "vts") &&
+            strcasecmp(ext, "mpeg") &&
+            strcasecmp(ext, "m2t") &&
+            strcasecmp(ext, "ac3") )
           result = 0;
       }
     }

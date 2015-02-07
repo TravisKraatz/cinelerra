@@ -98,7 +98,7 @@ static int z601[256];
 #define STORE_RGBA16161616_R(v) rgb_s[0] = clip((v) >> 8, -32768, 32767)
 #define STORE_RGBA16161616_G(v) rgb_s[1] = clip((v) >> 8, -32768, 32767)
 #define STORE_RGBA16161616_B(v) rgb_s[2] = clip((v) >> 8, -32768, 32767)
-#define STORE_RGBA16161616_A(v) rgb_s[3] = 32867;  rgb_s += 4
+#define STORE_RGBA16161616_A(v) rgb_s[3] = 32767;  rgb_s += 4
 
 
 /* YUV output */
