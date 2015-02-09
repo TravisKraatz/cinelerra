@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef BCRESOURCES_H
@@ -31,6 +31,7 @@
 
 #include "bcdisplayinfo.inc"
 #include "bcfilebox.h"
+#include "bcfontentry.inc"
 #include "bcresources.inc"
 #include "bcsignals.inc"
 #include "bcsynchronous.inc"
@@ -57,7 +58,7 @@ public:
 	BC_Resources(); // The window parameter is used to get the display information initially
 	~BC_Resources();
 
-	friend class BC_WindowBase;
+        friend class BC_WindowBase;
 
 	int initialize_display(BC_WindowBase *window);
 
@@ -101,11 +102,12 @@ public:
 
 
 // beveled box colors
-	int button_light;      
+	int button_light;
 	int button_highlighted;
-	int button_down;       
-	int button_up;         
-	int button_shadow;     
+	int button_down;
+	int button_up;
+	int button_shadow;
+	int button_uphighlighted;
 
 // highlighting
 	int highlight_inverse;
@@ -142,6 +144,8 @@ public:
 	int progress_text;
 
 
+	int menu_highlighted_fontcolor;
+
 // ms for double click
 	long double_click;
 // ms for cursor flash
@@ -153,13 +157,15 @@ public:
 	int tooltip_bg_color;
 	int tooltips_enabled;
 
+	int audiovideo_color;
+
 // default color of text
-	int text_default;      
+	int text_default;
 // background color of textboxes and list boxes
 	int text_border1;
 	int text_border2;
 	int text_border2_hi;
-	int text_background;   
+	int text_background;
 	int text_background_hi;
 	int text_background_noborder_hi;
 	int text_border3;
@@ -313,10 +319,10 @@ public:
 	static const char *large_fontset;
 	static const char *big_fontset;
 
-	static const char *small_font_xft;
-	static const char *medium_font_xft;
-	static const char *large_font_xft;
-	static const char *big_font_xft;
+	static const char *small_font_xft, *small_b_font_xft;
+	static const char *medium_font_xft, *medium_b_font_xft;
+	static const char *large_font_xft, *large_b_font_xft;
+	static const char *big_font_xft, *big_b_font_xft;
 
 // Backup of fonts in case the first choices don't exist
 	static const char *small_font_xft2;
@@ -326,10 +332,28 @@ public:
 
 	VFrame **medium_7segment;
 
+//clock
+	int draw_clock_background;
 
 	int use_fontset;
-// This must be constitutive since applications access the private members here.
 	int use_xft;
+
+// Current locale uses utf8
+	static int locale_utf8;
+// Byte order is little_endian
+	static int little_endian;
+// Language and region
+	static char language[LEN_LANG];
+	static char region[LEN_LANG];
+	static char encoding[LEN_ENCOD];
+	static const char *wide_encoding;
+	static ArrayList<BC_FontEntry*> *fontlist;
+	static int init_fontconfig(const char *search_path);
+	static BC_FontEntry *find_fontentry(const char *displayname, int style, int mask);
+	static FcPattern* find_similar_font(FT_ULong char_code, FcPattern *oldfont);
+	static size_t encode(const char *from_enc, const char *to_enc,
+		char *input, int input_length, char *output, int output_length);
+	static int find_font_by_char(FT_ULong char_code, char *path_new, const FT_Face oldface);
 
 // Make VFrame use shm
 	int vframe_shm;
@@ -348,16 +372,18 @@ public:
 
 private:
 // Test for availability of shared memory pixmaps
-	int init_shm(BC_WindowBase *window);
+	void init_shm(BC_WindowBase *window);
 	void init_sizes(BC_WindowBase *window);
 	static int x_error_handler(Display *display, XErrorEvent *event);
 	BC_DisplayInfo *display_info;
  	VFrame **list_pointers[100];
  	int list_lengths[100];
  	int list_total;
-	
+	static const char *fc_properties[];
+
 
 	Mutex *id_lock;
+	static Mutex fontconfig_lock;
 
 // Pointer to signal handler class to run after ipc
 	static BC_Signals *signal_handler;

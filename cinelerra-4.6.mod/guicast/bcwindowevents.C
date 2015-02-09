@@ -2,27 +2,28 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcdisplay.h"
 #include "bcsignals.h"
 #include "bcwindowbase.h"
 #include "bcwindowevents.h"
+#include "bctimer.h"
 #include "condition.h"
 #include <unistd.h>
 
@@ -45,8 +46,20 @@ BC_WindowEvents::BC_WindowEvents(BC_Display *display)
 
 BC_WindowEvents::~BC_WindowEvents()
 {
+// First set done, then send dummy event through XSendEvent to unlock the loop in ::run()
 //printf("BC_WindowEvents::~BC_WindowEvents %d %s\n", __LINE__, window->title);
 	done = 1;
+	XEvent event;
+	XClientMessageEvent *ptr = (XClientMessageEvent*)&event;
+	event.type = ClientMessage;
+	ptr->message_type = XInternAtom(window->display, "DUMMY_XATOM", False);
+	ptr->format = 32;
+	XSendEvent(window->display,
+		window->win,
+		0,
+		0,
+		&event);
+	window->flush();
 	Thread::join();
 //printf("BC_WindowEvents::~BC_WindowEvents %d %s\n", __LINE__, window->title);
 }
@@ -60,6 +73,8 @@ void BC_WindowEvents::start()
 
 void BC_WindowEvents::run()
 {
+// Can't cancel in XNextEvent because X server never figures out it's not
+// listening anymore and XCloseDisplay locks up.
 	XEvent *event;
 #ifndef SINGLE_THREAD
 	int x_fd = ConnectionNumber(window->display);
@@ -106,7 +121,6 @@ void BC_WindowEvents::run()
 		XUnlockDisplay(window->display);
 //printf("BC_WindowEvents::run %d %s\n", __LINE__, window->title);
 #endif
-
 	}
 }
 

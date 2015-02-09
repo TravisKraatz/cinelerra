@@ -19,9 +19,10 @@
  * 
  */
 
-#ifndef BCBITMAP_H
-#define BCBITMAP_H
+#ifndef __BCBITMAP_H__
+#define __BCBITMAP_H__
 
+#include <stdint.h>
 #include <X11/Xlib.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -189,6 +190,9 @@ class BC_Bitmap
 
 // Need last pixmap to stop XVideo
 	Drawable last_pixmap;
+
+	static uint8_t bitswap[256];
+	void transparency_bitswap(uint8_t *buf, int w, int h);
 public:
 	enum { bmXNone, bmXImage, bmXShmImage, bmXvImage, bmXvShmImage };
 

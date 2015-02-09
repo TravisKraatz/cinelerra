@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef BCPOT_H
@@ -54,13 +54,13 @@ public:
 	virtual float get_percentage() { return 0; };
 	virtual int percentage_to_value(float percentage) { return 0; };
 	virtual int handle_event() { return 0; };
-	virtual char* get_caption() { return (char*)""; };
+	virtual const char* get_caption() { return ""; };
 	virtual int increase_value() { return 0; };
 	virtual int decrease_value() { return 0; };
 	void set_use_caption(int value);
 	void enable();
 	void disable();
-	
+
 
 	int reposition_window(int x, int y);
 	int repeat_event(int64_t repeat_id);
@@ -79,7 +79,7 @@ private:
 	int angle_to_coords(int &x1, int &y1, int &x2, int &y2, float angle);
 	float coords_to_angle(int x2, int y2);
 	void show_value_tooltip();
-	
+
 	VFrame **data;
 	BC_Pixmap *images[POT_STATES];
 	char caption[BCTEXTLEN];
@@ -96,15 +96,15 @@ private:
 class BC_FPot : public BC_Pot
 {
 public:
-	BC_FPot(int x, 
-		int y, 
-		float value, 
-		float minvalue, 
-		float maxvalue, 
+	BC_FPot(int x,
+		int y,
+		float value,
+		float minvalue,
+		float maxvalue,
 		VFrame **data = 0);
 	~BC_FPot();
 
-	char* get_caption();
+	const char* get_caption();
 	int increase_value();
 	int decrease_value();
 	float get_percentage();
@@ -122,15 +122,15 @@ private:
 class BC_IPot : public BC_Pot
 {
 public:
-	BC_IPot(int x, 
-		int y, 
-		int64_t value, 
-		int64_t minvalue, 
-		int64_t maxvalue, 
+	BC_IPot(int x,
+		int y,
+		int64_t value,
+		int64_t minvalue,
+		int64_t maxvalue,
 		VFrame **data = 0);
 	~BC_IPot();
 
-	char* get_caption();
+	const char* get_caption();
 	int increase_value();
 	int decrease_value();
 	float get_percentage();
@@ -146,13 +146,13 @@ private:
 class BC_QPot : public BC_Pot
 {
 public:
-	BC_QPot(int x, 
-		int y, 
+	BC_QPot(int x,
+		int y,
 		int64_t value,      // Units of frequencies
 		VFrame **data = 0);
 	~BC_QPot();
 
-	char* get_caption();
+	const char* get_caption();
 	int increase_value();
 	int decrease_value();
 	float get_percentage();
@@ -170,15 +170,15 @@ private:
 class BC_PercentagePot : public BC_Pot
 {
 public:
-	BC_PercentagePot(int x, 
-		int y, 
-		float value, 
-		float minvalue, 
-		float maxvalue, 
+	BC_PercentagePot(int x,
+		int y,
+		float value,
+		float minvalue,
+		float maxvalue,
 		VFrame **data = 0);
 	~BC_PercentagePot();
 
-	char* get_caption();
+	const char* get_caption();
 	int increase_value();
 	int decrease_value();
 	float get_percentage();

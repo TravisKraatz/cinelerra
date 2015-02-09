@@ -2,27 +2,28 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcpixmap.h"
 #include "bcresources.h"
 #include "bctextbox.h"
 #include "bctumble.h"
+#include "math.h"
 #include "vframe.h"
 
 
@@ -79,8 +80,11 @@ int BC_Tumbler::initialize()
 	return 0;
 }
 
-int BC_Tumbler::reposition_window(int x, int y)
+int BC_Tumbler::reposition_window(int x, int y, int w, int h)
 {
+	if (w > 0 || h > 0)
+		printf("BC_Tumbler::reposition_window - w & h haven't been implemented yet!! (probably never will be)");
+
 	BC_WindowBase::reposition_window(x, y);
 	draw_face(0);
 	return 0;
@@ -109,8 +113,8 @@ int BC_Tumbler::set_images(VFrame **data)
 int BC_Tumbler::draw_face(int flush)
 {
 	draw_top_background(parent_window, 0, 0, w, h);
-	pixmap->draw_pixmap(images[status], 
-			0, 
+	pixmap->draw_pixmap(images[status],
+			0,
 			0,
 			w,
 			h,
@@ -159,7 +163,7 @@ int BC_Tumbler::cursor_enter_event()
 	if(top_level->event_win == win)
 	{
 		tooltip_done = 0;
-		if(! top_level->button_down && status == TUMBLE_UP) 
+		if(! top_level->button_down && status == TUMBLE_UP)
 		{
 			status = TUMBLE_UPHI;
 			draw_face(1);
@@ -245,7 +249,7 @@ int BC_Tumbler::button_release_event()
 
 int BC_Tumbler::cursor_motion_event()
 {
-	if(top_level->button_down && top_level->event_win == win && 
+	if(top_level->button_down && top_level->event_win == win &&
 		!cursor_inside() &&
 		!(status == TUMBLETOP_DN || status == TUMBLEBOTTOM_DN))
 	{
@@ -312,10 +316,10 @@ void BC_ITumbler::set_boundaries(int64_t min, int64_t max)
 
 
 
-BC_FTumbler::BC_FTumbler(BC_TextBox *textbox, 
-	float min, 
-	float max, 
-	int x, 
+BC_FTumbler::BC_FTumbler(BC_TextBox *textbox,
+	float min,
+	float max,
+	int x,
 	int y)
  : BC_Tumbler(x, y)
 {
@@ -323,6 +327,7 @@ BC_FTumbler::BC_FTumbler(BC_TextBox *textbox,
 	this->min = min;
 	this->max = max;
 	this->increment = 1.0;
+	this->log_floatincrement = 0;
 }
 
 BC_FTumbler::~BC_FTumbler()
@@ -332,6 +337,13 @@ BC_FTumbler::~BC_FTumbler()
 int BC_FTumbler::handle_up_event()
 {
 	float value = atof(textbox->get_text());
+	if (log_floatincrement) {
+		// round off to to current precision (i.e. 250 -> 200)
+		float cp = floor(log(value)/log(10) + 0.0001);
+		value = floor((value/pow(10,cp))+ 0.0001)*pow(10,cp);
+		value += pow(10,cp);
+	}
+	else
 	value += increment;
 	if(value > max) value = max;
 	textbox->update(value);
@@ -342,6 +354,15 @@ int BC_FTumbler::handle_up_event()
 int BC_FTumbler::handle_down_event()
 {
 	float value = atof(textbox->get_text());
+	if (log_floatincrement) {
+		// round off to to current precision (i.e. 250 -> 200)
+		float cp = floor(log(value)/log(10));
+		value = floor(value/pow(10,cp))*pow(10,cp);
+		// Need to make it so that: [.001 .01 .1 1 10 100] => [.0001 .001 .01 .1 1 10]
+		cp = floor(log(value)/log(10)-.01);
+		value -= pow(10,cp);
+	}
+	else
 	value -= increment;
 	if(value < min) value = min;
 	textbox->update(value);
@@ -360,3 +381,7 @@ void BC_FTumbler::set_increment(float value)
 	this->increment = value;
 }
 
+void BC_FTumbler::set_log_floatincrement(int value)
+{
+	this->log_floatincrement = value;
+}

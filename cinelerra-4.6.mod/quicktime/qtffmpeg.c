@@ -131,7 +131,7 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 
 		AVCodecContext *context = ptr->decoder_context[i] = avcodec_alloc_context();
 		static char fake_data[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-// 		static unsigned char extra_data[] = 
+// 		static unsigned char extra_data[] =
 // 		{
 // 			0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x20, 0x00, 0xc8, 0x88, 0xba, 0x98, 0x60, 0xfa, 0x67, 0x80, 0x91, 0x02, 0x83, 0x1f
 // 		};
@@ -142,7 +142,7 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 		context->extradata = fake_data;
 		context->extradata_size = 0;
 
-		if(esds->mpeg4_header && esds->mpeg4_header_size) 
+		if(esds->mpeg4_header && esds->mpeg4_header_size)
 		{
 			context->extradata = esds->mpeg4_header;
 			context->extradata_size = esds->mpeg4_header_size;
@@ -153,7 +153,6 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 			context->extradata = avcc->data;
 			context->extradata_size = avcc->data_size;
 		}
-
 		if(cpus > 1)
 		{
 			avcodec_thread_init(context, cpus);
@@ -161,7 +160,7 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 //			context->thread_count = cpus;
 		}
 
-		if(avcodec_open(context, 
+		if(avcodec_open(context,
 			ptr->decoder[i]) < 0)
 		{
 			int error = 1;
@@ -169,7 +168,7 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 			if(cpus > 1)
 			{
 				avcodec_thread_init(context, 1);
-				if(avcodec_open(context, 
+				if(avcodec_open(context,
 					ptr->decoder[i]) >= 0)
 				{
 					error = 0;
@@ -180,11 +179,13 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(int cpus,
 			{
 				printf("quicktime_new_ffmpeg: avcodec_open failed.\n");
 				quicktime_delete_ffmpeg(ptr);
+			ptr = NULL;
+			break;
 			}
 		}
-		
-		
-		
+
+
+
 		ptr->last_frame[i] = -1;
 	}
 	pthread_mutex_unlock(&ffmpeg_lock);
@@ -224,46 +225,46 @@ void quicktime_delete_ffmpeg(quicktime_ffmpeg_t *ptr)
 static int decode_wrapper(quicktime_t *file,
 	quicktime_video_map_t *vtrack,
 	quicktime_ffmpeg_t *ffmpeg,
-	int frame_number, 
-	int current_field, 
+	int frame_number,
+	int current_field,
 	int track,
 	int drop_it)
 {
-	int got_picture = 0; 
-	int result = 0; 
+	int got_picture = 0;
+	int result = 0;
 	int bytes = 0;
 	int header_bytes = 0;
  	char *compressor = vtrack->track->mdia.minf.stbl.stsd.table[0].format;
 	quicktime_trak_t *trak = vtrack->track;
 	quicktime_stsd_table_t *stsd_table = &trak->mdia.minf.stbl.stsd.table[0];
 
-// printf("decode_wrapper frame_number=%d current_field=%d drop_it=%d\n", 
-// frame_number, 
+// printf("decode_wrapper frame_number=%d current_field=%d drop_it=%d\n",
+// frame_number,
 // current_field,
 // drop_it);
 
 	quicktime_set_video_position(file, frame_number, track);
 
-	bytes = quicktime_frame_size(file, frame_number, track); 
+	bytes = quicktime_frame_size(file, frame_number, track);
 	if(frame_number == 0)
 	{
 		header_bytes = stsd_table->esds.mpeg4_header_size;
 	}
 
-	if(!ffmpeg->work_buffer || ffmpeg->buffer_size < bytes + header_bytes) 
-	{ 
-		if(ffmpeg->work_buffer) free(ffmpeg->work_buffer); 
-		ffmpeg->buffer_size = bytes + header_bytes; 
-		ffmpeg->work_buffer = calloc(1, ffmpeg->buffer_size + 100); 
-	} 
- 
+	if(!ffmpeg->work_buffer || ffmpeg->buffer_size < bytes + header_bytes)
+	{
+		if(ffmpeg->work_buffer) free(ffmpeg->work_buffer);
+		ffmpeg->buffer_size = bytes + header_bytes;
+		ffmpeg->work_buffer = calloc(1, ffmpeg->buffer_size + 100);
+	}
+
 	if(header_bytes)
 		memcpy(ffmpeg->work_buffer, stsd_table->esds.mpeg4_header, header_bytes);
 
-//printf("decode_wrapper %d frame_number=%d field=%d offset=0x%llx bytes=%d header_bytes=%d\n", 
+//printf("decode_wrapper %d frame_number=%d field=%d offset=0x%llx bytes=%d header_bytes=%d\n",
 //__LINE__, frame_number, current_field, quicktime_ftell(file), bytes, header_bytes);
-	if(!quicktime_read_data(file, 
-		ffmpeg->work_buffer + header_bytes, 
+	if(!quicktime_read_data(file,
+		ffmpeg->work_buffer + header_bytes,
 		bytes))
 		result = -1;
 
@@ -273,7 +274,7 @@ static int decode_wrapper(quicktime_t *file,
 
 
 	if(!result)
-	{ 
+	{
 
 
 // No way to determine if there was an error based on nonzero status.
@@ -285,7 +286,7 @@ static int decode_wrapper(quicktime_t *file,
 		avcodec_get_frame_defaults(&ffmpeg->picture[current_field]);
 
 /*
- * printf("decode_wrapper %d frame_number=%d decoder_context=%p picture=%p buffer=%p bytes=%d\n", 
+ * printf("decode_wrapper %d frame_number=%d decoder_context=%p picture=%p buffer=%p bytes=%d\n",
  * __LINE__,
  * frame_number,
  * ffmpeg->decoder_context[current_field],
@@ -321,13 +322,21 @@ static int decode_wrapper(quicktime_t *file,
 // in h263dec.c to get MPEG-4 to work.
 // Also must compile using -O2 instead of -O3 on gcc 4.1
 
-		result = avcodec_decode_video(ffmpeg->decoder_context[current_field], 
-			&ffmpeg->picture[current_field], 
-			&got_picture, 
-			ffmpeg->work_buffer, 
-			bytes + header_bytes);
-
-
+#if LIBAVCODEC_VERSION_MAJOR < 53
+		result = avcodec_decode_video(ffmpeg->decoder_context[current_field],
+			&ffmpeg->picture[current_field], &got_picture,
+			ffmpeg->work_buffer, bytes + header_bytes);
+#else
+{		AVPacket avpkt;   av_init_packet(&avpkt);
+		avpkt.data = buf; avpkt.size = buf_size;
+		avpkt.flags = AV_PKT_FLAG_KEY;
+		result = avcodec_decode_video2(ffmpeg->decoder_context[current_field],
+			&ffmpeg->picture[current_field],
+			&got_picture, &avpkt); }
+#endif
+int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
+                         int *got_picture_ptr,
+                         AVPacket *avpkt);
 
 		if(ffmpeg->picture[current_field].data[0])
 		{
@@ -375,8 +384,8 @@ static int get_chroma_factor(quicktime_ffmpeg_t *ffmpeg, int current_field)
 			return 9;
 			break;
 		default:
-			fprintf(stderr, 
-				"get_chroma_factor: unrecognized color model %d\n", 
+			fprintf(stderr,
+				"get_chroma_factor: unrecognized color model %d\n",
 				ffmpeg->decoder_context[current_field]->pix_fmt);
 			return 9;
 			break;
@@ -384,8 +393,8 @@ static int get_chroma_factor(quicktime_ffmpeg_t *ffmpeg, int current_field)
 }
 
 int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
-	quicktime_t *file, 
-	unsigned char **row_pointers, 
+	quicktime_t *file,
+	unsigned char **row_pointers,
 	int track)
 {
 	quicktime_video_map_t *vtrack = &(file->vtracks[track]);
@@ -421,11 +430,11 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 // For certain codecs,
 // must decode frame with stream header first but only the first frame in the
 // field sequence has a stream header.
-			result = decode_wrapper(file, 
-				vtrack, 
-				ffmpeg, 
-				current_field, 
-				current_field, 
+			result = decode_wrapper(file,
+				vtrack,
+				ffmpeg,
+				current_field,
+				current_field,
 				track,
 				0);
 // Reset position because decode wrapper set it
@@ -436,7 +445,7 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 
 // Handle seeking
 // Seeking requires keyframes
-		if(quicktime_has_keyframes(file, track) && 
+		if(quicktime_has_keyframes(file, track) &&
 // Not next frame
 			vtrack->current_position != ffmpeg->last_frame[current_field] + ffmpeg->fields &&
 // Same frame requested twice
@@ -457,8 +466,8 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 			frame1 = current_frame;
 			do
 			{
-				frame1 = quicktime_get_keyframe_before(file, 
-					frame1 - 1, 
+				frame1 = quicktime_get_keyframe_before(file,
+					frame1 - 1,
 					track);
 			}while(frame1 > 0 && (frame1 % ffmpeg->fields) != current_field);
 //printf("quicktime_ffmpeg_decode 1 %d\n", frame1);
@@ -490,7 +499,7 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 			first_frame = frame1;
 
 /*
- * printf("quicktime_ffmpeg_decode 2 last_frame=%d frame1=%d frame2=%d\n", 
+ * printf("quicktime_ffmpeg_decode 2 last_frame=%d frame1=%d frame2=%d\n",
  * ffmpeg->last_frame[current_field],
  * frame1,
  * frame2);
@@ -498,11 +507,11 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 			while(frame1 <= frame2)
 			{
 //printf("quicktime_ffmpeg_decode %d frame1=%d\n", __LINE__, frame1);
-				result = decode_wrapper(file, 
-					vtrack, 
-					ffmpeg, 
-					frame1, 
-					current_field, 
+				result = decode_wrapper(file,
+					vtrack,
+					ffmpeg,
+					frame1,
+					current_field,
 					track,
 // Don't drop if we want to cache it
 					0 /* (frame1 < frame2) */);
@@ -529,11 +538,11 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 // 				if(do_i_frame)
 // 				{
 // printf("quicktime_ffmpeg_decode %d\n", __LINE__);
-// 					result = decode_wrapper(file, 
-// 						vtrack, 
-// 						ffmpeg, 
-// 						frame1, 
-// 						current_field, 
+// 					result = decode_wrapper(file,
+// 						vtrack,
+// 						ffmpeg,
+// 						frame1,
+// 						current_field,
 // 						track,
 // 						0);
 // 					do_i_frame = 0;
@@ -551,11 +560,11 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 			vtrack->current_position != ffmpeg->last_frame[current_field])
 		{
 //printf("quicktime_ffmpeg_decode %d\n", __LINE__);
-			result = decode_wrapper(file, 
-				vtrack, 
-				ffmpeg, 
-				vtrack->current_position, 
-				current_field, 
+			result = decode_wrapper(file,
+				vtrack,
+				ffmpeg,
+				vtrack->current_position,
+				current_field,
 				track,
 				0);
 		}
@@ -572,16 +581,17 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 		case PIX_FMT_YUV420P:
 			input_cmodel = BC_YUV420P;
 			break;
+#ifndef FFMPEG_2010
+		case PIX_FMT_YUY422:
+#endif
+		case PIX_FMT_YUYV422:
+			input_cmodel = BC_YUV422;
+			break;
+
 // It's not much of a decoder library
 		case PIX_FMT_YUVJ420P:
 			input_cmodel = BC_YUV420P;
 			break;
-
-#ifndef FFMPEG_2010
-		case PIX_FMT_YUV422:
-			input_cmodel = BC_YUV422;
-			break;
-#endif
 
 		case PIX_FMT_YUV422P:
 			input_cmodel = BC_YUV422P;
@@ -590,30 +600,30 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 			input_cmodel = BC_YUV9P;
 			break;
 		default:
-			fprintf(stderr, 
-				"quicktime_ffmpeg_decode: unrecognized color model %d\n", 
+			fprintf(stderr,
+				"quicktime_ffmpeg_decode: unrecognized color model %d\n",
 				ffmpeg->decoder_context[current_field]->pix_fmt);
 			input_cmodel = 0;
 			break;
 	}
 
-// printf("quicktime_ffmpeg_decode %d %lld ptr=%p\n", 
-// __LINE__, 
-// vtrack->current_position, 
+// printf("quicktime_ffmpeg_decode %d %lld ptr=%p\n",
+// __LINE__,
+// vtrack->current_position,
 // ffmpeg->picture[current_field].data[0]);
 	if(ffmpeg->picture[current_field].data[0])
 	{
 		unsigned char **input_rows;
 
-		input_rows = 
-			malloc(sizeof(unsigned char*) * 
+		input_rows =
+			malloc(sizeof(unsigned char*) *
 			ffmpeg->decoder_context[current_field]->height);
 
 
 		for(i = 0; i < ffmpeg->decoder_context[current_field]->height; i++)
-			input_rows[i] = ffmpeg->picture[current_field].data[0] + 
-				i * 
-				ffmpeg->decoder_context[current_field]->width * 
+			input_rows[i] = ffmpeg->picture[current_field].data[0] +
+				i *
+				ffmpeg->decoder_context[current_field]->width *
 				cmodel_calculate_pixelsize(input_cmodel);
 
 
@@ -626,14 +636,14 @@ int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
 			ffmpeg->picture[current_field].data[1],
 			ffmpeg->picture[current_field].data[2],
 			file->in_x,        /* Dimensions to capture from input frame */
-			file->in_y, 
-			file->in_w, 
+			file->in_y,
+			file->in_w,
 			file->in_h,
 			0,       /* Dimensions to project on output frame */
-			0, 
-			file->out_w, 
+			0,
+			file->out_w,
 			file->out_h,
-			input_cmodel, 
+			input_cmodel,
 			file->color_model,
 			0,         /* When transfering BC_RGBA8888 to non-alpha this is the background color in 0xRRGGBB hex */
 			ffmpeg->picture[current_field].linesize[0],       /* For planar use the luma rowspan */

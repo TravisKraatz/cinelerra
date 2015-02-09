@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef FILESYSTEM_H
@@ -30,12 +30,12 @@ class FileItem
 {
 public:
 	FileItem();
-	FileItem(char *path, 
-		char *name, 
-		int is_dir, 
-		int64_t size, 
-		int month, 
-		int day, 
+	FileItem(char *path,
+		char *name,
+		int is_dir,
+		int64_t size,
+		int month,
+		int day,
 		int year,
 		int64_t calendar_time);
 	~FileItem();
@@ -44,7 +44,7 @@ public:
 	int set_name(char *name);
 	int reset();
 	const char* get_path();
-	const char* get_name();
+        const char* get_name();
 	int get_is_dir();
 
 	char *path;
@@ -89,7 +89,7 @@ public:
 	int create_dir(const char *new_dir_);    // create a new directory
 	int complete_path(char *filename);   // use the filename and the current_dir to create a complete filename
 // return 1 if the text is a directory
-	int is_dir(const char *new_dir_);	  
+	int is_dir(const char *new_dir_);
 	int extract_dir(char *out, const char *in);    // extract the directory from the path
 	int extract_name(char *out, const char *in, int test_dir = 1);	// extract the name from the path
 	int join_names(char *out, const char *dir_in, const char *name_in);    // combine a directory and filename
@@ -124,13 +124,21 @@ public:
 	{
 		SORT_PATH,
 		SORT_SIZE,
-		SORT_DATE
+		SORT_DATE,
+		SORT_EXTENSION
 	};
 
 private:
-	int compare_items(ArrayList<FileItem*> *dir_list, int item1, int item2);
 	int sort_table(ArrayList<FileItem*> *dir_list);
-
+	static int path_ascending(const void *ptr1, const void *ptr2);
+	static int path_descending(const void *ptr1, const void *ptr2);
+	static int size_ascending(const void *ptr1, const void *ptr2);
+	static int size_descending(const void *ptr1, const void *ptr2);
+	static int date_ascending(const void *ptr1, const void *ptr2);
+	static int date_descending(const void *ptr1, const void *ptr2);
+	static int ext_ascending(const void *ptr1, const void *ptr2);
+	static int ext_descending(const void *ptr1, const void *ptr2);
+	static int dot_reverse_filename(char *out, const char *in);
 
 // Combine the directories and files into the master list, directories first.
 	int combine(ArrayList<FileItem*> *dir_list, ArrayList<FileItem*> *file_list);
@@ -140,6 +148,7 @@ private:
 	int test_filter(FileItem *file);
 	int reset_parameters();
 	int delete_directory();
+
 	char filter[BCTEXTLEN];     // what filenames have to end in to get displayed
 	int want_directory;
 	int show_all_files;       // shows . files

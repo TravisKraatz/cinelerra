@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 1997-2014 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcsignals.h"
@@ -38,8 +38,8 @@ BC_Signals* BC_Signals::global_signals = 0;
 static int signal_done = 0;
 static int table_id = 0;
 
-static bc_locktrace_t* new_bc_locktrace(void *ptr, 
-	const char *title, 
+static bc_locktrace_t* new_bc_locktrace(void *ptr,
+	const char *title,
 	const char *location)
 {
 	bc_locktrace_t *result = (bc_locktrace_t*)malloc(sizeof(bc_locktrace_t));
@@ -304,10 +304,10 @@ void BC_Signals::kill_subs()
 								ptr++;
 							}
 
-// printf("kill_subs %d process=%d getpid=%d parent_process=%d\n", 
-// __LINE__, 
+// printf("kill_subs %d process=%d getpid=%d parent_process=%d\n",
+// __LINE__,
 // atoi(new_filename->d_name),
-// getpid(), 
+// getpid(),
 // atoi(string));
 							int parent_process = atoi(string);
 							int child_process = atoi(new_filename->d_name);
@@ -315,14 +315,12 @@ void BC_Signals::kill_subs()
 // Kill if we're the parent
 							if(getpid() == parent_process)
 							{
-printf("kill_subs %d: process=%d\n", 
-__LINE__, 
-atoi(new_filename->d_name));
+//printf("kill_subs %d: process=%d\n", __LINE__, atoi(new_filename->d_name));
 								kill(child_process, SIGKILL);
 							}
 						}
 					}
-					
+
 					fclose(fd);
 				}
 			}
@@ -345,7 +343,7 @@ static void signal_entry(int signum)
 	pthread_mutex_unlock(handler_lock);
 
 
-	printf("signal_entry: got %s my pid=%d execution table size=%d:\n", 
+	printf("signal_entry: got %s my pid=%d execution table size=%d:\n",
 		signal_titles[signum],
 		getpid(),
 		execution_table.size);
@@ -364,7 +362,7 @@ static void signal_entry(int signum)
 
 static void signal_entry_recoverable(int signum)
 {
-	printf("signal_entry_recoverable: got %s my pid=%d\n", 
+	printf("signal_entry_recoverable: got %s my pid=%d\n",
 		signal_titles[signum],
 		getpid());
 }
@@ -487,7 +485,7 @@ void BC_Signals::initialize()
 }
 
 // callable from debugger
-extern "C" 
+extern "C"
 void dump()
 {
 	BC_Signals::dump_traces();
@@ -513,7 +511,8 @@ void BC_Signals::initialize2()
 	signal(SIGHUP, signal_entry);
 	signal(SIGINT, signal_entry);
 	signal(SIGQUIT, signal_entry);
-	signal(SIGKILL, signal_entry);
+	// SIGKILL cannot be stopped
+	// signal(SIGKILL, signal_entry);
 	catch_segv();
 	signal(SIGTERM, signal_entry);
 	signal(SIGFPE, signal_entry);
@@ -584,8 +583,8 @@ void BC_Signals::unlock_locks()
 
 #define TOTAL_LOCKS 256
 
-int BC_Signals::set_lock(void *ptr, 
-	const char *title, 
+int BC_Signals::set_lock(void *ptr,
+	const char *title,
 	const char *location)
 {
 	if(!global_signals) return 0;
@@ -824,7 +823,7 @@ static void handle_dump(int n, siginfo_t * info, void *sc)
 
 #ifdef TRACE_MEMORY
 
-// void* operator new(size_t size) 
+// void* operator new(size_t size)
 // {
 // //printf("new 1 %d\n", size);
 //     void *result = malloc(size);
@@ -832,8 +831,8 @@ static void handle_dump(int n, siginfo_t * info, void *sc)
 // //printf("new 2 %d\n", size);
 // 	return result;
 // }
-// 
-// void* operator new[](size_t size) 
+//
+// void* operator new[](size_t size)
 // {
 // //printf("new [] 1 %d\n", size);
 //     void *result = malloc(size);
@@ -841,16 +840,16 @@ static void handle_dump(int n, siginfo_t * info, void *sc)
 // //printf("new [] 2 %d\n", size);
 // 	return result;
 // }
-// 
-// void operator delete(void *ptr) 
+//
+// void operator delete(void *ptr)
 // {
 // //printf("delete 1 %p\n", ptr);
 // 	UNBUFFER(ptr);
 // //printf("delete 2 %p\n", ptr);
 //     free(ptr);
 // }
-// 
-// void operator delete[](void *ptr) 
+//
+// void operator delete[](void *ptr)
 // {
 // //printf("delete [] 1 %p\n", ptr);
 // 	UNBUFFER(ptr);

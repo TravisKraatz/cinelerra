@@ -11,13 +11,13 @@
 
 
 // This front end is bastardized to support alternating fields with
-// alternating ffmpeg instances.  It drastically reduces the bitrate 
-// required to store interlaced video but nothing can read it but 
+// alternating ffmpeg instances.  It drastically reduces the bitrate
+// required to store interlaced video but nothing can read it but
 // Heroine Virtual.
 
 
 
-#include "avcodec.h"
+#include "libavcodec/avcodec.h"
 #include "qtprivate.h"
 
 
@@ -69,8 +69,8 @@ quicktime_ffmpeg_t* quicktime_new_ffmpeg(
 	quicktime_stsd_table_t *stsd_table);
 void quicktime_delete_ffmpeg(quicktime_ffmpeg_t *ptr);
 int quicktime_ffmpeg_decode(quicktime_ffmpeg_t *ffmpeg,
-	quicktime_t *file, 
-	unsigned char **row_pointers, 
+	quicktime_t *file,
+	unsigned char **row_pointers,
 	int track);
 
 

@@ -83,6 +83,10 @@ typedef struct
 // Used by init_yuv only
 	int *vtor, *vtog, *utog, *utob;
 
+	short int vtor_tab8[0x100], vtog_tab8[0x100];
+	short int utog_tab8[0x100], utob_tab8[0x100];
+	short int *vtor8, *vtog8, *utog8, *utob8;
+
 	float vtor_float_tab[0x100], vtog_float_tab[0x100];
 	float utog_float_tab[0x100], utob_float_tab[0x100];
 	float *vtor_float, *vtog_float, *utog_float, *utob_float;

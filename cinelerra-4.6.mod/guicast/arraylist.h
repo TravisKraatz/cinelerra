@@ -5,10 +5,16 @@
 
 template<class TYPE>
 class ArrayList {
-	int avail;
-	int array;
+	enum { d_none, d_delete, d_array, d_free, };
+	int avail, dtype;
 	void reallocate(int n);
-	void del(TYPE &value) { if( array ) delete [] value; else delete value; }
+	void del(TYPE &value) {
+		switch( dtype ) {
+		case d_delete: delete value;        break;
+		case d_array:  delete [] value;     break;
+		case d_free:   free((void*)value);  break;
+		}
+	}
 	void del_value(int i) { del(values[i]); }
 	static int cmpr(TYPE *a, TYPE *b) {
 		if( *a == *b ) return 0;
@@ -63,7 +69,8 @@ public:
 		total = 0;
 	}
 	TYPE &last() { return values[total - 1]; }
-	void set_array_delete() { array = 1; }
+	void set_array_delete() { dtype = d_array; }
+	void set_free() { dtype = d_free; }
 	int size() { return total; }
 	TYPE get(int i) {
 		if( i < total ) return values[i];
@@ -81,7 +88,7 @@ public:
 			(int(*)(const void *, const void *))(cmp ? cmp : cmpr));
 	}
 
-	ArrayList() { total = array = 0; values = new TYPE[avail = 16]; }
+	ArrayList() { total = 0; dtype = d_delete;  values = new TYPE[avail = 16]; }
 	~ArrayList() { delete [] values; }
 };
 

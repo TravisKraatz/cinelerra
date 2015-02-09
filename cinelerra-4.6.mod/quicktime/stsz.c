@@ -20,15 +20,15 @@ void quicktime_stsz_init_video(quicktime_t *file, quicktime_stsz_t *stsz)
 	{
 		stsz->entries_allocated = 2048;
 		stsz->total_entries = 0;
-		stsz->table = (quicktime_stsz_table_t*)calloc(sizeof(quicktime_stsz_table_t), 
+		stsz->table = (quicktime_stsz_table_t*)calloc(sizeof(quicktime_stsz_table_t),
 			stsz->entries_allocated);
 //printf("quicktime_stsz_init_video 1 %p\n", stsz->table);
 	}
 }
 
-void quicktime_stsz_init_audio(quicktime_t *file, 
-	quicktime_stsz_t *stsz, 
-	int channels, 
+void quicktime_stsz_init_audio(quicktime_t *file,
+	quicktime_stsz_t *stsz,
+	int channels,
 	int bits,
 	char *compressor)
 {
@@ -58,7 +58,7 @@ void quicktime_stsz_dump(quicktime_stsz_t *stsz)
 	printf("      flags %d\n", stsz->flags);
 	printf("      sample_size %d\n", stsz->sample_size);
 	printf("      total_entries %d\n", stsz->total_entries);
-	
+
 	if(!stsz->sample_size)
 	{
 		for(i = 0; i < stsz->total_entries; i++)
@@ -132,8 +132,8 @@ void quicktime_write_stsz(quicktime_t *file, quicktime_stsz_t *stsz)
 }
 
 // Sample starts on 0
-void quicktime_update_stsz(quicktime_stsz_t *stsz, 
-	long sample, 
+void quicktime_update_stsz(quicktime_stsz_t *stsz,
+	long sample,
 	long sample_size)
 {
 	int i;
@@ -142,7 +142,7 @@ void quicktime_update_stsz(quicktime_stsz_t *stsz,
 	{
 		if(sample >= stsz->entries_allocated)
 		{
-			stsz->entries_allocated = sample * 2;
+			stsz->entries_allocated = (sample + 1) * 2;
 //printf("quicktime_update_stsz 1 %d %d\n", sample, sample_size);
 			stsz->table = (quicktime_stsz_table_t *)realloc(stsz->table,
 				sizeof(quicktime_stsz_table_t) * stsz->entries_allocated);
@@ -164,5 +164,5 @@ int quicktime_sample_size(quicktime_trak_t *trak, int sample)
 	if(sample < stsz->total_entries && sample >= 0)
 		return stsz->table[sample].size;
 	return 0;
-	
+
 }

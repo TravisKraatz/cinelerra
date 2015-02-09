@@ -2,24 +2,25 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcmenubar.h"
+#include "bcmenuitem.h"
 #include "bcmenupopup.h"
 #include "bcpixmap.h"
 #include "bcpopupmenu.h"
@@ -40,10 +41,10 @@
 #define TRIANGLE_H 10
 
 
-BC_PopupMenu::BC_PopupMenu(int x, 
-		int y, 
-		int w, 
-		const char *text, 
+BC_PopupMenu::BC_PopupMenu(int x,
+		int y,
+		int w,
+		const char *text,
 		int use_title,
 		VFrame **data,
 		int margin)
@@ -68,9 +69,9 @@ BC_PopupMenu::BC_PopupMenu(int x,
 	status = BUTTON_UP;
 }
 
-BC_PopupMenu::BC_PopupMenu(int x, 
-		int y, 
-		const char *text, 
+BC_PopupMenu::BC_PopupMenu(int x,
+		int y,
+		const char *text,
 		int use_title,
 		VFrame **data)
  : BC_SubWindow(x, y, w, -1, -1)
@@ -145,10 +146,10 @@ int BC_PopupMenu::initialize()
 	BC_SubWindow::initialize();
 
 	menu_popup = new BC_MenuPopup;
-	menu_popup->initialize(top_level, 
-		0, 
-		0, 
-		0, 
+	menu_popup->initialize(top_level,
+		0,
+		0,
+		0,
 		this);
 
 	if(use_title) draw_title(0);
@@ -166,11 +167,11 @@ int BC_PopupMenu::set_images(VFrame **data)
 	}
 
 	if(w_argument > 0)
-		w = w_argument + 
+		w = w_argument +
 			margin +
 			resources->popupmenu_triangle_margin;
 	else
-		w = get_text_width(MEDIUMFONT, text) + 
+		w = get_text_width(MEDIUMFONT, text) +
 			margin +
 			resources->popupmenu_triangle_margin;
 
@@ -180,7 +181,7 @@ int BC_PopupMenu::set_images(VFrame **data)
 
 int BC_PopupMenu::calculate_w(int w_argument)
 {
-	return w_argument + 
+	return w_argument +
 		BC_WindowBase::get_resources()->popupmenu_margin +
 		BC_WindowBase::get_resources()->popupmenu_triangle_margin;
 }
@@ -195,7 +196,7 @@ int BC_PopupMenu::calculate_h(VFrame **data)
 	else
 		data = BC_WindowBase::get_resources()->generic_button_images;
 
-	
+
 	return data[BUTTON_UP]->get_h();
 }
 
@@ -242,10 +243,10 @@ int BC_PopupMenu::draw_title(int flush)
 		char truncated[BCTEXTLEN];
 		int available_w = get_w() - margin * 2 - resources->popupmenu_triangle_margin;
 		truncate_text(truncated, text, available_w);
-		
+
 		BC_WindowBase::draw_center_text(
-			available_w / 2 + margin + offset, 
-			(int)((float)get_h() / 2 + get_text_ascent(MEDIUMFONT) / 2 - 2) + offset, 
+			available_w / 2 + margin + offset,
+			(int)((float)get_h() / 2 + get_text_ascent(MEDIUMFONT) / 2 - 2) + offset,
 			truncated);
 	}
 
@@ -256,8 +257,8 @@ int BC_PopupMenu::draw_title(int flush)
 			get_h() / 2 - icon->get_h() / 2 + offset);
 	}
 
-	draw_triangle_down_flat(get_w() - margin - resources->popupmenu_triangle_margin, 
-		get_h() / 2 - TRIANGLE_H / 2, 
+	draw_triangle_down_flat(get_w() - margin - resources->popupmenu_triangle_margin,
+		get_h() / 2 - TRIANGLE_H / 2,
 		TRIANGLE_W, TRIANGLE_H);
 
 	flash(flush);
@@ -299,10 +300,10 @@ int BC_PopupMenu::activate_menu()
 		{
 			Window tempwin;
 			int new_x, new_y;
-			XTranslateCoordinates(top_level->display, 
-				win, top_level->rootwin, 
+			XTranslateCoordinates(top_level->display,
+				win, top_level->rootwin,
 				0, 0, &new_x, &new_y, &tempwin);
-			menu_popup->activate_menu(new_x, new_y, 
+			menu_popup->activate_menu(new_x, new_y,
 				w, h, 0, 1);
 		}
 		else
@@ -329,7 +330,8 @@ int BC_PopupMenu::reposition_window(int x, int y)
 
 int BC_PopupMenu::focus_out_event()
 {
-	deactivate();
+	if( popup_down && !menu_popup->cursor_inside() )
+		deactivate();
 	return 0;
 }
 
@@ -350,7 +352,7 @@ int BC_PopupMenu::repeat_event(int64_t duration)
 int BC_PopupMenu::button_press_event()
 {
 	if(get_buttonpress() == 1 &&
-		is_event_win() && 
+		is_event_win() &&
 		use_title)
 	{
 		top_level->hide_tooltip();
@@ -360,6 +362,33 @@ int BC_PopupMenu::button_press_event()
 		return 1;
 	}
 
+	// Scrolling section
+	if (is_event_win()
+		&& (get_buttonpress() == 4 || get_buttonpress() == 5)
+		&& menu_popup->total_menuitems() > 1 )
+	{
+		int theval = -1;
+		for (int i = 0; i < menu_popup->total_menuitems(); i++) {
+			if (!strcmp(menu_popup->menu_items.values[i]->get_text(),get_text())) {
+				theval=i;
+				break;
+			}
+		}
+
+		if (theval == -1)                  theval=0;
+		else if (get_buttonpress() == 4)   theval--;
+		else if (get_buttonpress() == 5)   theval++;
+
+		if (theval < 0)
+			theval=0;
+		if (theval >= menu_popup->total_menuitems())
+			theval = menu_popup->total_menuitems() - 1;
+
+		BC_MenuItem *tmp = menu_popup->menu_items.values[theval];
+		set_text(tmp->get_text());
+ 		if (!tmp->handle_event())
+			this->handle_event();
+	}
 	if(popup_down)
 	{
 // Menu is down so dispatch to popup.
@@ -452,7 +481,7 @@ int BC_PopupMenu::button_release_event()
 // 		if(top_level->cursor_x < button_press_x - 5 ||
 // 			top_level->cursor_y < button_press_y - 5 ||
 // 			top_level->cursor_x > button_press_x + 5 ||
-// 			top_level->cursor_y > button_press_y + 5)	
+// 			top_level->cursor_y > button_press_y + 5)
 			deactivate();
 		result = 1;
 	}
@@ -497,7 +526,7 @@ int BC_PopupMenu::cursor_enter_event()
 			status = BUTTON_DN;
 		}
 		else
-		if(status == BUTTON_UP) 
+		if(status == BUTTON_UP)
 			status = BUTTON_HI;
 		draw_title(1);
 	}

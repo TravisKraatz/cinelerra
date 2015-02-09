@@ -14,7 +14,7 @@ extern "C" {
 #define DV_PAL 1
 
 
-#include "libdv/dv.h"
+#include <libdv/dv.h>
 #include <pthread.h>
 #include <sys/time.h>
 
@@ -34,13 +34,13 @@ dv_t* dv_new();
 int dv_delete(dv_t* dv);
 
 // Decode a video frame from the data and return nonzero if failure
-int dv_read_video(dv_t *dv, 
-		unsigned char **output_rows, 
-		unsigned char *data, 
+int dv_read_video(dv_t *dv,
+		unsigned char **output_rows,
+		unsigned char *data,
 		long bytes,
 		int color_model);
 // Decode audio from the data and return the number of samples decoded.
-int dv_read_audio(dv_t *dv, 
+int dv_read_audio(dv_t *dv,
 		unsigned char *samples,
 		unsigned char *data,
 		long size,

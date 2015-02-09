@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef BCFILEBOX_H
@@ -118,6 +118,14 @@ public:
 	BC_FileBox *filebox;
 };
 
+class BC_FileBoxDirectoryText : public BC_TextBox
+{
+public:
+	BC_FileBoxDirectoryText(int x, int y, BC_FileBox *filebox);
+	int handle_event();
+	BC_FileBox *filebox;
+};
+
 class BC_FileBoxFilterText : public BC_TextBox
 {
 public:
@@ -199,12 +207,12 @@ public:
 class BC_FileBox : public BC_Window
 {
 public:
-	BC_FileBox(int x, 
+	BC_FileBox(int x,
 		int y,
 		const char *init_path,
 		const char *title,
 		const char *caption,
-// Set to 1 to get hidden files. 
+// Set to 1 to get hidden files.
 		int show_all_files = 0,
 // Want only directories
 		int want_directory = 0,
@@ -261,9 +269,11 @@ public:
 	void delete_files();
 	BC_Button* get_ok_button();
 	BC_Button* get_cancel_button();
+	FileSystem *fs;
 
 private:
 	int create_icons();
+	int extract_extension(char *out, const char *in);
 	int create_tables();
 	int delete_tables();
 // Called by directory history menu to change directories but leave
@@ -283,14 +293,19 @@ private:
 	int column_of_type(int type);
 
 	BC_Pixmap *icons[TOTAL_ICONS];
-	FileSystem *fs;
 	BC_FileBoxRecent *recent_popup;
 	BC_FileBoxTextBox *textbox;
 	BC_FileBoxListBox *listbox;
 	BC_FileBoxFilterText *filter_text;
 	BC_FileBoxFilterMenu *filter_popup;
-	BC_Title *directory_title;
-	BC_Button *icon_button, *text_button, *folder_button, *rename_button, *updir_button, *delete_button, *reload_button;
+	BC_TextBox *directory_title;
+	BC_Button *icon_button;
+	BC_Button *text_button;
+	BC_Button *folder_button;
+	BC_Button *rename_button;
+	BC_Button *updir_button;
+	BC_Button *delete_button;
+	BC_Button *reload_button;
 	BC_Button *ok_button, *cancel_button;
 	BC_FileBoxUseThis *usethis_button;
 	char caption[BCTEXTLEN];

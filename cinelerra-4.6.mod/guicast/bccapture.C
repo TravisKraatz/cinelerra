@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bccapture.h"
@@ -73,19 +73,19 @@ int BC_Capture::init_window(const char *display_path)
 	rootwin = RootWindow(display, screen);
 	vis = DefaultVisual(display, screen);
 	default_depth = DefaultDepth(display, screen);
-	client_byte_order = (*(u_int32_t*)"a   ") & 0x00000001;
+	client_byte_order = (*(const u_int32_t*)"a   ") & 0x00000001;
 	server_byte_order = (XImageByteOrder(display) == MSBFirst) ? 0 : 1;
 	char *data = 0;
 	XImage *ximage;
-	ximage = XCreateImage(display, 
-					vis, 
-					default_depth, 
-					ZPixmap, 
-					0, 
-					data, 
-					16, 
-					16, 
-					8, 
+	ximage = XCreateImage(display,
+					vis,
+					default_depth,
+					ZPixmap,
+					0,
+					data,
+					16,
+					16,
+					8,
 					0);
 	bits_per_pixel = ximage->bits_per_pixel;
 	XDestroyImage(ximage);
@@ -109,8 +109,12 @@ int BC_Capture::allocate_data()
 	{
 	    ximage = XShmCreateImage(display, vis, default_depth, ZPixmap, (char*)NULL, &shm_info, w, h);
 
-		shm_info.shmid = shmget(IPC_PRIVATE, h * ximage->bytes_per_line, IPC_CREAT | 0777);
-		if(shm_info.shmid < 0) perror("BC_Capture::allocate_data shmget");
+		shm_info.shmid = shmget(IPC_PRIVATE, h * ximage->bytes_per_line, IPC_CREAT | 0600);
+		if(shm_info.shmid == -1)
+		{
+			perror("BC_Capture::allocate_data shmget");
+			abort();
+		}
 		data = (unsigned char *)shmat(shm_info.shmid, NULL, 0);
 		shmctl(shm_info.shmid, IPC_RMID, 0);
 		ximage->data = shm_info.shmaddr = (char*)data;  // setting ximage->data stops BadValue
@@ -206,7 +210,7 @@ int BC_Capture::capture_frame(VFrame *frame, int &x1, int &y1)
 	else
 		XGetSubImage(display, rootwin, x1, y1, w, h, 0xffffffff, ZPixmap, ximage, 0, 0);
 
-	BC_WindowBase::get_cmodels()->transfer(frame->get_rows(), 
+	BC_WindowBase::get_cmodels()->transfer(frame->get_rows(),
 		row_data,
 		frame->get_y(),
 		frame->get_u(),
@@ -214,15 +218,15 @@ int BC_Capture::capture_frame(VFrame *frame, int &x1, int &y1)
 		0,
 		0,
 		0,
-		0, 
-		0, 
-		w, 
+		0,
+		0,
+		w,
 		h,
-		0, 
-		0, 
-		frame->get_w(), 
+		0,
+		0,
+		frame->get_w(),
 		frame->get_h(),
-		bitmap_color_model, 
+		bitmap_color_model,
 		frame->get_color_model(),
 		0,
 		frame->get_w(),

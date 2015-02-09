@@ -124,17 +124,17 @@ void BC_Display::dump_windows()
 
 void BC_Display::new_window(BC_WindowBase *window)
 {
-printf("BC_Display::new_window %d\n", __LINE__);
+//printf("BC_Display::new_window %d\n", __LINE__);
 	if(!clipboard)
 	{
 		clipboard = new BC_Clipboard("");
 		clipboard->start_clipboard();
 	}
 
-printf("BC_Display::new_window %d\n", __LINE__);
+//printf("BC_Display::new_window %d\n", __LINE__);
 	windows.append(window);
 //	dump_windows();
-printf("BC_Display::new_window %d\n", __LINE__);
+//printf("BC_Display::new_window %d\n", __LINE__);
 }
 
 void BC_Display::delete_window(BC_WindowBase *window)

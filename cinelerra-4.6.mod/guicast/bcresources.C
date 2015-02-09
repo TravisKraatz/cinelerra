@@ -2,26 +2,27 @@
 /*
  * CINELERRA
  * Copyright (C) 2009 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcdisplayinfo.h"
 #include "bcipc.h"
 #include "bclistbox.inc"
+#include "bcfontentry.h"
 #include "bcresources.h"
 #include "bcsignals.h"
 #include "bcsynchronous.h"
@@ -33,11 +34,14 @@
 #include "vframe.h"
 
 #include <string.h>
+#include <iconv.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
+#include <fontconfig/fontconfig.h>
+#include <fontconfig/fcfreetype.h>
 #include <unistd.h>
- 
+
 
 
 
@@ -47,6 +51,15 @@ int BC_Resources::error = 0;
 VFrame* BC_Resources::bg_image = 0;
 VFrame* BC_Resources::menu_bg = 0;
 
+int BC_Resources::locale_utf8 = 0;
+int BC_Resources::little_endian = 0;
+char BC_Resources::language[LEN_LANG] = {0};
+char BC_Resources::region[LEN_LANG] = {0};
+char BC_Resources::encoding[LEN_ENCOD] = {0};
+const char *BC_Resources::wide_encoding = 0;
+ArrayList<BC_FontEntry*> *BC_Resources::fontlist = 0;
+const char *BC_Resources::fc_properties[] = { FC_SLANT, FC_WEIGHT, FC_WIDTH };
+#define LEN_FCPROP (sizeof(BC_Resources::fc_properties) / sizeof(const char*))
 
 const char* BC_Resources::small_font = N_("-*-helvetica-medium-r-normal-*-10-*");
 const char* BC_Resources::small_font2 = N_("-*-helvetica-medium-r-normal-*-11-*");
@@ -64,44 +77,60 @@ const char* BC_Resources::medium_fontset = "-*-helvetica-bold-r-normal-*-14-*";
 const char* BC_Resources::large_fontset = "-*-helvetica-bold-r-normal-*-18-*";
 const char* BC_Resources::big_fontset = "-*-helvetica-bold-r-normal-*-24-*";
 
-//Sans-x fonts are broken, too bad - they were nice
 //const char* BC_Resources::small_font_xft = N_("Sans-8");
-const char* BC_Resources::small_font_xft = N_("-*-luxi sans-bold-r-*-*-8-*-*-*-*-*-*-*");
+//const char* BC_Resources::small_font_xft = N_("-*-luxi sans-bold-r-*-*-8-*-*-*-*-*-*-*");
+const char* BC_Resources::small_font_xft = N_("Sans:pixelsize=10.6667");
 const char* BC_Resources::small_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
+const char* BC_Resources::small_b_font_xft = N_("Sans:bold:pixelsize=10.6667");
+
 //const char* BC_Resources::medium_font_xft = N_("Sans-10");
-const char* BC_Resources::medium_font_xft = N_("-*-luxi sans-medium-r-*-*-12-*-*-*-*-*-*-*");
+//const char* BC_Resources::medium_font_xft = N_("-*-luxi sans-medium-r-*-*-12-*-*-*-*-*-*-*");
+const char* BC_Resources::medium_font_xft = N_("Sans:pixelsize=13.3333");
 const char* BC_Resources::medium_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
+const char* BC_Resources::medium_b_font_xft = N_("Sans:bold:pixelsize=13.33333");
+
 //const char* BC_Resources::large_font_xft = N_("Sans-18");
-const char* BC_Resources::large_font_xft = N_("-*-luxi sans-medium-r-*-*-18-*-*-*-*-*-*-*");
+//const char* BC_Resources::large_font_xft = N_("-*-luxi sans-medium-r-*-*-18-*-*-*-*-*-*-*");
+const char* BC_Resources::large_font_xft = N_("Sans:pixelsize=21.3333");
 const char* BC_Resources::large_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-const char* BC_Resources::big_font_xft = N_("-*-luxi sans-bold-r-*-*-34-*-*-*-*-*-*-*");
+const char* BC_Resources::large_b_font_xft = N_("Sans:bold:pixelsize=21.33333");
+
+//const char* BC_Resources::big_font_xft = N_("Sans-34");
+//const char* BC_Resources::big_font_xft = N_("-*-luxi sans-bold-r-*-*-34-*-*-*-*-*-*-*");
+const char* BC_Resources::big_font_xft = N_("Sans:pixelsize=37.3333");
 const char* BC_Resources::big_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
+const char* BC_Resources::big_b_font_xft = N_("Sans:bold:pixelsize=37.33333");
 
 
-suffix_to_type_t BC_Resources::suffix_to_type[] = 
+suffix_to_type_t BC_Resources::suffix_to_type[] =
 {
 	{ "m2v", ICON_FILM },
 	{ "mov", ICON_FILM },
 	{ "mp2", ICON_SOUND },
 	{ "mp3", ICON_SOUND },
+	{ "ac3", ICON_SOUND },
 	{ "mpg", ICON_FILM },
 	{ "vob", ICON_FILM },
+	{ "ifo", ICON_FILM },
+	{ "ts",  ICON_FILM },
+	{ "vts", ICON_FILM },
 	{ "wav", ICON_SOUND }
 };
 
 BC_Signals* BC_Resources::signal_handler = 0;
-
+Mutex BC_Resources::fontconfig_lock("BC_Resources::fonconfig_lock");
 
 int BC_Resources::x_error_handler(Display *display, XErrorEvent *event)
 {
-// 	char string[1024];
-// 	XGetErrorText(event->display, event->error_code, string, 1024);
-// 	printf("BC_Resources::x_error_handler: error_code=%d opcode=%d,%d %s\n", 
-// 		event->error_code, 
-// 		event->request_code,
-// 		event->minor_code,
-// 		string);
-
+#if defined(OUTPUT_X_ERROR)
+	char string[1024];
+	XGetErrorText(event->display, event->error_code, string, 1024);
+	fprintf(stderr, "BC_Resources::x_error_handler: error_code=%d opcode=%d,%d %s\n",
+		event->error_code,
+		event->request_code,
+		event->minor_code,
+		string);
+#endif
 
 	BC_Resources::error = 1;
 // This bug only happens in 32 bit mode.
@@ -116,11 +145,10 @@ BC_Resources::BC_Resources()
 {
 	synchronous = 0;
 	vframe_shm = 0;
-	display_info = new BC_DisplayInfo((char*)"", 0);
+	display_info = new BC_DisplayInfo("", 0);
 	id_lock = new Mutex("BC_Resources::id_lock");
 	create_window_lock = new Mutex("BC_Resources::create_window_lock", 1);
 	id = 0;
-	filebox_id = 0;
 
 	for(int i = 0; i < FILEBOX_HISTORY_SIZE; i++)
 		filebox_history[i].path[0] = 0;
@@ -129,6 +157,8 @@ BC_Resources::BC_Resources()
 	XftInitFtLibrary();
 #endif
 
+	little_endian = (*(const u_int32_t*)"\01\0\0\0") & 1;
+	wide_encoding = little_endian ?  "UTF32LE" : "UTF32BE";
 	use_xvideo = 1;
 
 #include "images/file_film_png.h"
@@ -136,7 +166,7 @@ BC_Resources::BC_Resources()
 #include "images/file_sound_png.h"
 #include "images/file_unknown_png.h"
 #include "images/file_column_png.h"
-	static VFrame* default_type_to_icon[] = 
+	static VFrame* default_type_to_icon[] =
 	{
 		new VFrame(file_folder_png),
 		new VFrame(file_unknown_png),
@@ -155,7 +185,7 @@ BC_Resources::BC_Resources()
 #include "images/cancel_up_png.h"
 #include "images/cancel_hi_png.h"
 #include "images/cancel_dn_png.h"
-	static VFrame* default_cancel_images[] = 
+	static VFrame* default_cancel_images[] =
 	{
 		new VFrame(cancel_up_png),
 		new VFrame(cancel_hi_png),
@@ -165,7 +195,7 @@ BC_Resources::BC_Resources()
 #include "images/ok_up_png.h"
 #include "images/ok_hi_png.h"
 #include "images/ok_dn_png.h"
-	static VFrame* default_ok_images[] = 
+	static VFrame* default_ok_images[] =
 	{
 		new VFrame(ok_up_png),
 		new VFrame(ok_hi_png),
@@ -175,7 +205,7 @@ BC_Resources::BC_Resources()
 #include "images/usethis_up_png.h"
 #include "images/usethis_uphi_png.h"
 #include "images/usethis_dn_png.h"
-	static VFrame* default_usethis_images[] = 
+	static VFrame* default_usethis_images[] =
 	{
 		new VFrame(usethis_up_png),
 		new VFrame(usethis_uphi_png),
@@ -188,7 +218,7 @@ BC_Resources::BC_Resources()
 #include "images/checkbox_checkedhi_png.h"
 #include "images/checkbox_up_png.h"
 #include "images/checkbox_hi_png.h"
-	static VFrame* default_checkbox_images[] =  
+	static VFrame* default_checkbox_images[] =
 	{
 		new VFrame(checkbox_up_png),
 		new VFrame(checkbox_hi_png),
@@ -202,7 +232,7 @@ BC_Resources::BC_Resources()
 #include "images/radial_checkedhi_png.h"
 #include "images/radial_up_png.h"
 #include "images/radial_hi_png.h"
-	static VFrame* default_radial_images[] =  
+	static VFrame* default_radial_images[] =
 	{
 		new VFrame(radial_up_png),
 		new VFrame(radial_hi_png),
@@ -211,7 +241,7 @@ BC_Resources::BC_Resources()
 		new VFrame(radial_checkedhi_png)
 	};
 
-	static VFrame* default_label_images[] =  
+	static VFrame* default_label_images[] =
 	{
 		new VFrame(radial_up_png),
 		new VFrame(radial_hi_png),
@@ -242,28 +272,28 @@ BC_Resources::BC_Resources()
 #include "images/file_reload_up_png.h"
 #include "images/file_reload_hi_png.h"
 #include "images/file_reload_dn_png.h"
-	static VFrame* default_filebox_text_images[] = 
+	static VFrame* default_filebox_text_images[] =
 	{
 		new VFrame(file_text_up_png),
 		new VFrame(file_text_hi_png),
 		new VFrame(file_text_dn_png)
 	};
 
-	static VFrame* default_filebox_icons_images[] = 
+	static VFrame* default_filebox_icons_images[] =
 	{
 		new VFrame(file_icons_up_png),
 		new VFrame(file_icons_hi_png),
 		new VFrame(file_icons_dn_png)
 	};
 
-	static VFrame* default_filebox_updir_images[] =  
+	static VFrame* default_filebox_updir_images[] =
 	{
 		new VFrame(file_updir_up_png),
 		new VFrame(file_updir_hi_png),
 		new VFrame(file_updir_dn_png)
 	};
 
-	static VFrame* default_filebox_newfolder_images[] = 
+	static VFrame* default_filebox_newfolder_images[] =
 	{
 		new VFrame(file_newfolder_up_png),
 		new VFrame(file_newfolder_hi_png),
@@ -271,14 +301,14 @@ BC_Resources::BC_Resources()
 	};
 
 
-	static VFrame* default_filebox_rename_images[] = 
+	static VFrame* default_filebox_rename_images[] =
 	{
 		new VFrame(file_rename_up_png),
 		new VFrame(file_rename_hi_png),
 		new VFrame(file_rename_dn_png)
 	};
 
-	static VFrame* default_filebox_delete_images[] = 
+	static VFrame* default_filebox_delete_images[] =
 	{
 		new VFrame(file_delete_up_png),
 		new VFrame(file_delete_hi_png),
@@ -295,11 +325,13 @@ BC_Resources::BC_Resources()
 #include "images/listbox_button_dn_png.h"
 #include "images/listbox_button_hi_png.h"
 #include "images/listbox_button_up_png.h"
-	static VFrame* default_listbox_button[] = 
+#include "images/listbox_button_disabled_png.h"
+	static VFrame* default_listbox_button[] =
 	{
 		new VFrame(listbox_button_up_png),
 		new VFrame(listbox_button_hi_png),
-		new VFrame(listbox_button_dn_png)
+		new VFrame(listbox_button_dn_png),
+		new VFrame(listbox_button_disabled_png)
 	};
 	listbox_button = default_listbox_button;
 
@@ -312,7 +344,7 @@ BC_Resources::BC_Resources()
 #include "images/listbox_expanddn_png.h"
 #include "images/listbox_expandup_png.h"
 #include "images/listbox_expanduphi_png.h"
-	static VFrame* default_listbox_expand[] = 
+	static VFrame* default_listbox_expand[] =
 	{
 		new VFrame(listbox_expandup_png),
 		new VFrame(listbox_expanduphi_png),
@@ -325,7 +357,7 @@ BC_Resources::BC_Resources()
 #include "images/listbox_columnup_png.h"
 #include "images/listbox_columnhi_png.h"
 #include "images/listbox_columndn_png.h"
-	static VFrame* default_listbox_column[] = 
+	static VFrame* default_listbox_column[] =
 	{
 		new VFrame(listbox_columnup_png),
 		new VFrame(listbox_columnhi_png),
@@ -342,7 +374,7 @@ BC_Resources::BC_Resources()
 	listbox_title_margin = 0;
 	listbox_title_color = BLACK;
 	listbox_title_hotspot = 5;
-	
+
 	listbox_border1 = DKGREY;
 	listbox_border2_hi = RED;
 	listbox_border2 = BLACK;
@@ -354,47 +386,10 @@ BC_Resources::BC_Resources()
 	listbox_inactive = WHITE;
 	listbox_text = BLACK;
 
-
-
-
-#include "images/horizontal_slider_bg_up_png.h"
-#include "images/horizontal_slider_bg_hi_png.h"
-#include "images/horizontal_slider_bg_dn_png.h"
-#include "images/horizontal_slider_fg_up_png.h"
-#include "images/horizontal_slider_fg_hi_png.h"
-#include "images/horizontal_slider_fg_dn_png.h"
-	static VFrame *default_horizontal_slider_data[] = 
-	{
-		new VFrame(horizontal_slider_fg_up_png),
-		new VFrame(horizontal_slider_fg_hi_png),
-		new VFrame(horizontal_slider_fg_dn_png),
-		new VFrame(horizontal_slider_bg_up_png),
-		new VFrame(horizontal_slider_bg_hi_png),
-		new VFrame(horizontal_slider_bg_dn_png),
-	};
-
-#include "images/vertical_slider_bg_up_png.h"
-#include "images/vertical_slider_bg_hi_png.h"
-#include "images/vertical_slider_bg_dn_png.h"
-#include "images/vertical_slider_fg_up_png.h"
-#include "images/vertical_slider_fg_hi_png.h"
-#include "images/vertical_slider_fg_dn_png.h"
-	static VFrame *default_vertical_slider_data[] = 
-	{
-		new VFrame(vertical_slider_fg_up_png),
-		new VFrame(vertical_slider_fg_hi_png),
-		new VFrame(vertical_slider_fg_dn_png),
-		new VFrame(vertical_slider_bg_up_png),
-		new VFrame(vertical_slider_bg_hi_png),
-		new VFrame(vertical_slider_bg_dn_png),
-	};
-	horizontal_slider_data = default_horizontal_slider_data;
-	vertical_slider_data = default_vertical_slider_data;
-
 #include "images/pot_hi_png.h"
 #include "images/pot_up_png.h"
 #include "images/pot_dn_png.h"
-	static VFrame *default_pot_images[] = 
+	static VFrame *default_pot_images[] =
 	{
 		new VFrame(pot_up_png),
 		new VFrame(pot_hi_png),
@@ -403,31 +398,13 @@ BC_Resources::BC_Resources()
 
 #include "images/progress_up_png.h"
 #include "images/progress_hi_png.h"
-	static VFrame* default_progress_images[] = 
+	static VFrame* default_progress_images[] =
 	{
 		new VFrame(progress_up_png),
 		new VFrame(progress_hi_png)
 	};
 
-
-#include "images/pan_up_png.h"
-#include "images/pan_hi_png.h"
-#include "images/pan_popup_png.h"
-#include "images/pan_channel_png.h"
-#include "images/pan_stick_png.h"
-#include "images/pan_channel_small_png.h"
-#include "images/pan_stick_small_png.h"
-	static VFrame* default_pan_data[] = 
-	{
-		new VFrame(pan_up_png),
-		new VFrame(pan_hi_png),
-		new VFrame(pan_popup_png),
-		new VFrame(pan_channel_png),
-		new VFrame(pan_stick_png),
-		new VFrame(pan_channel_small_png),
-		new VFrame(pan_stick_small_png)
-	};
-	pan_data = default_pan_data;
+	pan_data = 0;
 	pan_text_color = YELLOW;
 
 #include "images/7seg_small/0_png.h"
@@ -450,7 +427,7 @@ BC_Resources::BC_Resources()
 #include "images/7seg_small/f_png.h"
 #include "images/7seg_small/space_png.h"
 #include "images/7seg_small/dash_png.h"
-	static VFrame* default_medium_7segment[] = 
+	static VFrame* default_medium_7segment[] =
 	{
 		new VFrame(_0_png),
 		new VFrame(_1_png),
@@ -474,126 +451,14 @@ BC_Resources::BC_Resources()
 		new VFrame(dash_png)
 	};
 
-#include "images/tumble_bottomdn_png.h"
-#include "images/tumble_topdn_png.h"
-#include "images/tumble_hi_png.h"
-#include "images/tumble_up_png.h"
-	static VFrame* default_tumbler_data[] = 
-	{
-		new VFrame(tumble_up_png),
-		new VFrame(tumble_hi_png),
-		new VFrame(tumble_bottomdn_png),
-		new VFrame(tumble_topdn_png)
-	};
-
-#include "images/xmeter_normal_png.h"
-#include "images/xmeter_green_png.h"
-#include "images/xmeter_red_png.h"
-#include "images/xmeter_yellow_png.h"
-#include "images/xmeter_white_png.h"
-#include "images/over_horiz_png.h"
-#include "images/ymeter_normal_png.h"
-#include "images/ymeter_green_png.h"
-#include "images/ymeter_red_png.h"
-#include "images/ymeter_yellow_png.h"
-#include "images/ymeter_white_png.h"
-#include "images/over_vertical_png.h"
-#include "images/downmix51_2_png.h"
-	static VFrame* default_xmeter_data[] =
-	{
-		new VFrame(xmeter_normal_png),
-		new VFrame(xmeter_green_png),
-		new VFrame(xmeter_red_png),
-		new VFrame(xmeter_yellow_png),
-		new VFrame(xmeter_white_png),
-		new VFrame(over_horiz_png),
-		new VFrame(downmix51_2_png)
-	};
-
-	static VFrame* default_ymeter_data[] =
-	{
-		new VFrame(ymeter_normal_png),
-		new VFrame(ymeter_green_png),
-		new VFrame(ymeter_red_png),
-		new VFrame(ymeter_yellow_png),
-		new VFrame(ymeter_white_png),
-		new VFrame(over_vertical_png),
-		new VFrame(downmix51_2_png)
-	};
-
-#include "images/generic_up_png.h"
-#include "images/generic_hi_png.h"
-#include "images/generic_dn_png.h"
-	
-	static VFrame* default_generic_button_data[] = 
-	{
-		new VFrame(generic_up_png),
-		new VFrame(generic_hi_png),
-		new VFrame(generic_dn_png)
-	};
-	
-	generic_button_images = default_generic_button_data;
 	generic_button_margin = 15;
-
-
-
-#include "images/hscroll_handle_up_png.h"
-#include "images/hscroll_handle_hi_png.h"
-#include "images/hscroll_handle_dn_png.h"
-#include "images/hscroll_handle_bg_png.h"
-#include "images/hscroll_left_up_png.h"
-#include "images/hscroll_left_hi_png.h"
-#include "images/hscroll_left_dn_png.h"
-#include "images/hscroll_right_up_png.h"
-#include "images/hscroll_right_hi_png.h"
-#include "images/hscroll_right_dn_png.h"
-#include "images/vscroll_handle_up_png.h"
-#include "images/vscroll_handle_hi_png.h"
-#include "images/vscroll_handle_dn_png.h"
-#include "images/vscroll_handle_bg_png.h"
-#include "images/vscroll_left_up_png.h"
-#include "images/vscroll_left_hi_png.h"
-#include "images/vscroll_left_dn_png.h"
-#include "images/vscroll_right_up_png.h"
-#include "images/vscroll_right_hi_png.h"
-#include "images/vscroll_right_dn_png.h"
-	static VFrame *default_hscroll_data[] = 
-	{
-		new VFrame(hscroll_handle_up_png), 
-		new VFrame(hscroll_handle_hi_png), 
-		new VFrame(hscroll_handle_dn_png), 
-		new VFrame(hscroll_handle_bg_png), 
-		new VFrame(hscroll_left_up_png), 
-		new VFrame(hscroll_left_hi_png), 
-		new VFrame(hscroll_left_dn_png), 
-		new VFrame(hscroll_right_up_png), 
-		new VFrame(hscroll_right_hi_png), 
-		new VFrame(hscroll_right_dn_png)
-	};
-	static VFrame *default_vscroll_data[] = 
-	{
-		new VFrame(vscroll_handle_up_png), 
-		new VFrame(vscroll_handle_hi_png), 
-		new VFrame(vscroll_handle_dn_png), 
-		new VFrame(vscroll_handle_bg_png), 
-		new VFrame(vscroll_left_up_png), 
-		new VFrame(vscroll_left_hi_png), 
-		new VFrame(vscroll_left_dn_png), 
-		new VFrame(vscroll_right_up_png), 
-		new VFrame(vscroll_right_hi_png), 
-		new VFrame(vscroll_right_dn_png)
-	};
-	hscroll_data = default_hscroll_data;
-	vscroll_data = default_vscroll_data;
-	scroll_minhandle = 10;
-
-
+	draw_clock_background=1;
 
 	use_shm = -1;
 	shm_reply = 1;
 
 // Initialize
-	bg_color = MEGREY;
+	bg_color = ORANGE;
 	bg_shadow1 = DKGREY;
 	bg_shadow2 = BLACK;
 	bg_light1 = WHITE;
@@ -609,22 +474,21 @@ BC_Resources::BC_Resources()
 	disabled_text_color = DMGREY;
 
 	button_light = MEGREY;           // bright corner
-	button_highlighted = LTGREY;  // face when highlighted
+//	button_highlighted = LTGREY;  // face when highlighted
+	button_highlighted = 0xffe000;  // face when highlighted
 	button_down = MDGREY;         // face when down
-	button_up = MEGREY;           // face when up
+//	button_up = MEGREY;           // face when up
+	button_up = 0xffc000;           // face when up
 	button_shadow = BLACK;       // dark corner
+	button_uphighlighted = RED;   // upper side when highlighted
 
-	tumble_data = default_tumbler_data;
+	tumble_data = 0;
 	tumble_duration = 150;
 
 	ok_images = default_ok_images;
 	cancel_images = default_cancel_images;
 	usethis_button_images = default_usethis_images;
 	filebox_descend_images = default_ok_images;
-
-	checkbox_images = default_checkbox_images;
-	radial_images = default_radial_images;
-	label_images = default_label_images;
 
 	menu_light = LTCYAN;
 	menu_highlighted = LTBLUE;
@@ -641,7 +505,7 @@ BC_Resources::BC_Resources()
 #include "images/menubar_dn_png.h"
 #include "images/menubar_bg_png.h"
 
-	static VFrame *default_menuitem_data[] = 
+	static VFrame *default_menuitem_data[] =
 	{
 		new VFrame(menuitem_up_png),
 		new VFrame(menuitem_hi_png),
@@ -650,7 +514,7 @@ BC_Resources::BC_Resources()
 	menu_item_bg = default_menuitem_data;
 
 
-	static VFrame *default_menubar_data[] = 
+	static VFrame *default_menubar_data[] =
 	{
 		new VFrame(menubar_up_png),
 		new VFrame(menubar_hi_png),
@@ -672,6 +536,7 @@ BC_Resources::BC_Resources()
 	menu_title_text = BLACK;
 	popup_title_text = BLACK;
 	menu_item_text = BLACK;
+	menu_highlighted_fontcolor = BLACK;
 	progress_text = BLACK;
 
 
@@ -711,9 +576,11 @@ BC_Resources::BC_Resources()
 	filebox_columntype[0] = FILEBOX_NAME;
 	filebox_columntype[1] = FILEBOX_SIZE;
 	filebox_columntype[2] = FILEBOX_DATE;
+	filebox_columntype[3] = FILEBOX_EXTENSION;
 	filebox_columnwidth[0] = 200;
 	filebox_columnwidth[1] = 100;
 	filebox_columnwidth[2] = 100;
+	filebox_columnwidth[3] = 100;
 	dirbox_columntype[0] = FILEBOX_NAME;
 	dirbox_columntype[1] = FILEBOX_DATE;
 	dirbox_columnwidth[0] = 200;
@@ -744,14 +611,15 @@ BC_Resources::BC_Resources()
 
 	progress_images = default_progress_images;
 
-	xmeter_images = default_xmeter_data;
-	ymeter_images = default_ymeter_data;
+	xmeter_images = 0;
+	ymeter_images = 0;
 	meter_font = SMALLFONT_3D;
 	meter_font_color = RED;
 	meter_title_w = 20;
 	meter_3d = 1;
 	medium_7segment = default_medium_7segment;
 
+	audiovideo_color = RED;
 
 	use_fontset = 0;
 
@@ -785,33 +653,37 @@ int BC_Resources::initialize_display(BC_WindowBase *window)
 }
 
 
-int BC_Resources::init_shm(BC_WindowBase *window)
+void BC_Resources::init_shm(BC_WindowBase *window)
 {
-	use_shm = 1;
+	use_shm = 0;
 	XSetErrorHandler(BC_Resources::x_error_handler);
 
-	if(!XShmQueryExtension(window->display)) use_shm = 0;
-	else
+	if(XShmQueryExtension(window->display))
 	{
 		XShmSegmentInfo test_shm;
 		memset(&test_shm,0,sizeof(test_shm));
-		XImage *test_image;
-		test_image = XShmCreateImage(window->display, window->vis, window->default_depth,
-                ZPixmap, (char*)NULL, &test_shm, 5, 5);
-
-		test_shm.shmid = shmget(IPC_PRIVATE, 5 * test_image->bytes_per_line, (IPC_CREAT | 0777 ));
-		//unsigned char *data = (unsigned char *)
-		shmat(test_shm.shmid, NULL, 0);
-		shmctl(test_shm.shmid, IPC_RMID, 0);
+		XImage *test_image = XShmCreateImage(window->display, window->vis,
+			window->default_depth, ZPixmap, (char*)NULL, &test_shm, 5, 5);
 		BC_Resources::error = 0;
- 	   	XShmAttach(window->display, &test_shm);
-		XSync(window->display, False);
-		if(BC_Resources::error) use_shm = 0;
+		test_shm.shmid = shmget(IPC_PRIVATE, 5 * test_image->bytes_per_line, (IPC_CREAT | 0600));
+		if(test_shm.shmid != -1) {
+			char *data = (char *)shmat(test_shm.shmid, NULL, 0);
+			if(data != (void *)-1) {
+				shmctl(test_shm.shmid, IPC_RMID, 0);
+				test_shm.shmaddr = data;
+				test_shm.readOnly = 0;
+
+				if(XShmAttach(window->display, &test_shm)) {
+					XSync(window->display, False);
+					use_shm = 1;
+				}
+				shmdt(data);
+			}
+		}
+
 		XDestroyImage(test_image);
-		shmdt(test_shm.shmaddr);
+		if(BC_Resources::error) use_shm = 0;
 	}
-//	XSetErrorHandler(0);
-	return 0;
 }
 
 
@@ -887,7 +759,411 @@ void BC_Resources::set_signals(BC_Signals *signal_handler)
 	BC_Resources::signal_handler = signal_handler;
 }
 
-BC_Signals* BC_Resources::get_signals()
+int BC_Resources::init_fontconfig(const char *search_path)
 {
-	return BC_Resources::signal_handler;
+	if( fontlist ) return 0;
+	fontlist = new ArrayList<BC_FontEntry*>;
+
+	if(!FcInit())
+		return 1;
+
+	FcConfigAppFontAddDir(0, (const FcChar8*)search_path);
+	FcConfigSetRescanInterval(0, 0);
+	FcPattern *pat = FcPatternCreate();
+	FcObjectSet *os = FcObjectSetBuild(FC_FAMILY, FC_FILE, FC_FOUNDRY, FC_WEIGHT,
+		FC_WIDTH, FC_SLANT, FC_SPACING, FC_STYLE, (char *)0);
+
+	FcPatternAddBool(pat, FC_SCALABLE, true);
+
+	if(language[0])
+	{
+		char langstr[LEN_LANG * 3];
+		strcpy(langstr, language);
+
+		if(region[0])
+		{
+			strcat(langstr, "-");
+			strcat(langstr, region);
+		}
+
+		FcLangSet *ls =  FcLangSetCreate();
+		if(FcLangSetAdd(ls, (const FcChar8*)langstr))
+			if(FcPatternAddLangSet(pat, FC_LANG, ls))
+		FcLangSetDestroy(ls);
+	}
+
+	FcFontSet *fs = FcFontList(0, pat, os);
+	FcPatternDestroy(pat);
+	FcObjectSetDestroy(os);
+
+	for(int i = 0; i < fs->nfont; i++)
+	{
+		FcPattern *font = fs->fonts[i];
+		BC_FontEntry *entry = new BC_FontEntry;
+
+		FcChar8 *strvalue;
+		if(FcPatternGetString(font, FC_FILE, 0, &strvalue) == FcResultMatch)
+		{
+			entry->path = new char[strlen((char*)strvalue) + 1];
+			strcpy(entry->path, (char*)strvalue);
+		}
+
+		if(FcPatternGetString(font, FC_FOUNDRY, 0, &strvalue) == FcResultMatch)
+		{
+			entry->foundry = new char[strlen((char*)strvalue) + 1];
+			strcpy(entry->foundry, (char *)strvalue);
+		}
+
+		if(FcPatternGetString(font, FC_FAMILY, 0, &strvalue) == FcResultMatch)
+		{
+			entry->family = new char[strlen((char*)strvalue) + 2];
+			strcpy(entry->family, (char*)strvalue);
+		}
+
+		int intvalue;
+		if(FcPatternGetInteger(font, FC_SLANT, 0, &intvalue) == FcResultMatch)
+		{
+			switch(intvalue)
+			{
+			case FC_SLANT_ROMAN:
+			default:
+				entry->style |= FL_SLANT_ROMAN;
+				break;
+
+			case FC_SLANT_ITALIC:
+				entry->style |= FL_SLANT_ITALIC;
+				break;
+
+			case FC_SLANT_OBLIQUE:
+				entry->style |= FL_SLANT_OBLIQUE;
+				break;
+			}
+		}
+
+		if(FcPatternGetInteger(font, FC_SLANT, 0, &intvalue) == FcResultMatch)
+		{
+			switch(intvalue)
+			{
+			case FC_SLANT_ROMAN:
+			default:
+				entry->style |= FL_SLANT_ROMAN;
+				break;
+
+			case FC_SLANT_ITALIC:
+				entry->style |= FL_SLANT_ITALIC;
+				break;
+
+			case FC_SLANT_OBLIQUE:
+				entry->style |= FL_SLANT_OBLIQUE;
+				break;
+			}
+		}
+
+		if(FcPatternGetInteger(font, FC_WEIGHT, 0, &intvalue) == FcResultMatch)
+		{
+			switch(intvalue)
+			{
+			case FC_WEIGHT_THIN:
+				entry->style |= FL_WEIGHT_THIN;
+				break;
+
+			case FC_WEIGHT_EXTRALIGHT:
+				entry->style |= FL_WEIGHT_EXTRALIGHT;
+				break;
+
+			case FC_WEIGHT_LIGHT:
+				entry->style |= FL_WEIGHT_LIGHT;
+				break;
+
+			case FC_WEIGHT_BOOK:
+				entry->style |= FL_WEIGHT_BOOK;
+				break;
+
+			case FC_WEIGHT_NORMAL:
+			default:
+				entry->style |= FL_WEIGHT_NORMAL;
+				break;
+
+			case FC_WEIGHT_MEDIUM:
+				entry->style |= FL_WEIGHT_MEDIUM;
+				break;
+
+			case FC_WEIGHT_DEMIBOLD:
+				entry->style |= FL_WEIGHT_DEMIBOLD;
+				break;
+
+			case FC_WEIGHT_BOLD:
+				entry->style |= FL_WEIGHT_BOLD;
+				break;
+
+			case FC_WEIGHT_EXTRABOLD:
+				entry->style |= FL_WEIGHT_EXTRABOLD;
+				break;
+
+			case FC_WEIGHT_BLACK:
+				entry->style |= FL_WEIGHT_BLACK;
+				break;
+
+			case FC_WEIGHT_EXTRABLACK:
+				entry->style |= FL_WEIGHT_EXTRABLACK;
+				break;
+			}
+		}
+
+		if(FcPatternGetInteger(font, FC_WIDTH, 0, &intvalue) == FcResultMatch)
+		{
+			switch(intvalue)
+			{
+			case FC_WIDTH_ULTRACONDENSED:
+				entry->style |= FL_WIDTH_ULTRACONDENSED;
+				break;
+
+			case FC_WIDTH_EXTRACONDENSED:
+				entry->style |= FL_WIDTH_EXTRACONDENSED;
+				break;
+
+			case FC_WIDTH_CONDENSED:
+				entry->style |= FL_WIDTH_CONDENSED;
+				break;
+
+			case FC_WIDTH_SEMICONDENSED:
+				entry->style = FL_WIDTH_SEMICONDENSED;
+				break;
+
+			case FC_WIDTH_NORMAL:
+			default:
+				entry->style |= FL_WIDTH_NORMAL;
+				break;
+
+			case FC_WIDTH_SEMIEXPANDED:
+				entry->style |= FL_WIDTH_SEMIEXPANDED;
+				break;
+
+			case FC_WIDTH_EXPANDED:
+				entry->style |= FL_WIDTH_EXPANDED;
+				break;
+
+			case FC_WIDTH_EXTRAEXPANDED:
+				entry->style |= FL_WIDTH_EXTRAEXPANDED;
+				break;
+
+			case FC_WIDTH_ULTRAEXPANDED:
+				entry->style |= FL_WIDTH_ULTRAEXPANDED;
+				break;
+			}
+		}
+		if(FcPatternGetInteger(font, FC_SPACING, 0, &intvalue) == FcResultMatch)
+		{
+			switch(intvalue)
+			{
+			case FC_PROPORTIONAL:
+			default:
+				entry->style |= FL_PROPORTIONAL;
+				break;
+
+			case FC_DUAL:
+				entry->style |= FL_DUAL;
+				break;
+
+			case FC_MONO:
+				entry->style |= FL_MONO;
+				break;
+
+			case FC_CHARCELL:
+				entry->style |= FL_CHARCELL;
+				break;
+			}
+		}
+		if(entry->foundry && strcmp(entry->foundry, "unknown"))
+		{
+			char tempstr[BCTEXTLEN];
+			sprintf(tempstr, "%s (%s)", entry->family, entry->foundry);
+			entry->displayname = new char[strlen(tempstr) + 1];
+			strcpy(entry->displayname, tempstr);
+		}
+		else
+		{
+			entry->displayname = new char[strlen(entry->family) + 1];
+			strcpy(entry->displayname, entry->family);
+		}
+		fontlist->append(entry);
+	}
+	FcFontSetDestroy(fs);
+	return 0;
 }
+
+BC_FontEntry *BC_Resources::find_fontentry(const char *displayname, int style, int mask)
+{
+	BC_FontEntry *entry, *style_match;
+
+	if(!fontlist)
+		return 0;
+
+	if(displayname)
+	{
+		for(int i = 0; i < fontlist->total; i++)
+		{
+			entry = fontlist->values[i];
+
+			if(strcmp(entry->displayname, displayname) == 0 &&
+					(entry->style & mask) == style)
+				return entry;
+		}
+	}
+// No exact match - assume normal width font
+	style |= FL_WIDTH_NORMAL;
+	mask |= FL_WIDTH_MASK;
+	style_match = 0;
+	for(int i = 0; i < fontlist->total; i++)
+	{
+		entry = fontlist->values[i];
+
+		if((entry->style & mask) == style)
+		{
+			if(!style_match)
+				style_match = entry;
+
+			if(!strncasecmp(displayname, entry->family,
+					strlen(entry->family)))
+			return entry;
+		}
+	}
+	return style_match;
+}
+
+size_t BC_Resources::encode(const char *from_enc, const char *to_enc,
+	char *input, int input_length, char *output, int output_length)
+{
+	size_t inbytes, outbytes = 0;
+	iconv_t cd;
+	char *outbase = output;
+
+	if(!from_enc || *from_enc == 0)
+		from_enc = "UTF-8";
+
+	if(!to_enc || *to_enc == 0)
+		to_enc = "UTF-8";
+
+	if(input_length < 0)
+		inbytes = strlen(input);
+	else
+		inbytes = input_length;
+
+	if(strcmp(from_enc, to_enc) && inbytes)
+	{
+		if((cd = iconv_open(to_enc, from_enc)) == (iconv_t)-1)
+		{
+			printf(_("Conversion from %s to %s is not available"),
+				from_enc, to_enc);
+			return 0;
+		}
+
+		outbytes = output_length - 1;
+
+		iconv(cd, &input, &inbytes, &output, &outbytes);
+
+		iconv_close(cd);
+		inbytes = output - outbase;
+	}
+	else if(inbytes)
+	{
+		memcpy(output,  input, inbytes);
+		outbytes -= inbytes;
+	}
+	for(int i = 0; i < 4; i++)
+	{
+		output[i] = 0;
+		if(outbytes-- == 0)
+			break;
+	}
+	return inbytes;
+}
+
+int BC_Resources::find_font_by_char(FT_ULong char_code, char *path_new, const FT_Face oldface)
+{
+	FcPattern *font, *ofont;
+	FcChar8 *file;
+	int result = 0;
+
+	*path_new = 0;
+
+	// Do not search control codes
+	if(char_code < ' ')
+		return 0;
+
+	if(ofont = FcFreeTypeQueryFace(oldface, (const FcChar8*)"", 4097, 0))
+	{
+		if(font = find_similar_font(char_code, ofont))
+		{
+			if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch)
+			{
+				strcpy(path_new, (char*)file);
+				result = 1;
+			}
+			FcPatternDestroy(font);
+		}
+		FcPatternDestroy(ofont);
+	}
+	return result;
+}
+
+FcPattern* BC_Resources::find_similar_font(FT_ULong char_code, FcPattern *oldfont)
+{
+	FcPattern *pat, *font;
+	FcFontSet *fs;
+	FcObjectSet *os;
+	FcCharSet *fcs;
+	FcChar8 *file;
+	double dval;
+	int ival;
+
+	// Do not search control codes
+	if(char_code < ' ')
+		return 0;
+
+	fontconfig_lock.lock("BC_Resources::find_similar_font");
+	pat = FcPatternCreate();
+	os = FcObjectSetBuild(FC_FILE, FC_CHARSET, FC_SCALABLE, FC_FAMILY,
+		FC_SLANT, FC_WEIGHT, FC_WIDTH, (char *)0);
+
+	FcPatternAddBool(pat, FC_SCALABLE, true);
+	fcs = FcCharSetCreate();
+	if(FcCharSetAddChar(fcs, char_code))
+		FcPatternAddCharSet(pat, FC_CHARSET, fcs);
+	FcCharSetDestroy(fcs);
+	for(int i = 0; i < LEN_FCPROP; i++)
+	{
+		if(FcPatternGetInteger(oldfont, fc_properties[i], 0, &ival) == FcResultMatch)
+			FcPatternAddInteger(pat, fc_properties[i], ival);
+	}
+	fs = FcFontList(0, pat, os);
+
+	for(int i = LEN_FCPROP - 1; i >= 0 && fs->nfont == 0; i--)
+	{
+		FcFontSetDestroy(fs);
+		FcPatternDel(pat, fc_properties[i]);
+		fs = FcFontList(0, pat, os);
+	}
+	FcPatternDestroy(pat);
+	FcObjectSetDestroy(os);
+
+	pat = 0;
+
+	for (int i = 0; i < fs->nfont; i++)
+	{
+		font = fs->fonts[i];
+		if(FcPatternGetCharSet(font, FC_CHARSET, 0, &fcs) == FcResultMatch)
+		{
+			if(FcCharSetHasChar(fcs, char_code))
+			{
+				pat =  FcPatternDuplicate(font);
+				break;
+			}
+		}
+	}
+	FcFontSetDestroy(fs);
+	fontconfig_lock.unlock();
+
+	return pat;
+}
+

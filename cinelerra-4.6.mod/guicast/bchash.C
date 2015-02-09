@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include <stdlib.h>
@@ -47,7 +47,7 @@ BC_Hash::BC_Hash(const char *filename)
 	values = 0;
 
 	FileSystem directory;
-	
+
 	directory.parse_tildas(this->filename);
 	total = 0;
 }
@@ -95,7 +95,7 @@ int BC_Hash::load()
 
 void BC_Hash::load_stringfile(StringFile *file)
 {
-	char arg1[BCTEXTLEN], arg2[BCTEXTLEN];
+	char arg1[1024], arg2[1024];
 	total = 0;
 	while(file->get_pointer() < file->get_length())
 	{
@@ -209,28 +209,28 @@ char* BC_Hash::get(const char *name, char *default_)
 
 int BC_Hash::update(const char *name, double value) // update a value if it exists
 {
-	char string[BCTEXTLEN];
+	char string[BCSTRLEN];
 	sprintf(string, "%.16e", value);
 	return update(name, string);
 }
 
 int BC_Hash::update(const char *name, float value) // update a value if it exists
 {
-	char string[BCTEXTLEN];
+	char string[BCSTRLEN];
 	sprintf(string, "%.6e", value);
 	return update(name, string);
 }
 
-int32_t BC_Hash::update(const char *name, int32_t value) // update a value if it exists
+int BC_Hash::update(const char *name, int32_t value) // update a value if it exists
 {
-	char string[BCTEXTLEN];
+	char string[BCSTRLEN];
 	sprintf(string, "%d", value);
 	return update(name, string);
 }
 
 int BC_Hash::update(const char *name, int64_t value) // update a value if it exists
 {
-	char string[BCTEXTLEN];
+	char string[BCSTRLEN];
 	sprintf(string, _LD, value);
 	return update(name, string);
 }
@@ -283,14 +283,16 @@ void BC_Hash::copy_from(BC_Hash *src)
 // 	}
 // 	delete [] names;
 // 	delete [] values;
-// 
+//
 // 	allocated = 0;
 // 	names = 0;
 // 	values = 0;
 // 	total = 0;
 
+SET_TRACE
 	reallocate_table(src->total);
 //	total = src->total;
+SET_TRACE
 	for(int i = 0; i < src->total; i++)
 	{
 		update(src->names[i], src->values[i]);
@@ -299,6 +301,7 @@ void BC_Hash::copy_from(BC_Hash *src)
 // 		strcpy(names[i], src->names[i]);
 // 		strcpy(values[i], src->values[i]);
 	}
+SET_TRACE
 }
 
 int BC_Hash::equivalent(BC_Hash *src)
@@ -325,8 +328,6 @@ char* BC_Hash::get_value(int number)
 {
 	return values[number];
 }
-
-
 
 
 void BC_Hash::dump()

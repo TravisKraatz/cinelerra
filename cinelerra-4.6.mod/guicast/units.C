@@ -29,6 +29,7 @@
 #include <ctype.h>
 
 float* DB::topower = 0;
+float* DB::topower_base = 0;
 int* Freq::freqtable = 0;
 
 
@@ -36,8 +37,8 @@ DB::DB(float infinitygain)
 {
 	this->infinitygain = infinitygain;
 	if(!topower) { // db to power table
-		topower = new float[(MAXGAIN - INFINITYGAIN) * 10 + 1];
-		topower += -INFINITYGAIN * 10;
+		topower_base = new float[(MAXGAIN - INFINITYGAIN) * 10 + 1];
+		topower = topower_base + -INFINITYGAIN * 10;
 		for(int i = INFINITYGAIN * 10; i <= MAXGAIN * 10; i++) {
 			topower[i] = pow(10, (float)i / 10 / 20);
 //printf("%f %f\n", (float)i/10, topower[i]);
@@ -366,6 +367,19 @@ double Units::text_to_seconds(const char *text, int samplerate, int time_format,
 
 
 
+int Units::timeformat_totype(char *tcf)
+{
+	if (!strcmp(tcf,TIME_SECONDS__STR)) return(TIME_SECONDS);
+	if (!strcmp(tcf,TIME_HMS__STR)) return(TIME_HMS);
+	if (!strcmp(tcf,TIME_HMS2__STR)) return(TIME_HMS2);
+	if (!strcmp(tcf,TIME_HMS3__STR)) return(TIME_HMS3);
+	if (!strcmp(tcf,TIME_HMSF__STR)) return(TIME_HMSF);
+	if (!strcmp(tcf,TIME_SAMPLES__STR)) return(TIME_SAMPLES);
+	if (!strcmp(tcf,TIME_SAMPLES_HEX__STR)) return(TIME_SAMPLES_HEX);
+	if (!strcmp(tcf,TIME_FRAMES__STR)) return(TIME_FRAMES);
+	if (!strcmp(tcf,TIME_FEET_FRAMES__STR)) return(TIME_FEET_FRAMES);
+	return(-1);
+}
 
 
 float Units::toframes(int64_t samples, int sample_rate, float framerate)
@@ -520,7 +534,7 @@ char* Units::size_totext(int64_t bytes, char *text)
 
 
 #undef BYTE_ORDER
-#define BYTE_ORDER ((*(u_int32_t*)"a   ") & 0x00000001)
+#define BYTE_ORDER ((*(const uint32_t*)"a   ") & 0x00000001)
 
 void* Units::int64_to_ptr(uint64_t value)
 {

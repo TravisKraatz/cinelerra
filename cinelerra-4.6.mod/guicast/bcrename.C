@@ -115,10 +115,7 @@ void BC_RenameThread::run()
 		filebox->fs->join_names(old_name, orig_path, orig_name);
 		filebox->fs->join_names(new_name, orig_path, window->get_text());
 
-printf("BC_RenameThread::run %d %s -> %s\n", 
-__LINE__,
-old_name, 
-new_name);
+//printf("BC_RenameThread::run %d %s -> %s\n", __LINE__, old_name, new_name);
 		rename(old_name, new_name);
 		
 

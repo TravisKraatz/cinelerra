@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcpan.h"
@@ -33,13 +33,13 @@
 #include <math.h>
 #include <string.h>
 
-BC_Pan::BC_Pan(int x, 
-		int y, 
-		int virtual_r, 
-		float maxvalue, 
-		int total_values, 
-		int *value_positions, 
-		int stick_x, 
+BC_Pan::BC_Pan(int x,
+		int y,
+		int virtual_r,
+		float maxvalue,
+		int total_values,
+		int *value_positions,
+		int stick_x,
 		int stick_y,
 		float *values)
  : BC_SubWindow(x, y, -1, -1, -1)
@@ -55,16 +55,16 @@ BC_Pan::BC_Pan(int x,
 	this->value_y = new int[total_values];
 	this->stick_x = stick_x;
 	this->stick_y = stick_y;
-	get_channel_positions(value_x, 
-		value_y, 
+	get_channel_positions(value_x,
+		value_y,
 		value_positions,
 		virtual_r,
 		total_values);
 	if(stick_x < 0 || stick_y < 0)
-		calculate_stick_position(total_values, 
-			value_positions, 
-			values, 
-			maxvalue, 
+		calculate_stick_position(total_values,
+			value_positions,
+			values,
+			maxvalue,
 			virtual_r,
 			this->stick_x,
 			this->stick_y);
@@ -102,7 +102,7 @@ int BC_Pan::initialize()
 	BC_SubWindow::initialize();
 	temp_channel = new VFrame;
 	temp_channel->set_use_shm(0);
-	temp_channel->reallocate(0, 
+	temp_channel->reallocate(0,
 		-1,
 		0,
 		0,
@@ -131,10 +131,27 @@ void BC_Pan::set_images(VFrame **data)
 
 int BC_Pan::button_press_event()
 {
-	if(is_event_win() && get_buttonpress() == 1)
+	// there are two modes of operation...
+	if (popup)
+	{	if (popup->is_event_win() && get_button_down() && get_buttonpress() == 1)
+		{
+			active = 1;
+			x_origin = popup->get_cursor_x();
+			y_origin = popup->get_cursor_y();
+			stick_x_origin = stick_x;
+			stick_y_origin = stick_y;
+			return 1;
+		} else
+		{
+			deactivate();
+			return 0;
+		}
+	}
+	if(is_event_win() && get_button_down() && get_buttonpress() == 1)
 	{
 		hide_tooltip();
 		activate();
+		active = 1;
 		x_origin = get_cursor_x();
 		y_origin = get_cursor_y();
 		stick_x_origin = stick_x;
@@ -147,7 +164,7 @@ int BC_Pan::button_press_event()
 
 int BC_Pan::cursor_motion_event()
 {
-	if(active)
+	if(popup && get_button_down() && get_buttonpress() == 1)
 	{
 		stick_x = stick_x_origin + get_cursor_x() - x_origin;
 		stick_y = stick_y_origin + get_cursor_y() - y_origin;
@@ -163,7 +180,7 @@ int BC_Pan::cursor_motion_event()
 
 int BC_Pan::button_release_event()
 {
-	if(active)
+	if(popup)
 	{
 		hide_tooltip();
 		deactivate();
@@ -218,41 +235,49 @@ int BC_Pan::deactivate()
 	return 0;
 }
 
-int BC_Pan::activate()
+int BC_Pan::activate(int popup_x, int popup_y)
 {
 	int x, y;
 	Window tempwin;
 
-	active = 1;
-	XTranslateCoordinates(top_level->display, 
-			win, 
-			top_level->rootwin, 
-			0, 
-			0, 
-			&x, 
-			&y, 
+	active = 0;
+	if (popup_x < 0 || popup_y < 0)
+	{
+		XTranslateCoordinates(top_level->display,
+			win,
+			top_level->rootwin,
+			0,
+			0,
+			&x,
+			&y,
 			&tempwin);
 
-	x -= (images[PAN_POPUP]->get_w() - get_w()) / 2;
-	y -= (images[PAN_POPUP]->get_h() - get_h()) / 2;
-	if (x < 0) x = 0;
+		x -= (images[PAN_POPUP]->get_w() - get_w()) / 2;
+		y -= (images[PAN_POPUP]->get_h() - get_h()) / 2;
+		if (x < 0) x = 0;
+	}
+	else {
+		XTranslateCoordinates(top_level->display,
+			top_level->win, top_level->rootwin,
+			popup_x, popup_y, &x, &y, &tempwin);
+		x -= images[PAN_POPUP]->get_w() / 2;
+		y -= images[PAN_POPUP]->get_h() / 2;
+		if (x < 0) x = 0;
+	}
 
-	popup = new BC_Popup(this, 
-				x, 
-				y, 
-				images[PAN_POPUP]->get_w(), 
-				images[PAN_POPUP]->get_h(), 
-				0, 
-				0, 
-				images[PAN_POPUP]);
+	delete popup;
+	popup = new BC_Popup(this, x, y,
+				images[PAN_POPUP]->get_w(),
+				images[PAN_POPUP]->get_h(),
+				0, 0, images[PAN_POPUP]);
+	draw_popup();
 	flush();
 	return 0;
 }
 
 int BC_Pan::update(int x, int y)
 {
-	if(x != stick_x ||
-		y != stick_y)
+	if(x != stick_x || y != stick_y)
 	{
 		stick_x = x;
 		stick_y = y;
@@ -268,8 +293,8 @@ void BC_Pan::draw_popup()
 
 	int x1, y1;
 	float rotate_angle;
-	float scale = (float)(popup->get_w() - 
-		get_resources()->pan_data[PAN_CHANNEL]->get_w()) / 
+	float scale = (float)(popup->get_w() -
+		get_resources()->pan_data[PAN_CHANNEL]->get_w()) /
 		(virtual_r * 2);
 	set_color(get_resources()->pan_text_color);
 	set_font(SMALLFONT);
@@ -281,12 +306,12 @@ void BC_Pan::draw_popup()
 		rotate_angle = value_positions[i];
 		rotate_angle = -rotate_angle;
 		while(rotate_angle < 0) rotate_angle += 360;
-		rotater->rotate(temp_channel, 
-			get_resources()->pan_data[PAN_CHANNEL], 
-			rotate_angle, 
+		rotater->rotate(temp_channel,
+			get_resources()->pan_data[PAN_CHANNEL],
+			rotate_angle,
 			0);
-		BC_Pixmap *temp_pixmap = new BC_Pixmap(popup, 
-			temp_channel, 
+		BC_Pixmap *temp_pixmap = new BC_Pixmap(popup,
+			temp_channel,
 			PIXMAP_ALPHA);
 		popup->draw_pixmap(temp_pixmap, x1, y1);
 		delete temp_pixmap;
@@ -296,7 +321,7 @@ void BC_Pan::draw_popup()
 		sprintf(string, "%.1f", value);
 		popup->draw_text(x1, y1 + get_text_height(SMALLFONT), string);
 	}
-	
+
 	x1 = (int)(stick_x * scale);
 	y1 = (int)(stick_y * scale);
 	popup->draw_pixmap(images[PAN_STICK], x1, y1);
@@ -309,10 +334,10 @@ void BC_Pan::draw_popup()
 void BC_Pan::draw(int flash, int flush)
 {
 	draw_top_background(parent_window, 0, 0, w, h);
-	
+
 	draw_pixmap(images[highlighted ? PAN_HI : PAN_UP]);
-	get_channel_positions(value_x, 
-		value_y, 
+	get_channel_positions(value_x,
+		value_y,
 		value_positions,
 		virtual_r,
 		total_values);
@@ -324,10 +349,10 @@ void BC_Pan::draw(int flash, int flush)
 
 	for(int i = 0; i < total_values; i++)
 	{
-// printf("BC_Pan::draw 1 %d %d %d %d\n", 
-// 	i, 
-// 	value_positions[i], 
-// 	value_x[i], 
+// printf("BC_Pan::draw 1 %d %d %d %d\n",
+// 	i,
+// 	value_positions[i],
+// 	value_x[i],
 // 	value_y[i]);
 		x1 = (int)(value_x[i] * scale);
 		y1 = (int)(value_y[i] * scale);
@@ -360,18 +385,18 @@ void BC_Pan::draw(int flash, int flush)
 int BC_Pan::stick_to_values()
 {
 	return stick_to_values(values,
-		total_values, 
-		value_positions, 
-		stick_x, 
+		total_values,
+		value_positions,
+		stick_x,
 		stick_y,
 		virtual_r,
 		maxvalue);
 }
 
 int BC_Pan::stick_to_values(float *values,
-		int total_values, 
-		int *value_positions, 
-		int stick_x, 
+		int total_values,
+		int *value_positions,
+		int stick_x,
 		int stick_y,
 		int virtual_r,
 		float maxvalue)
@@ -385,9 +410,9 @@ int BC_Pan::stick_to_values(float *values,
 	get_channel_positions(value_x, value_y, value_positions, virtual_r, total_values);
 	for(i = 0; i < total_values; i++)
 	{
-		if((test_distance = distance(stick_x, 
-			value_x[i], 
-			stick_y, 
+		if((test_distance = distance(stick_x,
+			value_x[i],
+			stick_y,
 			value_y[i])) < shortest)
 			shortest = test_distance;
 	}
@@ -408,9 +433,9 @@ int BC_Pan::stick_to_values(float *values,
 		for(i = 0; i < total_values; i++)
 		{
 			values[i] = shortest;
-			values[i] -= (float)(distance(stick_x, 
-				value_x[i], 
-				stick_y, 
+			values[i] -= (float)(distance(stick_x,
+				value_x[i],
+				stick_y,
 				value_y[i]) - shortest);
 			if(values[i] < 0) values[i] = 0;
 			values[i] = values[i] / shortest * maxvalue;
@@ -439,7 +464,7 @@ int BC_Pan::change_channels(int new_channels, int *value_positions)
 	delete this->value_positions;
 	delete value_x;
 	delete value_y;
-	
+
 	values = new float[new_channels];
 	this->value_positions = new int[new_channels];
 	value_x = new int[new_channels];
@@ -449,8 +474,8 @@ int BC_Pan::change_channels(int new_channels, int *value_positions)
 	{
 		this->value_positions[i] = value_positions[i];
 	}
-	get_channel_positions(value_x, 
-		value_y, 
+	get_channel_positions(value_x,
+		value_y,
 		value_positions,
 		virtual_r,
 		total_values);
@@ -459,8 +484,8 @@ int BC_Pan::change_channels(int new_channels, int *value_positions)
 	return 0;
 }
 
-int BC_Pan::get_channel_positions(int *value_x, 
-	int *value_y, 
+int BC_Pan::get_channel_positions(int *value_x,
+	int *value_y,
 	int *value_positions,
 	int virtual_r,
 	int total_values)
@@ -482,14 +507,14 @@ float BC_Pan::get_value(int channel)
 	return values[channel];
 }
 
-int BC_Pan::get_stick_x() 
-{ 
-	return stick_x; 
+int BC_Pan::get_stick_x()
+{
+	return stick_x;
 }
 
-int BC_Pan::get_stick_y() 
-{ 
-	return stick_y; 
+int BC_Pan::get_stick_y()
+{
+	return stick_y;
 }
 
 float* BC_Pan::get_values()
@@ -508,10 +533,10 @@ int BC_Pan::rdtoxy(int &x, int &y, int a, int virtual_r)
 	return 0;
 }
 
-void BC_Pan::calculate_stick_position(int total_values, 
-	int *value_positions, 
-	float *values, 
-	float maxvalue, 
+void BC_Pan::calculate_stick_position(int total_values,
+	int *value_positions,
+	float *values,
+	float maxvalue,
 	int virtual_r,
 	int &stick_x,
 	int &stick_y)

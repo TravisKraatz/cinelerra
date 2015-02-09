@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef BCSLIDER_H
@@ -32,12 +32,12 @@ class BC_PercentageSlider;
 class BC_Slider : public BC_SubWindow
 {
 public:
-	BC_Slider(int x, 
-		int y, 
-		int pixels, 
-		int pointer_motion_range,  
+	BC_Slider(int x,
+		int y,
+		int pixels,
+		int pointer_motion_range,
 		VFrame **images,
-		int show_number, 
+		int show_number,
 		int vertical,
 		int use_caption);
 	virtual ~BC_Slider();
@@ -49,6 +49,8 @@ public:
 	virtual int handle_event() { return 0; };
 
 	int initialize();
+	void enable();
+	void disable();
 	static int get_span(int vertical);
 	int get_button_pixels();
 	virtual int value_to_pixel() { return 0; };
@@ -66,10 +68,9 @@ public:
 	int deactivate();
 	virtual int increase_value() { return 0; };
 	virtual int decrease_value() { return 0; };
+	virtual int increase_value_big() { return 0; };
+	virtual int decrease_value_big() { return 0; };
 	virtual char* get_caption() { return caption; };
-	void enable();
-	void disable();
-
 
 private:
 
@@ -106,13 +107,13 @@ private:
 class BC_ISlider : public BC_Slider
 {
 public:
-	BC_ISlider(int x, 
+	BC_ISlider(int x,
 			int y,
 			int vertical,
-			int pixels, 
-			int pointer_motion_range, 
-			int64_t minvalue, 
-			int64_t maxvalue, 
+			int pixels,
+			int pointer_motion_range,
+			int64_t minvalue,
+			int64_t maxvalue,
 			int64_t value,
 			int use_caption = 0,
 			VFrame **data = 0,
@@ -124,6 +125,8 @@ public:
 	int64_t get_length();
 	int increase_value();
 	int decrease_value();
+	int increase_value_big();
+	int decrease_value_big();
 	virtual int handle_event();
 	virtual char* get_caption();
 
@@ -138,13 +141,13 @@ private:
 class BC_FSlider : public BC_Slider
 {
 public:
-	BC_FSlider(int x, 
+	BC_FSlider(int x,
 			int y,
 			int vertical,
-			int pixels, 
-			int pointer_motion_range, 
-			float minvalue, 
-			float maxvalue, 
+			int pixels,
+			int pointer_motion_range,
+			float minvalue,
+			float maxvalue,
 			float value,
 			int use_caption = 0,
 			VFrame **data = 0);
@@ -157,8 +160,11 @@ public:
 	float get_length();
 	virtual int increase_value();
 	virtual int decrease_value();
+	virtual int increase_value_big();
+	virtual int decrease_value_big();
 	virtual char* get_caption();
 	void set_precision(float value);
+	void set_pagination(float small_change, float big_change);
 
 private:
 	int value_to_pixel();
@@ -166,24 +172,23 @@ private:
 	int update_selection(int cursor_x, int cursor_y);
 	float minvalue, maxvalue, value;
 	float precision;
+	float small_change, big_change;
 };
 
 class BC_PercentageSlider : public BC_FSlider
 {
 public:
-	BC_PercentageSlider(int x, 
+	BC_PercentageSlider(int x,
 			int y,
 			int vertical,
-			int pixels, 
-			int pointer_motion_range, 
-			float minvalue, 
-			float maxvalue, 
+			int pixels,
+			int pointer_motion_range,
+			float minvalue,
+			float maxvalue,
 			float value,
 			int use_caption = 0,
 			VFrame **data = 0);
 
-	virtual int increase_value();
-	virtual int decrease_value();
 	char* get_caption();
 private:
 };

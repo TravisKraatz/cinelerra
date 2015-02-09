@@ -29,7 +29,7 @@
 #include <stdio.h>
 
 
-#define INFINITYGAIN -40
+#define INFINITYGAIN -96
 #define MAXGAIN 50
 #define TOTALFREQS 1024
 #define TOTAL_TIMEFORMATS 7
@@ -48,6 +48,15 @@
 #define TIME_FRAMES_TEXT _("Frames")
 // fffff-ff
 #define TIME_FEET_FRAMES 5
+#define TIME_SECONDS__STR      "ssss.sss"
+#define TIME_HMS__STR          "h:mm:ss.sss"
+#define TIME_HMS2__STR         "h:mm:ss"
+#define TIME_HMS3__STR         "hh:mm:ss"
+#define TIME_HMSF__STR         "h:mm:ss:ff"
+#define TIME_SAMPLES__STR      "audio samples"
+#define TIME_SAMPLES_HEX__STR  "audio samples (hex)"
+#define TIME_FRAMES__STR       "video frames"
+#define TIME_FEET_FRAMES__STR  "video frames (feet)"
 #define TIME_FEET_FRAMES_TEXT _("Feet-frames")
 
 
@@ -89,9 +98,11 @@ public:
 	inline int operator==(DB &newdb) { return db == newdb.db; };
 	inline int operator==(int newdb) { return db == newdb; };
 
-	static float *topower;
+	static float *topower, *topower_base;
 	float db;
 	float infinitygain;
+ private:
+	static float *allocated;
 };
 
 // Third octave frequency table
@@ -132,6 +143,8 @@ class Units
 {
 public:
 	Units() {};
+
+	static int timeformat_totype(char *tcf);
 
 // No rounding.
 	static float toframes(int64_t samples, int sample_rate, float framerate);

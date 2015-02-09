@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2011 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #define GL_GLEXT_PROTOTYPES
@@ -29,6 +29,9 @@
 #include "bcwindowbase.h"
 #include "vframe.h"
 
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 #ifdef HAVE_GL
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -103,7 +106,7 @@ void VFrame::to_texture()
 			return;
 
 		case VFrame::SCREEN:
-			if((get_w() % 4) || (get_h() % 4)) 
+			if((get_w() % 4) || (get_h() % 4))
 			{
 				printf("VFrame::to_texture w=%d h=%d\n", get_w(), get_h());
 				return;
@@ -172,8 +175,8 @@ void VFrame::to_texture()
 			break;
 
 		default:
-			fprintf(stderr, 
-				"VFrame::to_texture: unsupported color model %d.\n", 
+			fprintf(stderr,
+				"VFrame::to_texture: unsupported color model %d.\n",
 				color_model);
 			break;
 	}
@@ -187,17 +190,17 @@ void VFrame::to_ram()
 #ifdef HAVE_GL
 	switch(opengl_state)
 	{
-// Only pbuffer is supported since this is only called after the 
+// Only pbuffer is supported since this is only called after the
 // overlay operation onto the pbuffer.
 		case VFrame::SCREEN:
 			if(pbuffer)
 			{
 				enable_opengl();
-printf("VFrame::to_ram %d %d\n", get_w(), get_h());
-				glReadPixels(0, 
-					0, 
-					get_w(), 
-					get_h(), 
+//printf("VFrame::to_ram %d %d\n", get_w(), get_h());
+				glReadPixels(0,
+					0,
+					get_w(),
+					get_h(),
 					GL_RGB,
 					GL_UNSIGNED_BYTE,
 					get_rows()[0]);
@@ -211,7 +214,7 @@ printf("VFrame::to_ram %d %d\n", get_w(), get_h());
 
 void VFrame::create_pbuffer()
 {
-	if(pbuffer && 
+	if(pbuffer &&
 		pbuffer->window_id != BC_WindowBase::get_synchronous()->current_window->get_id())
 	{
 		delete pbuffer;
@@ -260,14 +263,14 @@ void VFrame::screen_to_texture(int x, int y, int w, int h)
 
 // Read canvas into texture, use back texture for DOUBLE_BUFFER
 #if 1
-// According to the man page, it must be GL_BACK for the onscreen buffer 
+// According to the man page, it must be GL_BACK for the onscreen buffer
 // and GL_FRONT for a single buffered PBuffer.  In reality it must be
 // GL_BACK for a single buffered PBuffer if the PBuffer has alpha and using
 // GL_FRONT captures the onscreen front buffer.
 // 10/11/2010 is now generating "illegal operation"
 		glReadBuffer(GL_BACK);
 #else
-		glReadBuffer(BC_WindowBase::get_synchronous()->is_pbuffer ? 
+		glReadBuffer(BC_WindowBase::get_synchronous()->is_pbuffer ?
 			GL_FRONT : GL_BACK);
 #endif
 		glCopyTexSubImage2D(GL_TEXTURE_2D,
@@ -282,7 +285,7 @@ void VFrame::screen_to_texture(int x, int y, int w, int h)
 #endif
 }
 
-void VFrame::draw_texture(float in_x1, 
+void VFrame::draw_texture(float in_x1,
 		float in_y1,
 		float in_x2,
 		float in_y2,
@@ -316,7 +319,7 @@ void VFrame::draw_texture(float in_x1,
 
 void VFrame::draw_texture(int flip_y)
 {
-	draw_texture(0, 
+	draw_texture(0,
 		0,
 		get_w(),
 		get_h(),
@@ -351,15 +354,15 @@ void VFrame::init_screen(int w, int h)
 	float near = 1;
 	float far = 100;
 	float frustum_ratio = near / ((near + far) / 2);
- 	float near_h = (float)h * 
+ 	float near_h = (float)h *
 		frustum_ratio;
-	float near_w = (float)w * 
+	float near_w = (float)w *
 		frustum_ratio;
-	glFrustum(-near_w / 2, 
-		near_w / 2, 
-		-near_h / 2, 
-		near_h / 2, 
-		near, 
+	glFrustum(-near_w / 2,
+		near_w / 2,
+		-near_h / 2,
+		near_h / 2,
+		near,
 		far);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -481,7 +484,7 @@ unsigned int VFrame::make_shader(int x, ...)
 
 // Add main() function which calls all the unique main replacements in order
 	char main_function[BCTEXTLEN];
-	sprintf(main_function, 
+	sprintf(main_function,
 		"\n"
 		"void main()\n"
 		"{\n");
@@ -512,7 +515,7 @@ unsigned int VFrame::make_shader(int x, ...)
 
 
 	int got_it = 0;
-	result = BC_WindowBase::get_synchronous()->get_shader(complete_program, 
+	result = BC_WindowBase::get_synchronous()->get_shader(complete_program,
 		&got_it);
 
 	if(!got_it)
@@ -532,7 +535,7 @@ unsigned int VFrame::make_shader(int x, ...)
 		if(!error) error = print_error(complete_program, result, 1);
 
 
-// printf("BC_WindowBase::make_shader: shader=%d window_id=%d\n", 
+// printf("BC_WindowBase::make_shader: shader=%d window_id=%d\n",
 // result,
 // BC_WindowBase::get_synchronous()->current_window->get_id());
 		BC_WindowBase::get_synchronous()->put_shader(result, complete_program);
@@ -540,6 +543,7 @@ unsigned int VFrame::make_shader(int x, ...)
 
 //printf("VFrame::make_shader\n%s\n", complete_program);
 	free(complete_program);
+	complete_program = NULL;
 
 #endif
 	return result;

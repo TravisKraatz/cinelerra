@@ -93,6 +93,10 @@ void cmodel_init_yuv(cmodel_yuv_t *yuv_table)
 	yuv_table->vtog = &(yuv_table->vtog_tab[0x80]);
 	yuv_table->utog = &(yuv_table->utog_tab[0x80]);
 	yuv_table->utob = &(yuv_table->utob_tab[0x80]);
+	yuv_table->vtor8 = &(yuv_table->vtor_tab8[0x80]);
+	yuv_table->vtog8 = &(yuv_table->vtog_tab8[0x80]);
+	yuv_table->utog8 = &(yuv_table->utog_tab8[0x80]);
+	yuv_table->utob8 = &(yuv_table->utob_tab8[0x80]);
 	for(i = -0x80; i < 0x80; i++)
 	{
 		yuv_table->vtor[i] = (int)(V_TO_R * 0x10000 * i);
@@ -100,6 +104,12 @@ void cmodel_init_yuv(cmodel_yuv_t *yuv_table)
 
 		yuv_table->utog[i] = (int)(U_TO_G * 0x10000 * i);
 		yuv_table->utob[i] = (int)(U_TO_B * 0x10000 * i);
+
+		yuv_table->vtor8[i] = (int)(V_TO_R * i);
+		yuv_table->vtog8[i] = (int)(V_TO_G * i);
+
+		yuv_table->utog8[i] = (int)(U_TO_G * i);
+		yuv_table->utob8[i] = (int)(U_TO_B * i);
 	}
 
 

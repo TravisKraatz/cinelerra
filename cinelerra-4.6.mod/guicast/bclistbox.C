@@ -28,6 +28,7 @@
 #include "cursors.h"
 #include "fonts.h"
 #include "keys.h"
+#include "language.h"
 #include "bctimer.h"
 #include "vframe.h"
 
@@ -372,6 +373,7 @@ BC_ListBox::BC_ListBox(int x,
  	current_operation = NO_OPERATION;
 	button_highlighted = 0;
 	list_highlighted = 0;
+	disabled = 0;
 
  	allow_drag_scroll = 1;
 	process_drag = 1;
@@ -458,6 +460,20 @@ BC_ListBox::~BC_ListBox()
 	if(drag_popup) delete drag_popup;
 }
 
+int BC_ListBox::enable()
+{
+	disabled = 0;
+	draw_button(1);
+	return 1;
+}
+
+int BC_ListBox::disable()
+{
+	disabled = 1;
+	draw_button(1);
+	return 1;
+}
+
 void BC_ListBox::reset_query()
 {
 	query[0] = 0;  // reset query
@@ -533,7 +549,7 @@ int BC_ListBox::initialize()
 	{
 		if(use_button)
 		{
-			for(int i = 0; i < 3; i++)
+			for( volatile int i = 0; i < 4; ++i ) // volatile due to cplr bug
 			{
 				button_images[i] = new BC_Pixmap(parent_window,
 					BC_WindowBase::get_resources()->listbox_button[i],
@@ -621,6 +637,8 @@ int BC_ListBox::draw_button(int flush)
 			image_number = 1;
 		if(current_operation == BUTTON_DN)
 			image_number = 2;
+		if(disabled)
+			image_number = 3;
 
 
 		pixmap->draw_pixmap(button_images[image_number],
@@ -2847,7 +2865,7 @@ int BC_ListBox::button_press_event()
 		draw_button(1);
 
 // Deploy listbox
-		if(!active)
+		if(!active && !disabled)
 		{
 			top_level->deactivate();
 			activate();
@@ -4026,6 +4044,9 @@ int BC_ListBox::activate(int take_focus)
 				-1,
 				0,
 				0));
+// Avoid top going out of screen
+			if(new_y < 0 )
+				new_y = 2;
 //printf("BC_ListBox::activate %d this=%p %p\n", __LINE__, this, gui->win);
 			draw_items(1);
 			gui->show_window(1);
@@ -4571,7 +4592,7 @@ void BC_ListBox::draw_title(int number)
 	gui->set_color(get_resources()->listbox_title_color);
 	gui->draw_text(x,
 		LISTBOX_MARGIN + LISTBOX_BORDER + get_text_ascent(MEDIUMFONT),
-		column_titles[number]);
+		_(column_titles[number]));
 }
 
 int BC_ListBox::draw_titles(int flash)

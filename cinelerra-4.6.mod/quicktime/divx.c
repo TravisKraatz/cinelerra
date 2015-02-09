@@ -5,8 +5,8 @@
 #include "funcprotos.h"
 #include "quicktime.h"
 #include "workarounds.h"
-#include ENCORE_INCLUDE
-#include DECORE_INCLUDE
+#include "encore50/encore.h"
+#include "decore50/decore.h"
 
 #include <pthread.h>
 #include <stdint.h>
@@ -105,15 +105,15 @@ static int delete_codec(quicktime_video_map_t *vtrack)
 	return 0;
 }
 
-static int reads_colormodel(quicktime_t *file, 
-		int colormodel, 
+static int reads_colormodel(quicktime_t *file,
+		int colormodel,
 		int track)
 {
 	return (colormodel == BC_YUV420P);
 }
 
-static int writes_colormodel(quicktime_t *file, 
-		int colormodel, 
+static int writes_colormodel(quicktime_t *file,
+		int colormodel,
 		int track)
 {
 	return (colormodel == BC_RGB888 ||
@@ -159,18 +159,18 @@ int quicktime_divx_is_key(unsigned char *data, long size)
 
 	for(i = 0; i < size - 5; i++)
 	{
-		if( data[i]     == 0x00 && 
+		if( data[i]     == 0x00 &&
 			data[i + 1] == 0x00 &&
 			data[i + 2] == 0x01 &&
 			data[i + 3] == 0xb6)
 		{
-			if((data[i + 4] & 0xc0) == 0x0) 
+			if((data[i + 4] & 0xc0) == 0x0)
 				return 1;
 			else
 				return 0;
 		}
 	}
-	
+
 	return result;
 }
 
@@ -194,11 +194,11 @@ int quicktime_divx_has_vol(unsigned char *data)
 
 
 
-static void putbits(unsigned char **data, 
-	int *bit_pos, 
-	uint64_t *bit_store, 
-	int *total, 
-	int count, 
+static void putbits(unsigned char **data,
+	int *bit_pos,
+	uint64_t *bit_store,
+	int *total,
+	int count,
 	uint64_t value)
 {
 	value &= 0xffffffffffffffff >> (64 - count);
@@ -216,8 +216,8 @@ static void putbits(unsigned char **data,
 }
 
 
-static void flushbits(unsigned char **data, 
-	int *bit_pos, 
+static void flushbits(unsigned char **data,
+	int *bit_pos,
 	uint64_t *bit_store)
 {
 //printf("flushbits %llx\n", (*bit_store));
@@ -232,7 +232,7 @@ static void flushbits(unsigned char **data,
 
 
 
-#define VO_START_CODE 		0x8      
+#define VO_START_CODE 		0x8
 #define VO_START_CODE_LENGTH	27
 #define VOL_START_CODE 0x12             /* 25-MAR-97 JDL : according to WD2 */
 #define VOL_START_CODE_LENGTH 28
@@ -240,9 +240,9 @@ static void flushbits(unsigned char **data,
 
 
 int quicktime_divx_write_vol(unsigned char *data_start,
-	int vol_width, 
-	int vol_height, 
-	int time_increment_resolution, 
+	int vol_width,
+	int vol_height,
+	int time_increment_resolution,
 	double frame_rate)
 {
 	int written = 0;
@@ -258,60 +258,60 @@ int quicktime_divx_write_vol(unsigned char *data_start,
 	vol_height = (int)((float)vol_height / 16 + 0.5) * 16;
 
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		VO_START_CODE_LENGTH, VO_START_CODE);
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		5, 0);				/* vo_id = 0								*/
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		VOL_START_CODE_LENGTH, VOL_START_CODE);
 
 
 
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		4, 0);				/* vol_id = 0								*/
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 0);				/* random_accessible_vol = 0				*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		8, 1);				/* video_object_type_indication = 1 video	*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* is_object_layer_identifier = 1			*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		4, 2);				/* visual_object_layer_ver_id = 2			*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		3, 1);				/* visual_object_layer_priority = 1			*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		4, 1);				/* aspect_ratio_info = 1					*/
 
@@ -321,19 +321,19 @@ int quicktime_divx_write_vol(unsigned char *data_start,
 
 
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 0);				/* vol_control_parameter = 0				*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		2, 0);				/* vol_shape = 0 rectangular				*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* marker									*/
 
@@ -343,19 +343,19 @@ int quicktime_divx_write_vol(unsigned char *data_start,
 
 
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		16, time_increment_resolution);
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* marker									*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* fixed_vop_rate = 1						*/
 
@@ -367,95 +367,95 @@ int quicktime_divx_write_vol(unsigned char *data_start,
 //	bits = (int)ceil(log((double)time_increment_resolution) / log(2.0));
 //    if (bits < 1) bits=1;
 
-	fixed_vop_time_increment = 
+	fixed_vop_time_increment =
 		(int)(time_increment_resolution / frame_rate + 0.1);
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		bits, fixed_vop_time_increment);
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* marker									*/
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		13, vol_width);
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* marker									*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		13, vol_height);
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* marker									*/
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 0);				/* interlaced = 0							*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* OBMC_disabled = 1						*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		2, 0);				/* vol_sprite_usage = 0						*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 0);				/* not_8_bit = 0							*/
 
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 0);				/* vol_quant_type = 0						*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 0);				/* vol_quarter_pixel = 0					*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* complexity_estimation_disabled = 1		*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 1);				/* resync_marker_disabled = 1				*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 0);				/* data_partitioning_enabled = 0			*/
-	putbits(&data, 
-		&bit_pos, 
-		&bit_store, 
+	putbits(&data,
+		&bit_pos,
+		&bit_store,
 		&written,
 		1, 0);				/* scalability = 0							*/
 
-	flushbits(&data, 
+	flushbits(&data,
 		&bit_pos,
 		&bit_store);
 
@@ -524,8 +524,8 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 
 
 /*
- * printf("decode 1 %d %d %d\n", 
- * vtrack->current_position, 
+ * printf("decode 1 %d %d %d\n",
+ * vtrack->current_position,
  * current_field,
  * codec->decode_initialized[current_field]);
  */
@@ -550,26 +550,26 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 		codec->dec_param[current_field].output_format = DEC_420;
 		codec->dec_param[current_field].time_incr = 0;
 
-		decore(codec->decode_handle[current_field], 
-			DEC_OPT_MEMORY_REQS, 
-			&codec->dec_param[current_field], 
+		decore(codec->decode_handle[current_field],
+			DEC_OPT_MEMORY_REQS,
+			&codec->dec_param[current_field],
 			&dec_mem_reqs);
-		codec->dec_param[current_field].buffers.mp4_edged_ref_buffers = 
+		codec->dec_param[current_field].buffers.mp4_edged_ref_buffers =
 			calloc(1, dec_mem_reqs.mp4_edged_ref_buffers_size);
-		codec->dec_param[current_field].buffers.mp4_edged_for_buffers = 
+		codec->dec_param[current_field].buffers.mp4_edged_for_buffers =
 			calloc(1, dec_mem_reqs.mp4_edged_for_buffers_size);
-		codec->dec_param[current_field].buffers.mp4_display_buffers = 
+		codec->dec_param[current_field].buffers.mp4_display_buffers =
 			calloc(1, dec_mem_reqs.mp4_display_buffers_size);
-		codec->dec_param[current_field].buffers.mp4_state = 
+		codec->dec_param[current_field].buffers.mp4_state =
 			calloc(1, dec_mem_reqs.mp4_state_size);
-		codec->dec_param[current_field].buffers.mp4_tables = 
+		codec->dec_param[current_field].buffers.mp4_tables =
 			calloc(1, dec_mem_reqs.mp4_tables_size);
-		codec->dec_param[current_field].buffers.mp4_stream = 
+		codec->dec_param[current_field].buffers.mp4_stream =
 			calloc(1, dec_mem_reqs.mp4_stream_size);
 //printf("decode 2\n");
-		decore(codec->decode_handle[current_field], 
-			DEC_OPT_INIT, 
-			&codec->dec_param[current_field], 
+		decore(codec->decode_handle[current_field],
+			DEC_OPT_INIT,
+			&codec->dec_param[current_field],
 			NULL);
 
 //printf("decode 3\n");
@@ -603,9 +603,9 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 // Enable deblocking.  This doesn't make much difference at high bitrates.
 	DEC_SET dec_set_arg;
 	dec_set_arg.postproc_level = (codec->use_deblocking ? 100 : 0);
-	decore(codec->decode_handle[current_field], 
-		DEC_OPT_SETPP, 
-		&dec_set_arg, 
+	decore(codec->decode_handle[current_field],
+		DEC_OPT_SETPP,
+		&dec_set_arg,
 		NULL);
 //printf("decode 30\n");
 
@@ -653,8 +653,8 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 
 //printf("decode 1 %d %d\n", codec->last_frame, vtrack->current_position);
 
-	if(quicktime_has_keyframes(file, track) && 
-		vtrack->current_position != 
+	if(quicktime_has_keyframes(file, track) &&
+		vtrack->current_position !=
 			codec->last_frame[current_field] + codec->total_fields)
 	{
 		int frame1, frame2 = vtrack->current_position, current_frame = frame2;
@@ -662,8 +662,8 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 // Get first keyframe of same field
 		do
 		{
-			frame1 = quicktime_get_keyframe_before(file, 
-				current_frame--, 
+			frame1 = quicktime_get_keyframe_before(file,
+				current_frame--,
 				track);
 		}while(frame1 > 0 && (frame1 % codec->total_fields) != current_field);
 
@@ -672,7 +672,7 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 // frame, so instead of rerendering from the last keyframe we can rerender from
 // the last decoded frame.
 		if(frame1 < codec->last_frame[current_field] &&
-			frame2 > codec->last_frame[current_field]) 
+			frame2 > codec->last_frame[current_field])
 			frame1 = codec->last_frame[current_field] + codec->total_fields;
 
 // Render up to current position
@@ -683,14 +683,14 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 			dec_frame.bitstream = codec->work_buffer;
 			dec_frame.length = bytes;
 			dec_frame.render_flag = 0;
-			decore(codec->decode_handle[current_field], 
-				0, 
-				&dec_frame, 
+			decore(codec->decode_handle[current_field],
+				0,
+				&dec_frame,
 				NULL);
 			frame1 += codec->total_fields;
 		}
-		
-		
+
+
 		vtrack->current_position = frame2;
 	}
 
@@ -729,7 +729,7 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 
 
 
-// Now line average the Y buffer, doubling its height 
+// Now line average the Y buffer, doubling its height
 // while keeping the UV buffers the same.
 /*
  * 	if(codec->total_fields == 2)
@@ -739,7 +739,7 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
  * 		unsigned char *in_row2 = in_row1 + width_i;
  * 		unsigned char *out_row1 = bitmap + width_i * height_i - width_i * 2;
  * 		unsigned char *out_row2 = out_row1 + width_i;
- * 
+ *
  * 		while(in_row1 >= bitmap)
  * 		{
  * 			unsigned char *in_ptr1 = in_row1;
@@ -778,8 +778,8 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 		unsigned char **input_rows = malloc(sizeof(unsigned char*) * height_i);
 		for(i = 0; i < height_i; i++)
 			input_rows[i] = codec->temp_frame + width_i * 3;
-		
-		
+
+
 		cmodel_transfer(row_pointers, /* Leave NULL if non existent */
 			input_rows,
 			row_pointers[0], /* Leave NULL if non existent */
@@ -789,19 +789,19 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 			codec->temp_frame + width_i * height_i,
 			codec->temp_frame + width_i * height_i + width_i * height_i / 4,
 			file->in_x,        /* Dimensions to capture from input frame */
-			file->in_y, 
-			file->in_w, 
+			file->in_y,
+			file->in_w,
 			file->in_h,
 			0,       /* Dimensions to project on output frame */
-			0, 
-			file->out_w, 
+			0,
+			file->out_w,
 			file->out_h,
-			input_cmodel, 
+			input_cmodel,
 			file->color_model,
 			0,         /* When transfering BC_RGBA8888 to non-alpha this is the background color in 0xRRGGBB hex */
 			width_i,       /* For planar use the luma rowspan */
 			width);
-		
+
 		free(input_rows);
 	}
 
@@ -842,9 +842,9 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 		codec->encode_handle[current_field] = encode_handle++;
 		codec->enc_param[current_field].x_dim = width_i;
 		codec->enc_param[current_field].y_dim = height_i;
-		codec->enc_param[current_field].framerate = 
+		codec->enc_param[current_field].framerate =
 			quicktime_frame_rate(file, track) / codec->total_fields;
-		codec->enc_param[current_field].bitrate = 
+		codec->enc_param[current_field].bitrate =
 			codec->bitrate / codec->total_fields;
 		codec->enc_param[current_field].rc_period = codec->rc_period;
 		codec->enc_param[current_field].rc_reaction_period = codec->rc_reaction_period;
@@ -854,11 +854,11 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 		codec->enc_param[current_field].max_key_interval = codec->max_key_interval;
 
 		codec->enc_param[current_field].search_range = codec->quality * 3;
-		if(codec->enc_param[current_field].search_range > 15) 
+		if(codec->enc_param[current_field].search_range > 15)
 			codec->enc_param[current_field].search_range = 15;
 
-		encore(codec->encode_handle[current_field], 
-			ENC_OPT_INIT, 
+		encore(codec->encode_handle[current_field],
+			ENC_OPT_INIT,
 			&codec->enc_param[current_field], NULL);
 	}
 
@@ -879,7 +879,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 		{
 			codec->temp_frame = malloc(width_i * height_i * 3 / 2);
 		}
-		
+
 		cmodel_transfer(0, /* Leave NULL if non existent */
 			row_pointers,
 			codec->temp_frame, /* Leave NULL if non existent */
@@ -889,20 +889,20 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 			row_pointers[1],
 			row_pointers[2],
 			0,        /* Dimensions to capture from input frame */
-			0, 
-			width, 
+			0,
+			width,
 			height,
 			0,       /* Dimensions to project on output frame */
-			0, 
-			width, 
+			0,
+			width,
 			height,
-			file->color_model, 
+			file->color_model,
 			BC_YUV420P,
 			0,         /* When transfering BC_RGBA8888 to non-alpha this is the background color in 0xRRGGBB hex */
 			width,       /* For planar use the luma rowspan */
 			width_i);
-		
-	
+
+
 		encore_input.image = codec->temp_frame;
 	}
 
@@ -921,7 +921,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
  * 		}
  * 		bzero(out_ptr, (unsigned char*)encore_input.image + size - out_ptr);
  * 	}
- * 
+ *
  */
 
 
@@ -949,14 +949,14 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 			codec->p_count[current_field] = 0;
 	}
 
-	encore(codec->encode_handle[current_field],	
-		0,	
+	encore(codec->encode_handle[current_field],
+		0,
 		&encore_input,
 		&encore_result);
 	pthread_mutex_unlock(&encode_mutex);
 
-	result = !quicktime_write_data(file, 
-		codec->work_buffer, 
+	result = !quicktime_write_data(file,
+		codec->work_buffer,
 		encore_input.length);
 	quicktime_update_tables(file,
 						trak,
@@ -975,9 +975,9 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 	return result;
 }
 
-static int set_parameter(quicktime_t *file, 
-		int track, 
-		char *key, 
+static int set_parameter(quicktime_t *file,
+		int track,
+		char *key,
 		void *value)
 {
 	quicktime_video_map_t *vtrack = &(file->vtracks[track]);
@@ -1031,9 +1031,9 @@ void quicktime_init_codec_divx(quicktime_video_map_t *vtrack)
 	((quicktime_codec_t*)vtrack->codec)->reads_colormodel = reads_colormodel;
 	((quicktime_codec_t*)vtrack->codec)->writes_colormodel = writes_colormodel;
 	((quicktime_codec_t*)vtrack->codec)->set_parameter = set_parameter;
-	
+
 	codec = ((quicktime_codec_t*)vtrack->codec)->priv;
-	
+
 	codec->bitrate = 1000000;
 	codec->rc_period = 50;
 	codec->rc_reaction_ratio = 45;
@@ -1051,9 +1051,9 @@ void quicktime_init_codec_hv60(quicktime_video_map_t *vtrack)
 {
 	quicktime_init_codec_divx(vtrack);
 	quicktime_divx_codec_t *codec;
-	
+
 	codec = ((quicktime_codec_t*)vtrack->codec)->priv;
-	
+
 	codec->total_fields = 2;
 }
 

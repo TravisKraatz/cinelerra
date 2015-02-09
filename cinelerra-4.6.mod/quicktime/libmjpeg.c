@@ -3,18 +3,18 @@
  * under the terms of the GNU Lesser General Public License as published
  * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
- 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,7 +95,7 @@ METHODDEF(void) mjpeg_error_exit (j_common_ptr cinfo)
   	longjmp(mjpegerr->setjmp_buffer, 1);
 }
 
-typedef struct 
+typedef struct
 {
 	struct jpeg_destination_mgr pub; /* public fields */
 
@@ -156,7 +156,7 @@ METHODDEF(boolean) empty_output_buffer(j_compress_ptr cinfo)
 
 	dest->engine->output_size = dest->engine->output_allocated;
 	dest->engine->output_allocated *= 2;
-	dest->engine->output_buffer = realloc(dest->engine->output_buffer, 
+	dest->engine->output_buffer = realloc(dest->engine->output_buffer,
 		dest->engine->output_allocated);
 	dest->buffer = dest->engine->output_buffer;
 	dest->pub.next_output_byte = dest->buffer + dest->engine->output_size;
@@ -190,11 +190,11 @@ GLOBAL(void) jpeg_buffer_dest(j_compress_ptr cinfo, mjpeg_compressor *engine)
  * manager serially with the same JPEG object, because their private object
  * sizes may be different.  Caveat programmer.
  */
-	if(cinfo->dest == NULL) 
-	{	
+	if(cinfo->dest == NULL)
+	{
 /* first time for this JPEG object? */
       	cinfo->dest = (struct jpeg_destination_mgr *)
-    		(*cinfo->mem->alloc_small)((j_common_ptr)cinfo, 
+    		(*cinfo->mem->alloc_small)((j_common_ptr)cinfo,
 				JPOOL_PERMANENT,
 				sizeof(mjpeg_destination_mgr));
 	}
@@ -265,9 +265,9 @@ GLOBAL(void) jpeg_buffer_src(j_decompress_ptr cinfo, unsigned char *buffer, long
 
 /* first time for this JPEG object? */
 	if(cinfo->src == NULL)
-	{	
+	{
       	cinfo->src = (struct jpeg_source_mgr*)
-    		(*cinfo->mem->alloc_small)((j_common_ptr)cinfo, 
+    		(*cinfo->mem->alloc_small)((j_common_ptr)cinfo,
             		JPOOL_PERMANENT,
 					sizeof(mjpeg_source_mgr));
       	src = (mjpeg_src_ptr)cinfo->src;
@@ -415,8 +415,8 @@ static void delete_buffer(unsigned char **buffer, long *size, long *allocated)
 	}
 }
 
-static void append_buffer(unsigned char **buffer, 
-	long *size, 
+static void append_buffer(unsigned char **buffer,
+	long *size,
 	long *allocated,
 	unsigned char *data,
 	long data_size)
@@ -467,7 +467,7 @@ static void allocate_temps(mjpeg_t *mjpeg)
 	            mjpeg->temp_rows[2] = calloc(1, sizeof(unsigned char*) * mjpeg->coded_h);
 	            if(mjpeg->greyscale)
 				{
-					memset(mjpeg->temp_data + mjpeg->coded_w * mjpeg->coded_h, 
+					memset(mjpeg->temp_data + mjpeg->coded_w * mjpeg->coded_h,
 						0x80,
 						mjpeg->coded_w * mjpeg->coded_h * 2);
 				}
@@ -501,7 +501,7 @@ static void allocate_temps(mjpeg_t *mjpeg)
 static int get_input_row(mjpeg_t *mjpeg, mjpeg_compressor *compressor, int i)
 {
 	int input_row;
-	if(mjpeg->fields > 1) 
+	if(mjpeg->fields > 1)
 		input_row = i * 2 + compressor->instance;
 	else
 		input_row = i;
@@ -532,11 +532,11 @@ static void get_rows(mjpeg_t *mjpeg, mjpeg_compressor *compressor)
 				for(i = 0; i < compressor->coded_field_h; i++)
 				{
 					int input_row = get_input_row(mjpeg, compressor, i);
-					compressor->rows[0][i] = mjpeg->y_argument + 
+					compressor->rows[0][i] = mjpeg->y_argument +
 						mjpeg->coded_w * input_row;
-					compressor->rows[1][i] = mjpeg->u_argument + 
+					compressor->rows[1][i] = mjpeg->u_argument +
 						mjpeg->coded_w * input_row;
-					compressor->rows[2][i] = mjpeg->v_argument + 
+					compressor->rows[2][i] = mjpeg->v_argument +
 						mjpeg->coded_w * input_row;
 				}
 			}
@@ -570,11 +570,11 @@ static void get_rows(mjpeg_t *mjpeg, mjpeg_compressor *compressor)
 				for(i = 0; i < compressor->coded_field_h; i++)
 				{
 					int input_row = get_input_row(mjpeg, compressor, i);
-					compressor->rows[0][i] = mjpeg->y_argument + 
+					compressor->rows[0][i] = mjpeg->y_argument +
 						mjpeg->coded_w * input_row;
-					compressor->rows[1][i] = mjpeg->u_argument + 
+					compressor->rows[1][i] = mjpeg->u_argument +
 						(mjpeg->coded_w / 2) * input_row;
-					compressor->rows[2][i] = mjpeg->v_argument + 
+					compressor->rows[2][i] = mjpeg->v_argument +
 						(mjpeg->coded_w / 2) * input_row;
 				}
 			}
@@ -608,13 +608,13 @@ static void get_rows(mjpeg_t *mjpeg, mjpeg_compressor *compressor)
 				for(i = 0; i < compressor->coded_field_h; i++)
 				{
 					int input_row = get_input_row(mjpeg, compressor, i);
-					compressor->rows[0][i] = mjpeg->y_argument + 
+					compressor->rows[0][i] = mjpeg->y_argument +
 						mjpeg->coded_w * input_row;
                 	if(i < compressor->coded_field_h / 2)
                 	{
-				    	compressor->rows[1][i] = mjpeg->u_argument + 
+				    	compressor->rows[1][i] = mjpeg->u_argument +
 					    	(mjpeg->coded_w / 2) * input_row;
-				    	compressor->rows[2][i] = mjpeg->v_argument + 
+				    	compressor->rows[2][i] = mjpeg->v_argument +
 					    	(mjpeg->coded_w / 2) * input_row;
                 	}
 				}
@@ -669,6 +669,9 @@ static void new_jpeg_objects(mjpeg_compressor *engine)
 /* Ideally the error handler would be set here but it must be called in a thread */
 	jpeg_create_decompress(&(engine->jpeg_decompress));
 	engine->jpeg_decompress.raw_data_out = TRUE;
+#if JPEG_LIB_VERSION >= 70
+	engine->jpeg_decompress.do_fancy_upsampling = FALSE;
+#endif
 	engine->jpeg_decompress.dct_method = JDCT_IFAST;
 }
 
@@ -690,7 +693,7 @@ static void lock_compress_loop(mjpeg_compressor *engine)
 }
 
 // Make temp rows for compressor
-static void get_mcu_rows(mjpeg_t *mjpeg, 
+static void get_mcu_rows(mjpeg_t *mjpeg,
 	mjpeg_compressor *engine,
 	int start_row)
 {
@@ -741,8 +744,8 @@ printf("decompress_field %d\n", __LINE__);
 	}
 
 //printf("decompress_field 2\n");
-	jpeg_buffer_src(&engine->jpeg_decompress, 
-		buffer, 
+	jpeg_buffer_src(&engine->jpeg_decompress,
+		buffer,
 		buffer_size);
 	jpeg_read_header(&engine->jpeg_decompress, TRUE);
 
@@ -750,12 +753,15 @@ printf("decompress_field %d\n", __LINE__);
              engine->jpeg_decompress.ac_huff_tbl_ptrs[1] == NULL &&
              engine->jpeg_decompress.dc_huff_tbl_ptrs[0] == NULL &&
              engine->jpeg_decompress.dc_huff_tbl_ptrs[1] == NULL )
-        	jpeg_load_dht(  &engine->jpeg_decompress, 
-				jpeg_odml_dht, 
+        	jpeg_load_dht(  &engine->jpeg_decompress,
+				jpeg_odml_dht,
 				engine->jpeg_decompress.ac_huff_tbl_ptrs,
 				engine->jpeg_decompress.dc_huff_tbl_ptrs );
 // Reset by jpeg_read_header
 	engine->jpeg_decompress.raw_data_out = TRUE;
+#if JPEG_LIB_VERSION >= 70
+	engine->jpeg_decompress.do_fancy_upsampling = FALSE;
+#endif
 	jpeg_start_decompress(&engine->jpeg_decompress);
 
 // Generate colormodel from jpeg sampling
@@ -784,8 +790,8 @@ printf("decompress_field %d\n", __LINE__);
 	while(engine->jpeg_decompress.output_scanline < engine->jpeg_decompress.output_height)
 	{
 		get_mcu_rows(mjpeg, engine, engine->jpeg_decompress.output_scanline);
-		jpeg_read_raw_data(&engine->jpeg_decompress, 
-			engine->mcu_rows, 
+		jpeg_read_raw_data(&engine->jpeg_decompress,
+			engine->mcu_rows,
 			engine->coded_field_h);
 	}
 	jpeg_finish_decompress(&engine->jpeg_decompress);
@@ -822,14 +828,17 @@ static void compress_field(mjpeg_compressor *engine)
 
 
 	engine->jpeg_compress.raw_data_in = TRUE;
+#if JPEG_LIB_VERSION >= 70
+	engine->jpeg_compress.do_fancy_downsampling = FALSE;
+#endif
 	jpeg_start_compress(&engine->jpeg_compress, TRUE);
 
 	while(engine->jpeg_compress.next_scanline < engine->jpeg_compress.image_height)
 	{
 		get_mcu_rows(mjpeg, engine, engine->jpeg_compress.next_scanline);
 
-		jpeg_write_raw_data(&engine->jpeg_compress, 
-			engine->mcu_rows, 
+		jpeg_write_raw_data(&engine->jpeg_compress,
+			engine->mcu_rows,
 			engine->coded_field_h);
 	}
 	jpeg_finish_compress(&engine->jpeg_compress);
@@ -874,7 +883,7 @@ mjpeg_compressor* mjpeg_new_decompressor(mjpeg_t *mjpeg, int instance)
 	result->instance = instance;
 	new_jpeg_objects(result);
 	result->field_h = mjpeg->output_h / mjpeg->fields;
-	result->coded_field_h = (result->field_h % 16) ? 
+	result->coded_field_h = (result->field_h % 16) ?
 		result->field_h + (16 - (result->field_h % 16)) : result->field_h;
 
 	result->mcu_rows[0] = malloc(16 * sizeof(unsigned char*));
@@ -917,7 +926,7 @@ mjpeg_compressor* mjpeg_new_compressor(mjpeg_t *mjpeg, int instance)
 	mjpeg_compressor *result = calloc(1, sizeof(mjpeg_compressor));
 
 	result->field_h = mjpeg->output_h / mjpeg->fields;
-	result->coded_field_h = (result->field_h % 16) ? 
+	result->coded_field_h = (result->field_h % 16) ?
 		result->field_h + (16 - (result->field_h % 16)) : result->field_h;
 	result->mjpeg = mjpeg;
 	result->instance = instance;
@@ -932,7 +941,7 @@ mjpeg_compressor* mjpeg_new_compressor(mjpeg_t *mjpeg, int instance)
 	result->jpeg_compress.in_color_space = JCS_RGB;
 	jpeg_set_quality(&(result->jpeg_compress), mjpeg->quality, 0);
 
-	if(mjpeg->use_float) 
+	if(mjpeg->use_float)
 		result->jpeg_compress.dct_method = JDCT_FLOAT;
 	else
 		result->jpeg_compress.dct_method = JDCT_IFAST;
@@ -1021,10 +1030,10 @@ void mjpeg_set_output_size(mjpeg_t *mjpeg, long output_size)
 }
 
 
-int mjpeg_compress(mjpeg_t *mjpeg, 
-	unsigned char **row_pointers, 
-	unsigned char *y_plane, 
-	unsigned char *u_plane, 
+int mjpeg_compress(mjpeg_t *mjpeg,
+	unsigned char **row_pointers,
+	unsigned char *y_plane,
+	unsigned char *u_plane,
 	unsigned char *v_plane,
 	int color_model,
 	int cpus)
@@ -1036,8 +1045,8 @@ int mjpeg_compress(mjpeg_t *mjpeg,
 
 //printf("mjpeg_compress 1 %d\n", color_model);
 /* Reset output buffer */
-	reset_buffer(&mjpeg->output_data, 
-		&mjpeg->output_size, 
+	reset_buffer(&mjpeg->output_data,
+		&mjpeg->output_size,
 		&mjpeg->output_allocated);
 
 /* Create compression engines as needed */
@@ -1056,15 +1065,15 @@ int mjpeg_compress(mjpeg_t *mjpeg,
 	mjpeg->v_argument = v_plane;
 // User colormodel doesn't match encoder colormodel
 // Copy to interlacing buffer first
-	if(mjpeg->color_model != mjpeg->jpeg_color_model || 
+	if(mjpeg->color_model != mjpeg->jpeg_color_model ||
 		mjpeg->output_w != mjpeg->coded_w ||
 		mjpeg->output_h != mjpeg->coded_h)
 	{
 /*
- * printf("mjpeg_compress %d %d %d %d\n", 
+ * printf("mjpeg_compress %d %d %d %d\n",
  * mjpeg->output_w, mjpeg->output_h, mjpeg->coded_w, mjpeg->coded_h);
  */
-		cmodel_transfer(0, 
+		cmodel_transfer(0,
 			row_pointers,
 			mjpeg->temp_rows[0][0],
 			mjpeg->temp_rows[1][0],
@@ -1072,15 +1081,15 @@ int mjpeg_compress(mjpeg_t *mjpeg,
 			y_plane,
 			u_plane,
 			v_plane,
-			0, 
-			0, 
-			mjpeg->output_w, 
+			0,
+			0,
+			mjpeg->output_w,
 			mjpeg->output_h,
-			0, 
-			0, 
-			mjpeg->output_w, 
+			0,
+			0,
+			mjpeg->output_w,
 			mjpeg->output_h,
-			mjpeg->color_model, 
+			mjpeg->color_model,
 			mjpeg->jpeg_color_model,
 			0,
 			mjpeg->output_w,
@@ -1107,20 +1116,20 @@ int mjpeg_compress(mjpeg_t *mjpeg,
 			lock_compress_loop(mjpeg->compressors[i]);
 		}
 
-		append_buffer(&mjpeg->output_data, 
-			&mjpeg->output_size, 
+		append_buffer(&mjpeg->output_data,
+			&mjpeg->output_size,
 			&mjpeg->output_allocated,
-			mjpeg->compressors[i]->output_buffer, 
+			mjpeg->compressors[i]->output_buffer,
 			mjpeg->compressors[i]->output_size);
 		if(i == 0) mjpeg->output_field2 = mjpeg->output_size;
 	}
 
 	if(corrected_fields < mjpeg->fields)
 	{
-		append_buffer(&mjpeg->output_data, 
-			&mjpeg->output_size, 
+		append_buffer(&mjpeg->output_data,
+			&mjpeg->output_size,
 			&mjpeg->output_allocated,
-			mjpeg->compressors[0]->output_buffer, 
+			mjpeg->compressors[0]->output_buffer,
 			mjpeg->compressors[0]->output_size);
 	}
 //printf("mjpeg_compress 2\n");
@@ -1129,13 +1138,13 @@ int mjpeg_compress(mjpeg_t *mjpeg,
 
 
 
-int mjpeg_decompress(mjpeg_t *mjpeg, 
-	unsigned char *buffer, 
+int mjpeg_decompress(mjpeg_t *mjpeg,
+	unsigned char *buffer,
 	long buffer_len,
-	long input_field2,  
-	unsigned char **row_pointers, 
-	unsigned char *y_plane, 
-	unsigned char *u_plane, 
+	long input_field2,
+	unsigned char **row_pointers,
+	unsigned char *y_plane,
+	unsigned char *u_plane,
 	unsigned char *v_plane,
 	int color_model,
 	int cpus)
@@ -1211,9 +1220,9 @@ int mjpeg_decompress(mjpeg_t *mjpeg,
 //printf("mjpeg_decompress 6 %d %d %d %d\n", mjpeg->coded_w, mjpeg->coded_h, mjpeg->output_w, mjpeg->output_h);
  	if((mjpeg->jpeg_color_model != mjpeg->color_model ||
  		mjpeg->coded_w != mjpeg->output_w ||
- 		mjpeg->coded_h != mjpeg->output_h) 
+ 		mjpeg->coded_h != mjpeg->output_h)
 		&&
-		(mjpeg->temp_data || 
+		(mjpeg->temp_data ||
 		!mjpeg->error))
 	{
 		unsigned char *y_in = mjpeg->temp_rows[0][0];
@@ -1222,7 +1231,7 @@ int mjpeg_decompress(mjpeg_t *mjpeg,
 
 
 /*
- * printf("mjpeg_decompress 7 coded_w=%d coded_h=%d output_w=%d output_h=%d out_rowspan=%d in_colormodel=%d out_colormodel=%d\n", 
+ * printf("mjpeg_decompress 7 coded_w=%d coded_h=%d output_w=%d output_h=%d out_rowspan=%d in_colormodel=%d out_colormodel=%d\n",
  * mjpeg->coded_w,
  * mjpeg->coded_h,
  * mjpeg->output_w,
@@ -1232,7 +1241,7 @@ int mjpeg_decompress(mjpeg_t *mjpeg,
  * mjpeg->color_model);
  */
 
-		cmodel_transfer(row_pointers, 
+		cmodel_transfer(row_pointers,
 			0,
 			y_plane,
 			u_plane,
@@ -1240,16 +1249,16 @@ int mjpeg_decompress(mjpeg_t *mjpeg,
 			y_in,
 			u_in,
 			v_in,
-			0, 
-			0, 
-			mjpeg->output_w, 
+			0,
+			0,
+			mjpeg->output_w,
 			mjpeg->output_h,
-			0, 
-			0, 
-			mjpeg->output_w, 
+			0,
+			0,
+			mjpeg->output_w,
 			mjpeg->output_h,
 			mjpeg->jpeg_color_model,
-			mjpeg->color_model, 
+			mjpeg->color_model,
 			0,
 			mjpeg->coded_w,
 			mjpeg->rowspan ? mjpeg->rowspan : mjpeg->output_w);
@@ -1290,8 +1299,8 @@ int mjpeg_get_fields(mjpeg_t *mjpeg)
 }
 
 
-mjpeg_t* mjpeg_new(int w, 
-	int h, 
+mjpeg_t* mjpeg_new(int w,
+	int h,
 	int fields)
 {
 	mjpeg_t *result = calloc(1, sizeof(mjpeg_t));
@@ -1309,7 +1318,7 @@ mjpeg_t* mjpeg_new(int w,
 	pthread_mutexattr_init(&mutex_attr);
 //	pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ADAPTIVE_NP);
 	pthread_mutex_init(&(result->decompress_init), &mutex_attr);
-	
+
 
 // Calculate coded dimensions
 // An interlaced frame with 4:2:0 sampling must be a multiple of 32
@@ -1321,7 +1330,7 @@ mjpeg_t* mjpeg_new(int w,
 	else
 		result->coded_h = (h % 32) ? h + (32 - (h % 32)) : h;
 
-	
+
 
 //printf("mjpeg_new %d %d %d %d\n", result->output_w, result->output_h, result->coded_w, result->coded_h);
 	return result;
@@ -1353,8 +1362,8 @@ void mjpeg_delete(mjpeg_t *mjpeg)
 
 
 /* Open up a space to insert a marker */
-static void insert_space(unsigned char **buffer, 
-	long *buffer_size, 
+static void insert_space(unsigned char **buffer,
+	long *buffer_size,
 	long *buffer_allocated,
 	long space_start,
 	long space_len)
@@ -1393,28 +1402,28 @@ static inline int read_int32(unsigned char *data, long *offset, long length)
 		return 0;
 	}
 	*offset += 4;
-	return ((((unsigned int)data[*offset - 4]) << 24) | 
-		(((unsigned int)data[*offset - 3]) << 16) | 
-		(((unsigned int)data[*offset - 2]) << 8) | 
+	return ((((unsigned int)data[*offset - 4]) << 24) |
+		(((unsigned int)data[*offset - 3]) << 16) |
+		(((unsigned int)data[*offset - 2]) << 8) |
 		(((unsigned int)data[*offset - 1])));
 }
 
 static inline int read_int16(unsigned char *data, long *offset, long length)
 {
-	if(length - *offset < 2)	
+	if(length - *offset < 2)
 	{
 		*offset = length;
 		return 0;
 	}
 
 	*offset += 2;
-	return ((((unsigned int)data[*offset - 2]) << 8) | 
+	return ((((unsigned int)data[*offset - 2]) << 8) |
 		(((unsigned int)data[*offset - 1])));
 }
 
 static inline unsigned char read_char(unsigned char *data, long *offset, long length)
 {
-	if(length - *offset < 1)	
+	if(length - *offset < 1)
 	{
 		*offset = length;
 		return 0;
@@ -1426,12 +1435,12 @@ static inline unsigned char read_char(unsigned char *data, long *offset, long le
 
 static inline int next_int16(unsigned char *data, long *offset, long length)
 {
-	if(length - *offset < 2)	
+	if(length - *offset < 2)
 	{
 		return 0;
 	}
 
-	return ((((unsigned int)data[*offset]) << 8) | 
+	return ((((unsigned int)data[*offset]) << 8) |
 		(((unsigned int)data[*offset + 1])));
 }
 
@@ -1474,7 +1483,7 @@ static int next_marker(unsigned char *buffer, long *offset, long buffer_size)
 			(*offset) += 2;
 			return buffer[*offset - 1];
 		}
-		
+
 		(*offset)++;
 	}
 
@@ -1483,8 +1492,8 @@ static int next_marker(unsigned char *buffer, long *offset, long buffer_size)
 }
 
 /* Find the next marker after offset and return 0 on success */
-static int find_marker(unsigned char *buffer, 
-	long *offset, 
+static int find_marker(unsigned char *buffer,
+	long *offset,
 	long buffer_size,
 	unsigned long marker_type)
 {
@@ -1522,9 +1531,9 @@ typedef struct
 
 #define LML_MARKER_SIZE 0x2c
 #define LML_MARKER_TAG 0xffe3
-void insert_lml33_markers(unsigned char **buffer, 
-	long *field2_offset, 
-	long *buffer_size, 
+void insert_lml33_markers(unsigned char **buffer,
+	long *field2_offset,
+	long *buffer_size,
 	long *buffer_allocated)
 {
 	long marker_offset = -1;
@@ -1537,16 +1546,16 @@ void insert_lml33_markers(unsigned char **buffer,
 	if(marker_offset < 0)
 	{
 		marker_offset = 2;
-		insert_space(buffer, 
-			buffer_size, 
+		insert_space(buffer,
+			buffer_size,
 			buffer_allocated,
 			2,
 			LML_MARKER_SIZE);
 	}
 }
 
-static int qt_table_offsets(unsigned char *buffer, 
-	long buffer_size, 
+static int qt_table_offsets(unsigned char *buffer,
+	long buffer_size,
 	qt_hdr_t *header)
 {
 	int done = 0;
@@ -1565,8 +1574,8 @@ static int qt_table_offsets(unsigned char *buffer,
 
 		while(!done)
 		{
-			marker = next_marker(buffer, 
-				&offset, 
+			marker = next_marker(buffer,
+				&offset,
 				buffer_size);
 
 			len = 0;
@@ -1575,10 +1584,10 @@ static int qt_table_offsets(unsigned char *buffer,
 			{
 				case M_SOI:
 // The first field may be padded
-					if(field > 0) 
+					if(field > 0)
 					{
-						header[0].next_offset = 
-							header[0].padded_field_size = 
+						header[0].next_offset =
+							header[0].padded_field_size =
 							offset - 2;
 					}
 					len = 0;
@@ -1642,18 +1651,18 @@ static int qt_table_offsets(unsigned char *buffer,
 
 //				case 0:
 				case M_EOI:
-					if(field > 0) 
+					if(field > 0)
 					{
-						header[field].field_size = 
-							header[field].padded_field_size = 
+						header[field].field_size =
+							header[field].padded_field_size =
 							offset - header[0].next_offset;
 						header[field].next_offset = 0;
 					}
 					else
 					{
 // Often misses second SOI but gets first EOI
-//						header[0].next_offset = 
-//							header[0].padded_field_size = 
+//						header[0].next_offset =
+//							header[0].padded_field_size =
 //							offset;
 					}
 //printf("table_offsets M_EOI %d %x\n", field, offset);
@@ -1678,13 +1687,13 @@ static int qt_table_offsets(unsigned char *buffer,
 	return result;
 }
 
-static void insert_quicktime_marker(unsigned char *buffer, 
-	long buffer_size, 
-	long offset, 
+static void insert_quicktime_marker(unsigned char *buffer,
+	long buffer_size,
+	long offset,
 	qt_hdr_t *header)
 {
-	write_int32(buffer, &offset, buffer_size, 0xff000000 | 
-			((unsigned long)M_APP1 << 16) | 
+	write_int32(buffer, &offset, buffer_size, 0xff000000 |
+			((unsigned long)M_APP1 << 16) |
 			(QUICKTIME_MARKER_SIZE - 2));
 	write_int32(buffer, &offset, buffer_size, 0);
 	write_int32(buffer, &offset, buffer_size, QUICKTIME_JPEG_TAG);
@@ -1699,8 +1708,8 @@ static void insert_quicktime_marker(unsigned char *buffer,
 }
 
 
-void mjpeg_insert_quicktime_markers(unsigned char **buffer, 
-	long *buffer_size, 
+void mjpeg_insert_quicktime_markers(unsigned char **buffer,
+	long *buffer_size,
 	long *buffer_allocated,
 	int fields,
 	long *field2_offset)
@@ -1719,7 +1728,7 @@ void mjpeg_insert_quicktime_markers(unsigned char **buffer,
 // APP1 for quicktime already exists
 	if(exists) return;
 
-//printf("mjpeg_insert_quicktime_markers %x %02x %02x\n", 
+//printf("mjpeg_insert_quicktime_markers %x %02x %02x\n",
 //	header[0].next_offset, (*buffer)[*field2_offset], (*buffer)[*field2_offset + 1]);
 //if(*field2_offset == 0)
 //	fwrite(*buffer, *buffer_size, 1, stdout);
@@ -1746,33 +1755,33 @@ void mjpeg_insert_quicktime_markers(unsigned char **buffer,
 
 
 // Insert APP1 marker
-	insert_space(buffer, 
-		buffer_size, 
+	insert_space(buffer,
+		buffer_size,
 		buffer_allocated,
 		2,
 		QUICKTIME_MARKER_SIZE);
 
-	insert_quicktime_marker(*buffer, 
-		*buffer_size, 
-		2, 
+	insert_quicktime_marker(*buffer,
+		*buffer_size,
+		2,
 		&header[0]);
 
-	insert_space(buffer, 
-		buffer_size, 
+	insert_space(buffer,
+		buffer_size,
 		buffer_allocated,
 		header[0].next_offset + 2,
 		QUICKTIME_MARKER_SIZE);
 
 	header[1].next_offset = 0;
-	insert_quicktime_marker(*buffer, 
-		*buffer_size, 
-		header[0].next_offset + 2, 
+	insert_quicktime_marker(*buffer,
+		*buffer_size,
+		header[0].next_offset + 2,
 		&header[1]);
 }
 
 
-static int avi_table_offsets(unsigned char *buffer, 
-	long buffer_size, 
+static int avi_table_offsets(unsigned char *buffer,
+	long buffer_size,
 	avi_hdr_t *header)
 {
 	int field2 = mjpeg_get_field2(buffer, buffer_size);
@@ -1787,13 +1796,13 @@ static int avi_table_offsets(unsigned char *buffer,
 	return 0;
 }
 
-static void insert_avi_marker(unsigned char *buffer, 
-	long buffer_size, 
-	long offset, 
+static void insert_avi_marker(unsigned char *buffer,
+	long buffer_size,
+	long offset,
 	avi_hdr_t *header)
 {
-	write_int32(buffer, &offset, buffer_size, 0xff000000 | 
-			((unsigned long)M_APP0 << 16) | 
+	write_int32(buffer, &offset, buffer_size, 0xff000000 |
+			((unsigned long)M_APP0 << 16) |
 			(AVI_MARKER_SIZE - 2));
 	write_int32(buffer, &offset, buffer_size, QUICKTIME_AVI_TAG);
 
@@ -1805,8 +1814,8 @@ static void insert_avi_marker(unsigned char *buffer,
 	write_int32(buffer, &offset, buffer_size, header->unpadded_field_size);
 }
 
-void mjpeg_insert_avi_markers(unsigned char **buffer, 
-	long *buffer_size, 
+void mjpeg_insert_avi_markers(unsigned char **buffer,
+	long *buffer_size,
 	long *buffer_allocated,
 	int fields,
 	long *field2_offset)
@@ -1836,24 +1845,24 @@ void mjpeg_insert_avi_markers(unsigned char **buffer,
 	*field2_offset = header[0].field_size;
 
 // Insert APP0 marker into field 1
-	insert_space(buffer, 
-		buffer_size, 
+	insert_space(buffer,
+		buffer_size,
 		buffer_allocated,
 		2,
 		AVI_MARKER_SIZE);
-	insert_avi_marker(*buffer, 
-		*buffer_size, 
-		2, 
+	insert_avi_marker(*buffer,
+		*buffer_size,
+		2,
 		&header[0]);
 
-	insert_space(buffer, 
-		buffer_size, 
+	insert_space(buffer,
+		buffer_size,
 		buffer_allocated,
 		*field2_offset + 2,
 		AVI_MARKER_SIZE);
-	insert_avi_marker(*buffer, 
-		*buffer_size, 
-		*field2_offset + 2, 
+	insert_avi_marker(*buffer,
+		*buffer_size,
+		*field2_offset + 2,
 		&header[1]);
 
 
@@ -1871,13 +1880,13 @@ static void read_avi_markers(unsigned char *buffer,
 	int marker_size = 0;
 	while(marker_count < 2 && offset < buffer_size && !result)
 	{
-		result = find_marker(buffer, 
-			&offset, 
+		result = find_marker(buffer,
+			&offset,
 			buffer_size,
 			M_APP0);
 		marker_size = ((unsigned char)buffer[offset] << 8) | (unsigned char)buffer[offset];
 
-		
+
 		if(!result && marker_size >= 16)
 		{
 // Marker size, AVI1
@@ -1893,8 +1902,8 @@ static void read_avi_markers(unsigned char *buffer,
 }
 
 
-static void read_quicktime_markers(unsigned char *buffer, 
-	long buffer_size, 
+static void read_quicktime_markers(unsigned char *buffer,
+	long buffer_size,
 	qt_hdr_t *header)
 {
 	long offset = 0;
@@ -1903,8 +1912,8 @@ static void read_quicktime_markers(unsigned char *buffer,
 
 	while(marker_count < 2 && offset < buffer_size && !result)
 	{
-		result = find_marker(buffer, 
-			&offset, 
+		result = find_marker(buffer,
+			&offset,
 			buffer_size,
 			M_APP1);
 
@@ -1940,8 +1949,8 @@ long mjpeg_get_quicktime_field2(unsigned char *buffer, long buffer_size)
 	return header[0].next_offset;
 }
 
-long mjpeg_get_avi_field2(unsigned char *buffer, 
-	long buffer_size, 
+long mjpeg_get_avi_field2(unsigned char *buffer,
+	long buffer_size,
 	int *field_dominance)
 {
 	avi_hdr_t header[2];
@@ -1980,7 +1989,7 @@ long mjpeg_get_field2(unsigned char *buffer, long buffer_size)
 			if(total_fields == 2) break;
 		}
 	}
-	
+
 
 	return field2_offset;
 }
@@ -1988,8 +1997,8 @@ long mjpeg_get_field2(unsigned char *buffer, long buffer_size)
 void mjpeg_video_size(unsigned char *data, long data_size, int *w, int *h)
 {
 	  long offset = 0;
-	  find_marker(data, 
-			  &offset, 
+	  find_marker(data,
+			  &offset,
 			  data_size,
 			  M_SOF0);
 	  *h = (data[offset + 3] << 8) | (data[offset + 4]);

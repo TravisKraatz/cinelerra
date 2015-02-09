@@ -454,9 +454,9 @@ LIBS += \
 	-lpng \
 	-lz \
 	-ldl \
-	-lbz2
+	-lbz2 \
+	-lfontconfig \
 
-#	-lfontconfig \
 #	-lXxf86vm \
 
 ifeq ($(HAVE_XFT), y)

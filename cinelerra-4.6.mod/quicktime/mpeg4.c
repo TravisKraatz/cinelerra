@@ -648,25 +648,16 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 			context->height = height_i;
 			context->gop_size = codec->gop_size;
 			context->pix_fmt = PIX_FMT_YUV420P;
-			context->bit_rate = codec->bitrate / codec->total_fields / 1000;
-			context->bit_rate_tolerance = codec->bitrate_tolerance / 1000;
+			context->bit_rate = codec->bitrate / codec->total_fields;
+			context->bit_rate_tolerance = codec->bitrate_tolerance;
 //			context->rc_eq = video_rc_eq;
-//      	context->rc_max_rate = context->bit_rate * 2;
-//       	context->rc_min_rate = 0;
+//        	context->rc_max_rate = 0;
+//        	context->rc_min_rate = 0;
 //        	context->rc_buffer_size = 10000000;
-			if(!codec->fix_bitrate)
-			{
-				context->qmin = codec->quantizer;
-				context->qmax = codec->quantizer;
-			}
-
-
-// printf("encode %d %d %d\n", 
-// __LINE__, 
-// context->bit_rate, 
-// context->bit_rate_tolerance);
-
-
+			context->qmin = 
+				(!codec->fix_bitrate ? codec->quantizer : 2);
+			context->qmax = 
+				(!codec->fix_bitrate ? codec->quantizer : 31);
 //			context->lmin = 2 * FF_QP2LAMBDA;
 //			context->lmax = 31 * FF_QP2LAMBDA;
 //			context->mb_lmin = 2 * FF_QP2LAMBDA;
@@ -680,7 +671,11 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 
 //        	context->b_quant_factor = 1.25;
 //        	context->b_quant_offset = 1.25;
+//#if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
 //			context->error_resilience = FF_ER_CAREFUL;
+//#else
+//			context->error_recognition = FF_ER_CAREFUL;
+//#endif
 //			context->error_concealment = 3;
 //			context->frame_skip_cmp = FF_CMP_DCTMAX;
 //			context->ildct_cmp = FF_CMP_VSAD;
@@ -706,15 +701,17 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
         	context->level= FF_LEVEL_UNKNOWN;
 			context->flags |= CODEC_FLAG_H263P_UMV;
 			context->flags |= CODEC_FLAG_AC_PRED;
-			if( codec->ffmpeg_id != CODEC_ID_MSMPEG4V3 )
-				context->flags |= CODEC_FLAG_4MV;
+			context->flags |= CODEC_FLAG_4MV;
+
+// All the forbidden settings can be extracted from libavcodec/mpegvideo.c of ffmpeg...
+ 			
 // Not compatible with Win
 //			context->flags |= CODEC_FLAG_QPEL;
 
 			if(file->cpus > 1)
 			{
 				avcodec_thread_init(context, file->cpus);
-//				context->thread_count = file->cpus;
+				context->thread_count = file->cpus;
 			}
 
 			if(!codec->fix_bitrate)
@@ -1264,6 +1261,15 @@ void quicktime_init_codec_xvid(quicktime_video_map_t *vtrack)
         "XVID",
         "FFmpeg MPEG-4");
     result->ffmpeg_id = CODEC_ID_MPEG4;
+}
+
+void quicktime_init_codec_dnxhd(quicktime_video_map_t *vtrack)
+{
+    quicktime_mpeg4_codec_t *result = init_common(vtrack,
+        QUICKTIME_DNXHD,
+        "DNXHD",
+        "DNXHD");
+    result->ffmpeg_id = CODEC_ID_DNXHD;
 }
 
 // field based MPEG-4

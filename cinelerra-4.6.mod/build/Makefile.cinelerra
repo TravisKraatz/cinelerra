@@ -131,8 +131,15 @@ endif
 	cp -a models bin
 	cd bin && find -name '.svn' -exec rm -r {} \; -prune
 	rm -f bin/cutads
-	#ln -s ../cinelerra/$(OBJDIR)/cutads bin/.
-
+	cp -a cinelerra/$(OBJDIR)/cutads bin/.
+	rm -f bin/new_db
+	$(MAKE) -C db/utils new_db
+	cp -a db/utils/new_db bin/.
+	@if [ ! -f "/cinelerra/media.db" ]; then \
+		echo "need to run:"; \
+		echo "	mkdir /cinelerra"; \
+		echo "	new_db /cinelerra/media.db"; \
+	fi
 COMPILE = $(GCC) -c $(CFLAGS) $? -o $*.o
 
 $(OBJDIR)/soundtest.o: soundtest.c

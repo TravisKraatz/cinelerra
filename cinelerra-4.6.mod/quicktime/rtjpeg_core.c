@@ -1,9 +1,9 @@
-/* 
+/*
    bttvgrab 0.15.4 [1999-03-23]
    (c) 1998, 1999 by Joerg Walter <trouble@moes.pmnet.uni-oldenburg.de>
 
    Maintained by: Joerg Walter
-   Current version at http:/*moes.pmnet.uni-oldenburg.de/bttvgrab/ */
+   Current version at http://moes.pmnet.uni-oldenburg.de/bttvgrab/
 
     This program is free software; you can rquantptr it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,6 +39,10 @@ This file contains most of the initialisation and control functions
 #include <string.h>
 #include "rtjpeg_core.h"
 
+#ifdef MMX
+#define USE_MMX
+#endif
+
 static const unsigned char RTjpeg_ZZ[64]={
 0,
 8, 1,
@@ -57,14 +61,14 @@ static const unsigned char RTjpeg_ZZ[64]={
 63 };
 
 static const __u64 RTjpeg_aan_tab[64]={
-4294967296ULL, 5957222912ULL, 5611718144ULL, 5050464768ULL, 4294967296ULL, 3374581504ULL, 2324432128ULL, 1184891264ULL, 
-5957222912ULL, 8263040512ULL, 7783580160ULL, 7005009920ULL, 5957222912ULL, 4680582144ULL, 3224107520ULL, 1643641088ULL, 
-5611718144ULL, 7783580160ULL, 7331904512ULL, 6598688768ULL, 5611718144ULL, 4408998912ULL, 3036936960ULL, 1548224000ULL, 
-5050464768ULL, 7005009920ULL, 6598688768ULL, 5938608128ULL, 5050464768ULL, 3968072960ULL, 2733115392ULL, 1393296000ULL, 
-4294967296ULL, 5957222912ULL, 5611718144ULL, 5050464768ULL, 4294967296ULL, 3374581504ULL, 2324432128ULL, 1184891264ULL, 
-3374581504ULL, 4680582144ULL, 4408998912ULL, 3968072960ULL, 3374581504ULL, 2651326208ULL, 1826357504ULL, 931136000ULL, 
-2324432128ULL, 3224107520ULL, 3036936960ULL, 2733115392ULL, 2324432128ULL, 1826357504ULL, 1258030336ULL, 641204288ULL, 
-1184891264ULL, 1643641088ULL, 1548224000ULL, 1393296000ULL, 1184891264ULL, 931136000ULL, 641204288ULL, 326894240ULL, 
+4294967296ULL, 5957222912ULL, 5611718144ULL, 5050464768ULL, 4294967296ULL, 3374581504ULL, 2324432128ULL, 1184891264ULL,
+5957222912ULL, 8263040512ULL, 7783580160ULL, 7005009920ULL, 5957222912ULL, 4680582144ULL, 3224107520ULL, 1643641088ULL,
+5611718144ULL, 7783580160ULL, 7331904512ULL, 6598688768ULL, 5611718144ULL, 4408998912ULL, 3036936960ULL, 1548224000ULL,
+5050464768ULL, 7005009920ULL, 6598688768ULL, 5938608128ULL, 5050464768ULL, 3968072960ULL, 2733115392ULL, 1393296000ULL,
+4294967296ULL, 5957222912ULL, 5611718144ULL, 5050464768ULL, 4294967296ULL, 3374581504ULL, 2324432128ULL, 1184891264ULL,
+3374581504ULL, 4680582144ULL, 4408998912ULL, 3968072960ULL, 3374581504ULL, 2651326208ULL, 1826357504ULL, 931136000ULL,
+2324432128ULL, 3224107520ULL, 3036936960ULL, 2733115392ULL, 2324432128ULL, 1826357504ULL, 1258030336ULL, 641204288ULL,
+1184891264ULL, 1643641088ULL, 1548224000ULL, 1393296000ULL, 1184891264ULL, 931136000ULL, 641204288ULL, 326894240ULL,
 };
 
 static const unsigned char RTjpeg_lum_quant_tbl[64] = {
@@ -88,47 +92,47 @@ static const unsigned char RTjpeg_chrom_quant_tbl[64] = {
     99,  99,  99,  99,  99,  99,  99,  99,
     99,  99,  99,  99,  99,  99,  99,  99
  };
- 
+
 int RTjpeg_b2s(__s16 *data, __s8 *strm, __u8 bt8)
 {
  register int ci, co=1, tmp;
  register __s16 ZZvalue;
 
  (__u8)strm[0]=(__u8)(data[RTjpeg_ZZ[0]]>254) ? 254:((data[RTjpeg_ZZ[0]]<0)?0:data[RTjpeg_ZZ[0]]);
- 
- for(ci=1; ci<=bt8; ci++) 
+
+ for(ci=1; ci<=bt8; ci++)
  {
 	ZZvalue = data[RTjpeg_ZZ[ci]];
 
-   if(ZZvalue>0) 
+   if(ZZvalue>0)
 	{
      strm[co++]=(__s8)(ZZvalue>127)?127:ZZvalue;
-   } 
-	else 
+   }
+	else
 	{
      strm[co++]=(__s8)(ZZvalue<-128)?-128:ZZvalue;
    }
  }
 
- for(; ci<64; ci++) 
+ for(; ci<64; ci++)
  {
   ZZvalue = data[RTjpeg_ZZ[ci]];
 
   if(ZZvalue>0)
   {
    strm[co++]=(__s8)(ZZvalue>63)?63:ZZvalue;
-  } 
+  }
   else if(ZZvalue<0)
   {
    strm[co++]=(__s8)(ZZvalue<-64)?-64:ZZvalue;
-  } 
+  }
   else /* compress zeros */
   {
    tmp=ci;
    do
    {
     ci++;
-   } 
+   }
 	while((ci<64)&&(data[RTjpeg_ZZ[ci]]==0));
 
    strm[co++]=(__s8)(63+(ci-tmp));
@@ -151,7 +155,7 @@ int RTjpeg_s2b(__s16 *data, __s8 *strm, __u8 bt8, __u32 *qtbl)
   i=RTjpeg_ZZ[co];
   data[i]=strm[ci++]*qtbl[i];
  }
- 
+
  for(; co<64; co++)
  {
   if(strm[ci]>63)
@@ -169,12 +173,12 @@ int RTjpeg_s2b(__s16 *data, __s8 *strm, __u8 bt8, __u32 *qtbl)
  return (int)ci;
 }
 
-#if defined(MMX)
+#if defined(USE_MMX)
 void RTjpeg_quant_init(void)
 {
  int i;
  __s16 *qtbl;
- 
+
  qtbl=(__s16 *)RTjpeg_lqt;
  for(i=0; i<64; i++)qtbl[i]=(__s16)RTjpeg_lqt[i];
 
@@ -189,36 +193,36 @@ void RTjpeg_quant(__s16 *block, __s32 *qtbl)
 {
  int i;
  mmx_t *bl, *ql;
- 
+
  ql=(mmx_t *)qtbl;
  bl=(mmx_t *)block;
- 
+
  movq_m2r(RTjpeg_ones, mm6);
  movq_m2r(RTjpeg_half, mm7);
 
- for(i=16; i; i--) 
+ for(i=16; i; i--)
  {
   movq_m2r(*(ql++), mm0); /* quant vals (4) */
   movq_m2r(*bl, mm2); /* block vals (4) */
   movq_r2r(mm0, mm1);
   movq_r2r(mm2, mm3);
-  
+
   punpcklwd_r2r(mm6, mm0); /*           1 qb 1 qa */
   punpckhwd_r2r(mm6, mm1); /* 1 qd 1 qc */
-  
+
   punpcklwd_r2r(mm7, mm2); /*                   32767 bb 32767 ba */
   punpckhwd_r2r(mm7, mm3); /* 32767 bd 32767 bc */
-  
+
   pmaddwd_r2r(mm2, mm0); /*                         32767+bb*qb 32767+ba*qa */
   pmaddwd_r2r(mm3, mm1); /* 32767+bd*qd 32767+bc*qc */
-  
+
   psrad_i2r(16, mm0);
   psrad_i2r(16, mm1);
-  
+
   packssdw_r2r(mm1, mm0);
-  
+
   movq_r2m(mm0, *(bl++));
-  
+
  }
 }
 #else
@@ -229,7 +233,7 @@ void RTjpeg_quant_init(void)
 void RTjpeg_quant(__s16 *block, __s32 *qtbl)
 {
  int i;
- 
+
  for(i=0; i<64; i++)
    block[i]=(__s16)((block[i]*qtbl[i]+32767)>>16);
 }
@@ -238,7 +242,7 @@ void RTjpeg_quant(__s16 *block, __s32 *qtbl)
 /*
  * Perform the forward DCT on one block of samples.
  */
-#ifdef MMX
+#ifdef USE_MMX
 static mmx_t RTjpeg_C4   =(mmx_t)(long long)0x2D412D412D412D41LL;
 static mmx_t RTjpeg_C6   =(mmx_t)(long long)0x187E187E187E187ELL;
 static mmx_t RTjpeg_C2mC6=(mmx_t)(long long)0x22A322A322A322A3LL;
@@ -260,7 +264,7 @@ static mmx_t RTjpeg_zero =(mmx_t)(long long)0x0000000000000000LL;
 void RTjpeg_dct_init(void)
 {
  int i;
- 
+
  for(i=0; i<64; i++)
  {
   RTjpeg_lqt[i]=(((__u64)RTjpeg_lqt[i]<<32)/RTjpeg_aan_tab[i]);
@@ -290,19 +294,19 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
     tmp5 = idataptr[2] - idataptr[5];
     tmp3 = idataptr[3] + idataptr[4];
     tmp4 = idataptr[3] - idataptr[4];
-    
+
     tmp10 = (tmp0 + tmp3);	/* phase 2 */
     tmp13 = tmp0 - tmp3;
     tmp11 = (tmp1 + tmp2);
     tmp12 = tmp1 - tmp2;
-    
+
     wsptr[0] = (tmp10 + tmp11)<<8; /* phase 3 */
     wsptr[4] = (tmp10 - tmp11)<<8;
-    
+
     z1 = D_MULTIPLY(tmp12 + tmp13, FIX_0_707106781); /* c4 */
     wsptr[2] = (tmp13<<8) + z1;	/* phase 5 */
     wsptr[6] = (tmp13<<8) - z1;
-    
+
     tmp10 = tmp4 + tmp5;	/* phase 2 */
     tmp11 = tmp5 + tmp6;
     tmp12 = tmp6 + tmp7;
@@ -335,15 +339,15 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
     tmp5 = wsptr[16] - wsptr[40];
     tmp3 = wsptr[24] + wsptr[32];
     tmp4 = wsptr[24] - wsptr[32];
-    
+
     tmp10 = tmp0 + tmp3;	/* phase 2 */
     tmp13 = tmp0 - tmp3;
     tmp11 = tmp1 + tmp2;
     tmp12 = tmp1 - tmp2;
-    
+
     odataptr[0] = DESCALE10(tmp10 + tmp11); /* phase 3 */
     odataptr[32] = DESCALE10(tmp10 - tmp11);
-    
+
     z1 = D_MULTIPLY(tmp12 + tmp13, FIX_0_707106781); /* c4 */
     odataptr[16] = DESCALE20((tmp13<<8) + z1); /* phase 5 */
     odataptr[48] = DESCALE20((tmp13<<8) - z1);
@@ -378,85 +382,85 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
    movq_m2r(RTjpeg_zero, mm2);
 
 
-	movq_m2r(*idata2, mm0);		 
-	movq_r2r(mm0, mm1);		 			
+	movq_m2r(*idata2, mm0);
+	movq_r2r(mm0, mm1);
 
 	punpcklbw_r2r(mm2, mm0);
 	movq_r2m(mm0, *(dataptr));
 
 	punpckhbw_r2r(mm2, mm1);
 	movq_r2m(mm1, *(dataptr+1));
-	
+
 	idata2 += rskip;
 
-	movq_m2r(*idata2, mm0);		 
-	movq_r2r(mm0, mm1);		 			
+	movq_m2r(*idata2, mm0);
+	movq_r2r(mm0, mm1);
 
 	punpcklbw_r2r(mm2, mm0);
 	movq_r2m(mm0, *(dataptr+2));
 
 	punpckhbw_r2r(mm2, mm1);
 	movq_r2m(mm1, *(dataptr+3));
-	
+
 	idata2 += rskip;
 
-	movq_m2r(*idata2, mm0);		 
-	movq_r2r(mm0, mm1);		 			
+	movq_m2r(*idata2, mm0);
+	movq_r2r(mm0, mm1);
 
 	punpcklbw_r2r(mm2, mm0);
 	movq_r2m(mm0, *(dataptr+4));
 
 	punpckhbw_r2r(mm2, mm1);
 	movq_r2m(mm1, *(dataptr+5));
-	
+
 	idata2 += rskip;
 
-	movq_m2r(*idata2, mm0);		 
-	movq_r2r(mm0, mm1);		 			
+	movq_m2r(*idata2, mm0);
+	movq_r2r(mm0, mm1);
 
 	punpcklbw_r2r(mm2, mm0);
 	movq_r2m(mm0, *(dataptr+6));
 
 	punpckhbw_r2r(mm2, mm1);
 	movq_r2m(mm1, *(dataptr+7));
-	
+
 	idata2 += rskip;
 
-	movq_m2r(*idata2, mm0);		 
-	movq_r2r(mm0, mm1);		 			
+	movq_m2r(*idata2, mm0);
+	movq_r2r(mm0, mm1);
 
 	punpcklbw_r2r(mm2, mm0);
 	movq_r2m(mm0, *(dataptr+8));
 
 	punpckhbw_r2r(mm2, mm1);
 	movq_r2m(mm1, *(dataptr+9));
-	
+
 	idata2 += rskip;
 
-	movq_m2r(*idata2, mm0);		 
-	movq_r2r(mm0, mm1);		 			
+	movq_m2r(*idata2, mm0);
+	movq_r2r(mm0, mm1);
 
 	punpcklbw_r2r(mm2, mm0);
 	movq_r2m(mm0, *(dataptr+10));
 
 	punpckhbw_r2r(mm2, mm1);
 	movq_r2m(mm1, *(dataptr+11));
-	
+
 	idata2 += rskip;
 
-	movq_m2r(*idata2, mm0);		 
-	movq_r2r(mm0, mm1);		 			
+	movq_m2r(*idata2, mm0);
+	movq_r2r(mm0, mm1);
 
 	punpcklbw_r2r(mm2, mm0);
 	movq_r2m(mm0, *(dataptr+12));
 
 	punpckhbw_r2r(mm2, mm1);
 	movq_r2m(mm1, *(dataptr+13));
-	
+
 	idata2 += rskip;
 
-	movq_m2r(*idata2, mm0);		 
-	movq_r2r(mm0, mm1);		 			
+	movq_m2r(*idata2, mm0);
+	movq_r2r(mm0, mm1);
 
 	punpcklbw_r2r(mm2, mm0);
 	movq_r2m(mm0, *(dataptr+14));
@@ -469,10 +473,10 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 	movq_m2r(*(dataptr+9), mm7);		 	/* m03:m02|m01:m00 - first line (line 4)and copy into m5 */
 
 	movq_m2r(*(dataptr+13), mm6);	    	/* m23:m22|m21:m20 - third line (line 6)and copy into m2 */
-	movq_r2r(mm7, mm5);		 			
+	movq_r2r(mm7, mm5);
 
 	punpcklwd_m2r(*(dataptr+11), mm7); 	/* m11:m01|m10:m00 - interleave first and second lines */
-	movq_r2r(mm6, mm2);						 
+	movq_r2r(mm6, mm2);
 
 	punpcklwd_m2r(*(dataptr+15), mm6);  /* m31:m21|m30:m20 - interleave third and fourth lines */
 	movq_r2r(mm7, mm1);
@@ -485,7 +489,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 
 	movq_r2m(mm7,*(dataptr+9));			/* write result 1 */
 	punpckhwd_r2r(mm3, mm5);				/* m13:m03|m12:m02 - interleave first and second lines */
-	
+
 	movq_r2m(mm1,*(dataptr+11));			/* write result 2 */
 	punpckhwd_r2r(mm0, mm2);				/* m33:m23|m32:m22 - interleave third and fourth lines */
 
@@ -626,14 +630,14 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
    movq_r2r(mm0, mm3);
 
 	psllw_i2r(2, mm6);			/* m8 * 2^2 */
-	paddw_r2r(mm1, mm0);		
+	paddw_r2r(mm1, mm0);
 
 	pmulhw_m2r(RTjpeg_C4, mm6);			/* z1 */
-	psubw_r2r(mm1, mm3);		
+	psubw_r2r(mm1, mm3);
 
    movq_r2m(mm0, *dataptr);
    movq_r2r(mm7, mm0);
-   
+
     /* Odd part */
    movq_r2m(mm3, *(dataptr+8));
 	paddw_r2r(mm5, mm4);						/* tmp10 */
@@ -655,7 +659,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 	psubw_r2r(mm2, mm1);						/* tmp10 - tmp12 */
 	psllw_i2r(2, mm4);			/* m8 * 2^2 */
 
-	movq_m2r(RTjpeg_C2mC6, mm0);		
+	movq_m2r(RTjpeg_C2mC6, mm0);
 	psllw_i2r(2, mm1);
 
 	pmulhw_m2r(RTjpeg_C6, mm1);			/* z5 */
@@ -755,7 +759,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 
    movq_r2m(mm0, *(dataptr+1)); 			/*save y0 */
 	movq_r2r(mm7, mm0);						/* copy tmp13 */
-  
+
 	/* odd part */
 
    movq_r2m(mm3, *(dataptr+9)); 			/*save y4 */
@@ -815,7 +819,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 
    movq_r2m(mm6, *(dataptr+3)); 			/*save y1 */
 	psubw_r2r(mm2, mm0);						/* y7 */
-	
+
 /************************************************************************************************
 					Start of Transpose
 ************************************************************************************************/
@@ -860,7 +864,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 	punpcklwd_m2r(*(dataptr+7), mm2);  	/* m31:m21|m30:m20 - interleave third and fourth lines */
 	movq_r2r(mm0, mm4);						/* copy first intermediate result */
 
-	
+
 
 	movq_m2r(*(dataptr+8), mm1);			/* n03:n02|n01:n00 - first line  */
 	punpckldq_r2r(mm2, mm0);				/* m30:m20|m10:m00 - interleave to produce first result */
@@ -916,7 +920,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 
 	punpcklwd_m2r(*(dataptr+2), mm0);  	/* m11:m01|m10:m00 - interleave first and second lines */
 	movq_r2r(mm7, mm4);						/* copy third line */
-	
+
 	punpcklwd_m2r(*(dataptr+6), mm7);  	/* m31:m21|m30:m20 - interleave third and fourth lines */
 	movq_r2r(mm0, mm1);						/* copy first intermediate result */
 
@@ -976,14 +980,14 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
    movq_r2r(mm0, mm3);
 
 	psllw_i2r(2, mm6);			/* m8 * 2^2 */
-	paddw_r2r(mm1, mm0);		
+	paddw_r2r(mm1, mm0);
 
 	pmulhw_m2r(RTjpeg_C4, mm6);			/* z1 */
-	psubw_r2r(mm1, mm3);		
+	psubw_r2r(mm1, mm3);
 
    movq_r2m(mm0, *dataptr);
    movq_r2r(mm7, mm0);
-   
+
     /* Odd part */
    movq_r2m(mm3, *(dataptr+8));
 	paddw_r2r(mm5, mm4);						/* tmp10 */
@@ -1104,7 +1108,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 
    movq_r2m(mm0, *(dataptr+1)); 			/*save y0 */
 	movq_r2r(mm7, mm0);						/* copy tmp13 */
-  
+
 	/* odd part */
 
    movq_r2m(mm3, *(dataptr+9)); 			/*save y4 */
@@ -1168,7 +1172,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
    movq_r2m(mm6, *(dataptr+3)); 			/*save y1 */
 
    movq_r2m(mm0, *(dataptr+15)); 		/*save y7 */
-	
+
 
 #endif
 }
@@ -1188,7 +1192,7 @@ void RTjpeg_dctY(__u8 *idata, __s16 *odata, int rskip)
 void RTjpeg_idct_init(void)
 {
  int i;
- 
+
  for(i=0; i<64; i++)
  {
   RTjpeg_liqt[i]=((__u64)RTjpeg_liqt[i]*RTjpeg_aan_tab[i])>>32;
@@ -1198,7 +1202,7 @@ void RTjpeg_idct_init(void)
 
 void RTjpeg_idct(__u8 *odata, __s16 *data, int rskip)
 {
-#ifdef MMX
+#ifdef USE_MMX
 
 static mmx_t fix_141			= (mmx_t)(long long)0x5a825a825a825a82LL;
 static mmx_t fix_184n261	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
@@ -1276,14 +1280,14 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	movq_r2m(mm1, *(wsptr));		/* save tmp13 in workspace */
 	psllw_i2r(2, mm5);	/* shift tmp1-tmp3 */
-    
+
 	movq_m2r(*(idata), mm7); 		/* load idata[DCTSIZE*0] */
 
 	pmulhw_m2r(fix_141, mm5);		/* MULTIPLY(tmp1 - tmp3, FIX_1_414213562) */
 	paddw_r2r(mm6, mm0);				/* tmp4 = tmp10 + tmp5; */
 
 	movq_m2r(*(idata+8), mm4); 	/* load idata[DCTSIZE*4] */
-	
+
 	psubw_r2r(mm1, mm5);				/* tmp12 = MULTIPLY(tmp1 - tmp3, FIX_1_414213562) - tmp13; /* 2*c4 */ */
 
 	movq_r2m(mm0, *(wsptr+4));		/* save tmp4 in workspace */
@@ -1294,7 +1298,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	paddw_r2r(mm4, mm7);				/* tmp10 = tmp0 + tmp2; */
    movq_r2r(mm1, mm5);				/* copy tmp11 */
-	
+
 	paddw_m2r(*(wsptr+2), mm1);	/* tmp1 = tmp11 + tmp12; */
 	movq_r2r(mm7, mm4);				/* copy tmp10		/* phase 2 */ */
 
@@ -1305,7 +1309,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	psubw_m2r(*(wsptr+2), mm5);	/* tmp2 = tmp11 - tmp12; */
 	paddw_r2r(mm3, mm7);				/*	wsptr[DCTSIZE*0] = (int) (tmp0 + tmp7); */
-	
+
 	psubw_r2r(mm3, mm0);				/* wsptr[DCTSIZE*7] = (int) (tmp0 - tmp7); */
 
 	movq_r2m(mm7, *(wsptr));		/*	wsptr[DCTSIZE*0] */
@@ -1325,17 +1329,17 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	psubw_m2r(*(wsptr+4), mm1); 	/* wsptr[DCTSIZE*3] = (int) (tmp3 - tmp4); */
 
-	movq_r2m(mm4, *(wsptr+8));		
+	movq_r2m(mm4, *(wsptr+8));
 	movq_r2r(mm5, mm7);				/* copy tmp2 */
 
 	paddw_r2r(mm6, mm5);				/* wsptr[DCTSIZE*2] = (int) (tmp2 + tmp5) */
 
-	movq_r2m(mm1, *(wsptr+6));	
+	movq_r2m(mm1, *(wsptr+6));
 	psubw_r2r(mm6, mm7);				/*	wsptr[DCTSIZE*5] = (int) (tmp2 - tmp5); */
 
-	movq_r2m(mm5, *(wsptr+4));	
+	movq_r2m(mm5, *(wsptr+4));
 
-	movq_r2m(mm7, *(wsptr+10));		
+	movq_r2m(mm7, *(wsptr+10));
 
 	/*ok */
 
@@ -1403,14 +1407,14 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	movq_r2m(mm1, *(wsptr));		/* save tmp13 in workspace */
 	psllw_i2r(2, mm5); 				/* shift tmp1-tmp3 */
-    
+
 	movq_m2r(*(idata), mm7);		/* load idata[DCTSIZE*0] */
 	paddw_r2r(mm6, mm0);				/* tmp4 = tmp10 + tmp5; */
 
 	pmulhw_m2r(fix_141, mm5);		/* MULTIPLY(tmp1 - tmp3, FIX_1_414213562) */
 
 	movq_m2r(*(idata+8), mm4);    /* load idata[DCTSIZE*4] */
-	
+
 	psubw_r2r(mm1, mm5);				/* tmp12 = MULTIPLY(tmp1 - tmp3, FIX_1_414213562) - tmp13; /* 2*c4 */ */
 
 	movq_r2m(mm0, *(wsptr+4));		/* save tmp4 in workspace */
@@ -1421,7 +1425,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	paddw_r2r(mm4, mm7);				/* tmp10 = tmp0 + tmp2; */
    movq_r2r(mm1, mm5);				/* copy tmp11 */
-	
+
 	paddw_m2r(*(wsptr+2), mm1);	/* tmp1 = tmp11 + tmp12; */
 	movq_r2r(mm7, mm4);				/* copy tmp10		/* phase 2 */ */
 
@@ -1432,7 +1436,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	psubw_m2r(*(wsptr+2), mm5);	/* tmp2 = tmp11 - tmp12; */
 	paddw_r2r(mm3, mm7);				/* wsptr[DCTSIZE*0] = (int) (tmp0 + tmp7); */
-	
+
 	psubw_r2r(mm3, mm0);				/* wsptr[DCTSIZE*7] = (int) (tmp0 - tmp7); */
 
 	movq_r2m(mm7, *(wsptr));		/* wsptr[DCTSIZE*0] */
@@ -1452,15 +1456,15 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	psubw_m2r(*(wsptr+4), mm1);	/* wsptr[DCTSIZE*3] = (int) (tmp3 - tmp4); */
 
-	movq_r2m(mm4, *(wsptr+8));		
+	movq_r2m(mm4, *(wsptr+8));
 	movq_r2r(mm5, mm7);				/* copy tmp2 */
 
 	paddw_r2r(mm6, mm5);				/* wsptr[DCTSIZE*2] = (int) (tmp2 + tmp5) */
 
-	movq_r2m(mm1, *(wsptr+6));		
+	movq_r2m(mm1, *(wsptr+6));
 	psubw_r2r(mm6, mm7);				/* wsptr[DCTSIZE*5] = (int) (tmp2 - tmp5); */
 
-	movq_r2m(mm5, *(wsptr+4));	
+	movq_r2m(mm5, *(wsptr+4));
 
 	movq_r2m(mm7, *(wsptr+10));
 
@@ -1483,7 +1487,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	movq_m2r(*(wsptr+1),	mm1);		/* wsptr[0,4],[0,5],[0,6],[0,7] */
 	movq_r2r(mm0, mm2);
-	
+
 	movq_m2r(*(wsptr+2), mm3);		/* wsptr[1,0],[1,1],[1,2],[1,3] */
 	paddw_r2r(mm1, mm0);				/* wsptr[0,tmp10],[xxx],[0,tmp13],[xxx] */
 
@@ -1492,7 +1496,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	movq_r2r(mm0, mm6);
 	movq_r2r(mm3, mm5);
-	
+
 	paddw_r2r(mm4, mm3);				/* wsptr[1,tmp10],[xxx],[1,tmp13],[xxx] */
 	movq_r2r(mm2, mm1);
 
@@ -1514,7 +1518,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	movq_m2r(*(wsptr+5), mm5);		/* wsptr[2,4],[2,5],[2,6],[2,7] */
 	punpckldq_r2r(mm2, mm1);		/* wsptr[0,tmp11],[1,tmp11],[0,tmp14],[1,tmp14] */
 
-	
+
 	paddw_r2r(mm5, mm3);				/* wsptr[2,tmp10],[xxx],[2,tmp13],[xxx] */
 	movq_r2r(mm6, mm2);
 
@@ -1523,13 +1527,13 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	movq_r2r(mm3, mm5);
 	punpcklwd_r2r(mm6, mm3);		/* wsptr[2,tmp10],[3,tmp10],[xxx],[xxx] */
-	
+
 	psubw_r2r(mm7, mm2);				/* wsptr[3,tmp11],[xxx],[3,tmp14],[xxx] */
 	punpckhwd_r2r(mm6, mm5);		/* wsptr[2,tmp13],[3,tmp13],[xxx],[xxx] */
 
 	movq_r2r(mm4, mm7);
 	punpckldq_r2r(mm5, mm3);		/* wsptr[2,tmp10],[3,tmp10],[2,tmp13],[3,tmp13] */
-						 
+
 	punpcklwd_r2r(mm2, mm4);		/* wsptr[2,tmp11],[3,tmp11],[xxx],[xxx] */
 
 	punpckhwd_r2r(mm2, mm7);		/* wsptr[2,tmp14],[3,tmp14],[xxx],[xxx] */
@@ -1590,7 +1594,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	movq_r2m(mm0, *(wsptr));		/* save tmp0 */
 	paddw_r2r(mm4, mm2);				/* wsptr[xxx],[0,z11],[xxx],[0,z13] */
 
-	
+
 /*Continue with z10 --- z13 */
 	movq_m2r(*(wsptr+2), mm6);		/* wsptr[1,0],[1,1],[1,2],[1,3] */
 	psubw_r2r(mm4, mm3);				/* wsptr[xxx],[0,z12],[xxx],[0,z10] */
@@ -1603,11 +1607,11 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	punpckhdq_r2r(mm4, mm0);		/* wsptr[1,6],[1,7],[1,2],[1,3] */
 	movq_r2r(mm6, mm1);
-	
+
 /*Save tmp2 and tmp3 in wsptr */
 	paddw_r2r(mm0, mm6);				/* wsptr[xxx],[1,z11],[xxx],[1,z13] */
 	movq_r2r(mm2, mm4);
-	
+
 /*Continue with z10 --- z13 */
 	movq_r2m(mm5, *(wsptr+2));		/* save tmp2 */
 	punpcklwd_r2r(mm6, mm2);		/* wsptr[xxx],[xxx],[0,z11],[1,z11] */
@@ -1635,7 +1639,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	punpckhdq_r2r(mm4, mm7);		/* wsptr[2,6],[2,7],[2,2],[2,3] */
 	movq_r2r(mm6, mm2);
-	
+
 	movq_m2r(*(wsptr+7), mm4);	/* wsptr[3,4],[3,5],[3,6],[3,7] */
 	paddw_r2r(mm7, mm6);				/* wsptr[xxx],[2,z11],[xxx],[2,z13] */
 
@@ -1697,7 +1701,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 /*	 tmp22 = MULTIPLY(z10,(FIX_1_847759065 - FIX_2_613125930)) /* -2*(c2+c6) */ */
 /*			+ MULTIPLY(z12, FIX_1_847759065); /* 2*c2 */ */
 	movq_r2r(mm2, mm4);				/* final1 */
-  
+
 	pmulhw_m2r(fix_184n261, mm0);
 	paddw_r2r(mm5, mm2);				/* tmp0+tmp7,final1 */
 
@@ -1739,9 +1743,9 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	psraw_i2r(3, mm0);				/* outptr[0,1],[1,1],[2,1],[3,1] */
 
 	psraw_i2r(3, mm6);				/* outptr[0,6],[1,6],[2,6],[3,6] */
-	
+
 	packuswb_r2r(mm4, mm0);			/* out[0,1],[1,1],[2,1],[3,1],[0,7],[1,7],[2,7],[3,7] */
-	
+
 	movq_m2r(*(wsptr+2), mm5);		/* tmp2,final3 */
 	packuswb_r2r(mm6, mm2);			/* out[0,0],[1,0],[2,0],[3,0],[0,6],[1,6],[2,6],[3,6] */
 
@@ -1794,7 +1798,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	punpckhbw_r2r(mm6, mm7);		/* out[0,4],[0,5],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5] */
 
 	punpcklwd_r2r(mm5, mm2);		/* out[0,0],[0,1],[0,2],[0,3],[1,0],[1,1],[1,2],[1,3] */
-	
+
 	/* add			ecx, output_col */
 
 	movq_r2r(mm7, mm6);
@@ -1804,19 +1808,19 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	punpcklwd_r2r(mm4, mm6);		/* out[0,4],[0,5],[0,6],[0,7],[1,4],[1,5],[1,6],[1,7] */
 
 	/* mov			idata, [dataptr] */
-	
+
 	punpckldq_r2r(mm6, mm2);		/* out[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7] */
 
 	/* add		 	dataptr, 4 */
-	 
+
 	movq_r2r(mm1, mm3);
 
 	/* add			idata, output_col  */
-	
+
 	punpckhwd_r2r(mm4, mm7);		/* out[2,4],[2,5],[2,6],[2,7],[3,4],[3,5],[3,6],[3,7] */
-	
+
 	movq_r2m(mm2, *(dataptr));
-	
+
 	punpckhdq_r2r(mm6, mm0);		/* out[1,0],[1,1],[1,2],[1,3],[1,4],[1,5],[1,6],[1,7] */
 
 	dataptr += rskip;
@@ -1824,7 +1828,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	punpckldq_r2r(mm7, mm1);		/* out[2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7] */
 	punpckhdq_r2r(mm7, mm3);		/* out[3,0],[3,1],[3,2],[3,3],[3,4],[3,5],[3,6],[3,7] */
-	
+
 	dataptr += rskip;
 	movq_r2m(mm1, *(dataptr));
 
@@ -1845,7 +1849,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	movq_m2r(*(wsptr+1), mm1);		/* wsptr[0,4],[0,5],[0,6],[0,7] */
 	movq_r2r(mm0, mm2);
-	
+
 	movq_m2r(*(wsptr+2), mm3);		/* wsptr[1,0],[1,1],[1,2],[1,3] */
 	paddw_r2r(mm1, mm0);				/* wsptr[0,tmp10],[xxx],[0,tmp13],[xxx] */
 
@@ -1854,7 +1858,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	movq_r2r(mm0, mm6);
 	movq_r2r(mm3, mm5);
-	
+
 	paddw_r2r(mm4, mm3);				/* wsptr[1,tmp10],[xxx],[1,tmp13],[xxx] */
 	movq_r2r(mm2, mm1);
 
@@ -1884,7 +1888,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	movq_r2r(mm3, mm5);
 	punpcklwd_r2r(mm6, mm3);		/* wsptr[2,tmp10],[3,tmp10],[xxx],[xxx] */
-	
+
 	psubw_r2r(mm7, mm2);				/* wsptr[3,tmp11],[xxx],[3,tmp14],[xxx] */
 	punpckhwd_r2r(mm6, mm5);		/* wsptr[2,tmp13],[3,tmp13],[xxx],[xxx] */
 
@@ -1951,7 +1955,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	movq_r2m(mm0, *(wsptr));		/* save tmp0 */
 	paddw_r2r(mm4, mm2);				/* wsptr[xxx],[0,z11],[xxx],[0,z13] */
 
-	
+
 /*Continue with z10 --- z13 */
 	movq_m2r(*(wsptr+2), mm6);		/* wsptr[1,0],[1,1],[1,2],[1,3] */
 	psubw_r2r(mm4, mm3);				/* wsptr[xxx],[0,z12],[xxx],[0,z10] */
@@ -1964,11 +1968,11 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	punpckhdq_r2r(mm4, mm0);		/* wsptr[1,6],[1,7],[1,2],[1,3] */
 	movq_r2r(mm6, mm1);
-	
+
 /*Save tmp2 and tmp3 in wsptr */
 	paddw_r2r(mm0, mm6);				/* wsptr[xxx],[1,z11],[xxx],[1,z13] */
 	movq_r2r(mm2, mm4);
-	
+
 /*Continue with z10 --- z13 */
 	movq_r2m(mm5, *(wsptr+2));		/* save tmp2 */
 	punpcklwd_r2r(mm6, mm2);		/* wsptr[xxx],[xxx],[0,z11],[1,z11] */
@@ -1996,7 +2000,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 
 	punpckhdq_r2r(mm4, mm7);		/* wsptr[2,6],[2,7],[2,2],[2,3] */
 	movq_r2r(mm6, mm2);
-	
+
 	movq_m2r(*(wsptr+7), mm4);	/* wsptr[3,4],[3,5],[3,6],[3,7] */
 	paddw_r2r(mm7, mm6);				/* wsptr[xxx],[2,z11],[xxx],[2,z13] */
 
@@ -2058,7 +2062,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 /*	 tmp22 = MULTIPLY(z10,(FIX_1_847759065 - FIX_2_613125930)) /* -2*(c2+c6) */ */
 /*			+ MULTIPLY(z12, FIX_1_847759065); /* 2*c2 */ */
 	movq_r2r(mm2, mm4);				/* final1 */
-  
+
 	pmulhw_m2r(fix_184n261, mm0);
 	paddw_r2r(mm5, mm2);				/* tmp0+tmp7,final1 */
 
@@ -2099,9 +2103,9 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	psraw_i2r(3, mm0);				/* outptr[0,1],[1,1],[2,1],[3,1] */
 
 	psraw_i2r(3, mm6);				/* outptr[0,6],[1,6],[2,6],[3,6] */
-	
+
 	packuswb_r2r(mm4, mm0);			/* out[0,1],[1,1],[2,1],[3,1],[0,7],[1,7],[2,7],[3,7] */
-	
+
 	movq_m2r(*(wsptr+2), mm5);		/* tmp2,final3 */
 	packuswb_r2r(mm6, mm2);			/* out[0,0],[1,0],[2,0],[3,0],[0,6],[1,6],[2,6],[3,6] */
 
@@ -2140,7 +2144,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
    movq_r2m(mm4, *dummy);
 	fprintf(stderr, "3+4 %016llx\n", dummy);
 	*/
-	
+
 
 	packuswb_r2r(mm4, mm5);			/* out[0,2],[1,2],[2,2],[3,2],[0,4],[1,4],[2,4],[3,4] */
 
@@ -2154,11 +2158,11 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	movq_r2r(mm2, mm1);
 
 	punpcklbw_r2r(mm6, mm5);		/* out[0,2],[0,3],[1,2],[1,3],[2,2],[2,3],[3,2],[3,3] */
-	
+
 	punpckhbw_r2r(mm6, mm7);		/* out[0,4],[0,5],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5] */
 
 	punpcklwd_r2r(mm5, mm2);		/* out[0,0],[0,1],[0,2],[0,3],[1,0],[1,1],[1,2],[1,3] */
-	
+
 	movq_r2r(mm7, mm6);
 	punpckhwd_r2r(mm5, mm1);		/* out[2,0],[2,1],[2,2],[2,3],[3,0],[3,1],[3,2],[3,3] */
 
@@ -2170,7 +2174,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	movq_r2r(mm1, mm3);
 
 	punpckhwd_r2r(mm4, mm7);		/* out[2,4],[2,5],[2,6],[2,7],[3,4],[3,5],[3,6],[3,7] */
-	
+
 	dataptr += rskip;
 	movq_r2m(mm2, *(dataptr));
 
@@ -2180,7 +2184,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
 	movq_r2m(mm0, *(dataptr));
 
 	punpckldq_r2r(mm7, mm1);		/* out[2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[2,7] */
-	
+
 	punpckhdq_r2r(mm7, mm3);		/* out[3,0],[3,1],[3,2],[3,3],[3,4],[3,5],[3,6],[3,7] */
 
 	dataptr += rskip;
@@ -2203,7 +2207,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
   inptr = data;
   wsptr = workspace;
   for (ctr = 8; ctr > 0; ctr--) {
-    
+
     if ((inptr[8] | inptr[16] | inptr[24] |
 	 inptr[32] | inptr[40] | inptr[48] | inptr[56]) == 0) {
       dcval = inptr[0];
@@ -2215,12 +2219,12 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
       wsptr[40] = dcval;
       wsptr[48] = dcval;
       wsptr[56] = dcval;
-      
-      inptr++;	
+
+      inptr++;
       wsptr++;
       continue;
-    } 
-    
+    }
+
     tmp0 = inptr[0];
     tmp1 = inptr[16];
     tmp2 = inptr[32];
@@ -2236,7 +2240,7 @@ static mmx_t fix_108n184	= (mmx_t)(long long)0xcf04cf04cf04cf04LL;
     tmp3 = tmp10 - tmp13;
     tmp1 = tmp11 + tmp12;
     tmp2 = tmp11 - tmp12;
-    
+
     tmp4 = inptr[8];
     tmp5 = inptr[24];
     tmp6 = inptr[40];
@@ -2336,12 +2340,12 @@ Initialise all the cache-aliged data blocks
 void RTjpeg_init_data(void)
 {
  unsigned long dptr;
- 
+
  dptr=(unsigned long)&(RTjpeg_alldata[0]);
  dptr+=32;
  dptr=dptr>>5;
  dptr=dptr<<5; /* cache align data */
- 
+
  RTjpeg_block=(__s16 *)dptr;
  dptr+=sizeof(__s16)*64;
  RTjpeg_lqt=(__s32 *)dptr;
@@ -2368,7 +2372,7 @@ void RTjpeg_init_Q(__u8 Q)
 {
  int i;
  __u64 qual;
- 
+
  qual=(__u64)Q<<(32-7); /* 32 bit FP, 255=2, 0=0 */
 
  for(i=0; i<64; i++)
@@ -2382,7 +2386,7 @@ void RTjpeg_init_Q(__u8 Q)
   RTjpeg_lqt[i]=((1<<16)/RTjpeg_liqt[i])>>3;
   RTjpeg_cqt[i]=((1<<16)/RTjpeg_ciqt[i])>>3;
  }
- 
+
  RTjpeg_lb8=0;
  while(RTjpeg_liqt[RTjpeg_ZZ[++RTjpeg_lb8]]<=8);
  RTjpeg_lb8--;
@@ -2401,21 +2405,21 @@ External Function
 
 Initialise compression.
 
-Input: buf -> pointer to 128 ints for quant values store to pass back to 
+Input: buf -> pointer to 128 ints for quant values store to pass back to
                 init_decompress.
        width -> width of image
        height -> height of image
        Q -> quality factor (192=best, 32=worst)
-       
+
 */
 
 void RTjpeg_init_compress(__u32 *buf, int width, int height, __u8 Q)
 {
  int i;
  __u64 qual;
- 
+
  RTjpeg_init_data();
- 
+
  RTjpeg_width=width;
  RTjpeg_height=height;
  RTjpeg_Ywidth = RTjpeg_width>>3;
@@ -2436,14 +2440,14 @@ void RTjpeg_init_compress(__u32 *buf, int width, int height, __u8 Q)
   RTjpeg_lqt[i]=((1<<16)/RTjpeg_liqt[i])>>3;
   RTjpeg_cqt[i]=((1<<16)/RTjpeg_ciqt[i])>>3;
  }
- 
+
  RTjpeg_lb8=0;
  while(RTjpeg_liqt[RTjpeg_ZZ[++RTjpeg_lb8]]<=8);
  RTjpeg_lb8--;
  RTjpeg_cb8=0;
  while(RTjpeg_ciqt[RTjpeg_ZZ[++RTjpeg_cb8]]<=8);
  RTjpeg_cb8--;
- 
+
  RTjpeg_dct_init();
  RTjpeg_quant_init();
 
@@ -2458,7 +2462,7 @@ void RTjpeg_init_decompress(__u32 *buf, int width, int height)
  int i;
 
  RTjpeg_init_data();
- 
+
  RTjpeg_width=width;
  RTjpeg_height=height;
  RTjpeg_Ywidth = RTjpeg_width>>3;
@@ -2492,7 +2496,7 @@ int RTjpeg_compressYUV420(__s8 *sp, unsigned char *bp)
  register __s8 * bp3 = bp2 + (RTjpeg_Csize>>1);
  register int i, j, k;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
  sb=sp;
@@ -2530,9 +2534,9 @@ int RTjpeg_compressYUV420(__s8 *sp, unsigned char *bp)
   bp1+=RTjpeg_width<<4;
   bp2+=RTjpeg_width<<2;
   bp3+=RTjpeg_width<<2;
-			 
+
  }
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
  return (sp-sb);
@@ -2545,7 +2549,7 @@ int RTjpeg_compressYUV422(__s8 *sp, unsigned char *bp)
  register __s8 * bp3 = bp2 + RTjpeg_Csize;
  register int i, j, k;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
  sb=sp;
@@ -2574,9 +2578,9 @@ int RTjpeg_compressYUV422(__s8 *sp, unsigned char *bp)
   bp+=RTjpeg_width<<3;
   bp2+=RTjpeg_width<<2;
   bp3+=RTjpeg_width<<2;
-			 
+
  }
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
  return (sp-sb);
@@ -2587,10 +2591,10 @@ int RTjpeg_compress8(__s8 *sp, unsigned char *bp)
  __s8 * sb;
  int i, j;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
- 
+
  sb=sp;
 /* Y */
  for(i=0; i<RTjpeg_height; i+=8)
@@ -2604,7 +2608,7 @@ int RTjpeg_compress8(__s8 *sp, unsigned char *bp)
   bp+=RTjpeg_width;
  }
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
  return (sp-sb);
@@ -2616,7 +2620,7 @@ void RTjpeg_decompressYUV422(__s8 *sp, __u8 *bp)
  register __s8 * bp3 = bp2 + (RTjpeg_Csize);
  int i, j,k;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
 
@@ -2626,34 +2630,34 @@ void RTjpeg_decompressYUV422(__s8 *sp, __u8 *bp)
   for(k=0, j=0; j<RTjpeg_width; j+=16, k+=8) {
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_lb8, RTjpeg_liqt);
     RTjpeg_idct(bp+j, RTjpeg_block, RTjpeg_width);
    }
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_lb8, RTjpeg_liqt);
     RTjpeg_idct(bp+j+8, RTjpeg_block, RTjpeg_width);
    }
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_cb8, RTjpeg_ciqt);
     RTjpeg_idct(bp2+k, RTjpeg_block, RTjpeg_width>>1);
-   } 
+   }
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_cb8, RTjpeg_ciqt);
     RTjpeg_idct(bp3+k, RTjpeg_block, RTjpeg_width>>1);
-   } 
+   }
   }
   bp+=RTjpeg_width<<3;
   bp2+=RTjpeg_width<<2;
   bp3+=RTjpeg_width<<2;
  }
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
 }
@@ -2665,7 +2669,7 @@ void RTjpeg_decompressYUV420(__s8 *sp, __u8 *bp)
  register __s8 * bp3 = bp2 + (RTjpeg_Csize>>1);
  int i, j,k;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
 
@@ -2675,47 +2679,47 @@ void RTjpeg_decompressYUV420(__s8 *sp, __u8 *bp)
   for(k=0, j=0; j<RTjpeg_width; j+=16, k+=8) {
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_lb8, RTjpeg_liqt);
     RTjpeg_idct(bp+j, RTjpeg_block, RTjpeg_width);
    }
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_lb8, RTjpeg_liqt);
     RTjpeg_idct(bp+j+8, RTjpeg_block, RTjpeg_width);
    }
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_lb8, RTjpeg_liqt);
     RTjpeg_idct(bp1+j, RTjpeg_block, RTjpeg_width);
    }
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_lb8, RTjpeg_liqt);
     RTjpeg_idct(bp1+j+8, RTjpeg_block, RTjpeg_width);
    }
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_cb8, RTjpeg_ciqt);
     RTjpeg_idct(bp2+k, RTjpeg_block, RTjpeg_width>>1);
-   } 
+   }
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_cb8, RTjpeg_ciqt);
     RTjpeg_idct(bp3+k, RTjpeg_block, RTjpeg_width>>1);
-   } 
+   }
   }
   bp+=RTjpeg_width<<4;
   bp1+=RTjpeg_width<<4;
   bp2+=RTjpeg_width<<2;
   bp3+=RTjpeg_width<<2;
  }
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
 }
@@ -2724,7 +2728,7 @@ void RTjpeg_decompress8(__s8 *sp, __u8 *bp)
 {
  int i, j;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
 
@@ -2734,7 +2738,7 @@ void RTjpeg_decompress8(__s8 *sp, __u8 *bp)
   for(j=0; j<RTjpeg_width; j+=8)
    if(*sp==-1)sp++;
    else
-   { 
+   {
     sp+=RTjpeg_s2b(RTjpeg_block, sp, RTjpeg_lb8, RTjpeg_liqt);
     RTjpeg_idct(bp+j, RTjpeg_block, RTjpeg_width);
    }
@@ -2769,7 +2773,7 @@ void RTjpeg_init_mcompress(void)
  bzero(RTjpeg_old, ((4*RTjpeg_width*RTjpeg_height)));
 }
 
-#ifdef MMX
+#ifdef USE_MMX
 
 int RTjpeg_bcomp(__s16 *old, mmx_t *mask)
 {
@@ -2778,11 +2782,11 @@ int RTjpeg_bcomp(__s16 *old, mmx_t *mask)
  mmx_t *mblock=(mmx_t *)RTjpeg_block;
  mmx_t result;
  static mmx_t neg=(mmx_t)(unsigned long long)0xffffffffffffffffULL;
- 
+
  movq_m2r(*mask, mm7);
  movq_m2r(neg, mm6);
  pxor_r2r(mm5, mm5);
- 
+
  for(i=0; i<8; i++)
  {
   movq_m2r(*(mblock++), mm0);
@@ -2805,7 +2809,7 @@ int RTjpeg_bcomp(__s16 *old, mmx_t *mask)
   			por_r2r(mm3, mm5);
  }
  movq_r2m(mm5, result);
- 
+
  if(result.q)
  {
   if(!RTjpeg_mtest)
@@ -2846,7 +2850,7 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
  register __s8 * bp3 = bp2 + (RTjpeg_Csize>>1);
  register int i, j, k;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
  RTjpeg_lmask=(mmx_t)(((__u64)lmask<<48)|((__u64)lmask<<32)|((__u64)lmask<<16)|lmask);
  RTjpeg_cmask=(mmx_t)(((__u64)cmask<<48)|((__u64)cmask<<32)|((__u64)cmask<<16)|cmask);
@@ -2854,7 +2858,7 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
  RTjpeg_lmask=lmask;
  RTjpeg_cmask=cmask;
 #endif
- 
+
  sb=sp;
  block=RTjpeg_old;
 /* Y */
@@ -2867,7 +2871,7 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_lmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_lb8);
    block+=64;
 
@@ -2876,7 +2880,7 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_lmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_lb8);
    block+=64;
 
@@ -2885,7 +2889,7 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_lmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_lb8);
    block+=64;
 
@@ -2894,7 +2898,7 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_lmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_lb8);
    block+=64;
 
@@ -2903,7 +2907,7 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_cmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_cb8);
    block+=64;
 
@@ -2912,7 +2916,7 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_cmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_cb8);
    block+=64;
   }
@@ -2920,9 +2924,9 @@ int RTjpeg_mcompressYUV420(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
   bp1+=RTjpeg_width<<4;
   bp2+=RTjpeg_width<<2;
   bp3+=RTjpeg_width<<2;
-			 
+
  }
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
  return (sp-sb);
@@ -2937,7 +2941,7 @@ int RTjpeg_mcompressYUV422(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
  register __s8 * bp3;
  register int i, j, k;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
  RTjpeg_lmask=(mmx_t)(((__u64)lmask<<48)|((__u64)lmask<<32)|((__u64)lmask<<16)|lmask);
  RTjpeg_cmask=(mmx_t)(((__u64)cmask<<48)|((__u64)cmask<<32)|((__u64)cmask<<16)|cmask);
@@ -2945,7 +2949,7 @@ int RTjpeg_mcompressYUV422(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
  RTjpeg_lmask=lmask;
  RTjpeg_cmask=cmask;
 #endif
- 
+
  bp = bp - RTjpeg_width*0;
  bp2 = bp + RTjpeg_Ysize-RTjpeg_width*0;
  bp3 = bp2 + RTjpeg_Csize;
@@ -2962,7 +2966,7 @@ int RTjpeg_mcompressYUV422(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_lmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_lb8);
    block+=64;
 
@@ -2971,7 +2975,7 @@ int RTjpeg_mcompressYUV422(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_lmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_lb8);
    block+=64;
 
@@ -2980,7 +2984,7 @@ int RTjpeg_mcompressYUV422(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_cmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_cb8);
    block+=64;
 
@@ -2989,7 +2993,7 @@ int RTjpeg_mcompressYUV422(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
    if(RTjpeg_bcomp(block, &RTjpeg_cmask))
    {
     *((__u8 *)sp++)=255;
-   } 
+   }
 	else sp+=RTjpeg_b2s(RTjpeg_block, sp, RTjpeg_cb8);
    block+=64;
 
@@ -2999,7 +3003,7 @@ int RTjpeg_mcompressYUV422(__s8 *sp, unsigned char *bp, __u16 lmask, __u16 cmask
   bp3+=RTjpeg_width<<2;
  }
  printf ("%d\n", block - RTjpeg_old);
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
  return (sp-sb);
@@ -3011,14 +3015,14 @@ int RTjpeg_mcompress8(__s8 *sp, unsigned char *bp, __u16 lmask)
  __s16 *block;
  int i, j;
 
-#ifdef MMX
+#ifdef USE_MMX
  emms();
  RTjpeg_lmask=(mmx_t)(((__u64)lmask<<48)|((__u64)lmask<<32)|((__u64)lmask<<16)|lmask);
 #else
  RTjpeg_lmask=lmask;
 #endif
 
- 
+
  sb=sp;
  block=RTjpeg_old;
 /* Y */
@@ -3037,7 +3041,7 @@ int RTjpeg_mcompress8(__s8 *sp, unsigned char *bp, __u16 lmask)
   }
   bp+=RTjpeg_width<<3;
  }
-#ifdef MMX
+#ifdef USE_MMX
  emms();
 #endif
  return (sp-sb);
@@ -3045,7 +3049,7 @@ int RTjpeg_mcompress8(__s8 *sp, unsigned char *bp, __u16 lmask)
 
 void RTjpeg_color_init(void)
 {
-}  
+}
 
 #define KcrR 76284
 #define KcrG 53281
@@ -3060,14 +3064,14 @@ void RTjpeg_yuv422rgb(__u8 *buf, __u8 *rgb, int stride)
  __s32 y, crR, crG, cbG, cbB;
  __u8 *bufcr, *bufcb, *bufy, *bufoute;
  int yskip;
- 
+
  yskip=RTjpeg_width;
- 
+
  bufcb=&buf[RTjpeg_width*RTjpeg_height];
  bufcr=&buf[RTjpeg_width*RTjpeg_height+(RTjpeg_width*RTjpeg_height)/2];
  bufy=&buf[0];
  bufoute=rgb;
- 
+
  for(i=0; i<(RTjpeg_height); i++)
  {
   for(j=0; j<RTjpeg_width; j+=2)
@@ -3076,9 +3080,9 @@ void RTjpeg_yuv422rgb(__u8 *buf, __u8 *rgb, int stride)
    crG=(*(bufcr++)-128)*KcrG;
    cbG=(*bufcb-128)*KcbG;
    cbB=(*(bufcb++)-128)*KcbB;
-  
+
    y=(bufy[j]-16)*Ky;
-   
+
    tmp=(y+crR)>>16;
    *(bufoute++)=(tmp>255)?255:((tmp<0)?0:tmp);
    tmp=(y-crG-cbG)>>16;
@@ -3108,20 +3112,20 @@ void RTjpeg_yuv420rgb(__u8 *buf, __u8 *rgb, int stride)
  __s32 y, crR, crG, cbG, cbB;
  __u8 *bufcr, *bufcb, *bufy, *bufoute, *bufouto;
  int oskip, yskip;
- 
+
  if(stride==0)
  	oskip=RTjpeg_width*3;
  else
  	oskip=2*stride-RTjpeg_width*3;
- 
+
  yskip=RTjpeg_width;
- 
+
  bufcb=&buf[RTjpeg_width*RTjpeg_height];
  bufcr=&buf[RTjpeg_width*RTjpeg_height+(RTjpeg_width*RTjpeg_height)/4];
  bufy=&buf[0];
  bufoute=rgb;
  bufouto=rgb+RTjpeg_width*3;
- 
+
  for(i=0; i<(RTjpeg_height>>1); i++)
  {
   for(j=0; j<RTjpeg_width; j+=2)
@@ -3130,9 +3134,9 @@ void RTjpeg_yuv420rgb(__u8 *buf, __u8 *rgb, int stride)
    crG=(*(bufcr++)-128)*KcrG;
    cbG=(*bufcb-128)*KcbG;
    cbB=(*(bufcb++)-128)*KcbB;
-  
+
    y=(bufy[j]-16)*Ky;
-   
+
    tmp=(y+crR)>>16;
    *(bufoute++)=(tmp>255)?255:((tmp<0)?0:tmp);
    tmp=(y-crG-cbG)>>16;
@@ -3166,7 +3170,7 @@ void RTjpeg_yuv420rgb(__u8 *buf, __u8 *rgb, int stride)
    *(bufouto++)=(tmp>255)?255:((tmp<0)?0:tmp);
    tmp=(y+cbB)>>16;
    *(bufouto++)=(tmp>255)?255:((tmp<0)?0:tmp);
-   
+
   }
   bufoute+=oskip;
   bufouto+=oskip;
@@ -3182,19 +3186,19 @@ void RTjpeg_yuvrgb32(__u8 *buf, __u8 *rgb, int stride)
  __s32 y, crR, crG, cbG, cbB;
  __u8 *bufcr, *bufcb, *bufy, *bufoute, *bufouto;
  int oskip, yskip;
- 
+
  if(stride==0)
  	oskip=RTjpeg_width*4;
  else
  	oskip = 2*stride-RTjpeg_width*4;
  yskip=RTjpeg_width;
- 
+
  bufcb=&buf[RTjpeg_width*RTjpeg_height];
  bufcr=&buf[RTjpeg_width*RTjpeg_height+(RTjpeg_width*RTjpeg_height)/2];
  bufy=&buf[0];
  bufoute=rgb;
  bufouto=rgb+RTjpeg_width*4;
- 
+
  for(i=0; i<(RTjpeg_height>>1); i++)
  {
   for(j=0; j<RTjpeg_width; j+=2)
@@ -3203,9 +3207,9 @@ void RTjpeg_yuvrgb32(__u8 *buf, __u8 *rgb, int stride)
    crG=(*(bufcr++)-128)*KcrG;
    cbG=(*bufcb-128)*KcbG;
    cbB=(*(bufcb++)-128)*KcbB;
-  
+
    y=(bufy[j]-16)*Ky;
-   
+
    tmp=(y+cbB)>>16;
    *(bufoute++)=(tmp>255)?255:((tmp<0)?0:tmp);
    tmp=(y-crG-cbG)>>16;
@@ -3243,7 +3247,7 @@ void RTjpeg_yuvrgb32(__u8 *buf, __u8 *rgb, int stride)
    tmp=(y+crR)>>16;
    *(bufouto++)=(tmp>255)?255:((tmp<0)?0:tmp);
    bufouto++;
-   
+
   }
   bufoute+=oskip;
   bufouto+=oskip;
@@ -3258,20 +3262,20 @@ void RTjpeg_yuvrgb24(__u8 *buf, __u8 *rgb, int stride)
  __s32 y, crR, crG, cbG, cbB;
  __u8 *bufcr, *bufcb, *bufy, *bufoute, *bufouto;
  int oskip, yskip;
- 
+
  if(stride==0)
  	oskip=RTjpeg_width*3;
  else
  	oskip=2*stride - RTjpeg_width*3;
- 	
+
  yskip=RTjpeg_width;
- 
+
  bufcb=&buf[RTjpeg_width*RTjpeg_height];
  bufcr=&buf[RTjpeg_width*RTjpeg_height+(RTjpeg_width*RTjpeg_height)/4];
  bufy=&buf[0];
  bufoute=rgb;
  bufouto=rgb+RTjpeg_width*3;
- 
+
  for(i=0; i<(RTjpeg_height>>1); i++)
  {
   for(j=0; j<RTjpeg_width; j+=2)
@@ -3280,9 +3284,9 @@ void RTjpeg_yuvrgb24(__u8 *buf, __u8 *rgb, int stride)
    crG=(*(bufcr++)-128)*KcrG;
    cbG=(*bufcb-128)*KcbG;
    cbB=(*(bufcb++)-128)*KcbB;
-  
+
    y=(bufy[j]-16)*Ky;
-   
+
    tmp=(y+cbB)>>16;
    *(bufoute++)=(tmp>255)?255:((tmp<0)?0:tmp);
    tmp=(y-crG-cbG)>>16;
@@ -3316,7 +3320,7 @@ void RTjpeg_yuvrgb24(__u8 *buf, __u8 *rgb, int stride)
    *(bufouto++)=(tmp>255)?255:((tmp<0)?0:tmp);
    tmp=(y+crR)>>16;
    *(bufouto++)=(tmp>255)?255:((tmp<0)?0:tmp);
-   
+
   }
   bufoute+=oskip;
   bufouto+=oskip;
@@ -3332,20 +3336,20 @@ void RTjpeg_yuvrgb16(__u8 *buf, __u8 *rgb, int stride)
  __u8 *bufcr, *bufcb, *bufy, *bufoute, *bufouto;
  int oskip, yskip;
  unsigned char r, g, b;
- 
+
  if(stride==0)
  	oskip=RTjpeg_width*2;
  else
  	oskip=2*stride-RTjpeg_width*2;
- 	
+
  yskip=RTjpeg_width;
- 
+
  bufcb=&buf[RTjpeg_width*RTjpeg_height];
  bufcr=&buf[RTjpeg_width*RTjpeg_height+(RTjpeg_width*RTjpeg_height)/4];
  bufy=&buf[0];
  bufoute=rgb;
  bufouto=rgb+RTjpeg_width*2;
- 
+
  for(i=0; i<(RTjpeg_height>>1); i++)
  {
   for(j=0; j<RTjpeg_width; j+=2)
@@ -3354,9 +3358,9 @@ void RTjpeg_yuvrgb16(__u8 *buf, __u8 *rgb, int stride)
    crG=(*(bufcr++)-128)*KcrG;
    cbG=(*bufcb-128)*KcbG;
    cbB=(*(bufcb++)-128)*KcbB;
-  
+
    y=(bufy[j]-16)*Ky;
-   
+
    tmp=(y+cbB)>>16;
    b=(tmp>255)?255:((tmp<0)?0:tmp);
    tmp=(y-crG-cbG)>>16;
@@ -3368,7 +3372,7 @@ void RTjpeg_yuvrgb16(__u8 *buf, __u8 *rgb, int stride)
    tmp|=(int)(((int)r >> 3) << 11);
    *(bufoute++)=tmp&0xff;
    *(bufoute++)=tmp>>8;
-   
+
 
    y=(bufy[j+1]-16)*Ky;
 

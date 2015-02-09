@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 
-#include "jpeg/jpeglib.h"
+#include <jpeglib.h>
 #include <png.h>       /* Need setjmp.h included by png.h */
 #include "pthread.h"
 
@@ -97,9 +97,9 @@ typedef struct
 /* These functions are called from Broadcast 2000 directly to achieve */
 /* massively parallel compression. */
 
-mjpa_compress_engine* quicktime_jpeg_new_compress_engine(int width, 
-						int height, 
-						int quality, 
+mjpa_compress_engine* quicktime_jpeg_new_compress_engine(int width,
+						int height,
+						int quality,
 						int use_float,
 						int interlaced,
 						int is_mjpa,

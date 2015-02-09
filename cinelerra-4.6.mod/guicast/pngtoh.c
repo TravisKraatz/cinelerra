@@ -3,26 +3,19 @@
  * under the terms of the GNU Lesser General Public License as published
  * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
- 
 
-
-
-
-
-
-
-
+#include <errno.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,7 +25,12 @@
 
 int main(int argc, char *argv[])
 {
-	if(argc < 2) return 1;
+	if(argc < 2)
+	{
+		fprintf(stderr, "Usage: %s <file.png>\n", argv[0]);
+		fprintf(stderr, "  Convert 'file.png' file to C table 'file_png.h'.\n");
+		return 1;
+	}
 
 	for(argc--; argc > 0; argc--)
 	{
@@ -41,7 +39,7 @@ int main(int argc, char *argv[])
 		char variable[1024], header_fn[1024], output_fn[1024], *suffix, *prefix;
 		int i;
 		int bytes_per_row = 16;
-		char row[1024], byte[1024], character;
+		char row[1024], byte[1024];
 		struct stat st;
 		long total_bytes;
 
@@ -57,20 +55,22 @@ int main(int argc, char *argv[])
 		if(suffix) *suffix = '_';
 		strcat(output_fn, ".h");
 
-		out = fopen(output_fn, "w");
-		if(!out)
-		{
-			fclose(in);
-			continue;
-		}
-
-
 // Strip leading directories for variable and header
 		prefix = strrchr(output_fn, '/');
-		if(!prefix) 
+		if(!prefix)
 			prefix = output_fn;
 		else
 			prefix++;
+
+		out = fopen(prefix, "w");
+		if(!out)
+		{
+			fclose(in);
+			fprintf(stderr, "error: unable to write to %s: %s\n",
+				prefix, strerror(errno));
+			continue;
+		}
+
 
 		strcpy(header_fn, prefix);
 		for(i = 0; i < strlen(header_fn); i++)
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 			}
 
 // Replace . with _ for header
-			if(header_fn[i] == '.') 
+			if(header_fn[i] == '.')
 				header_fn[i] = '_';
 			else
 				header_fn[i] = toupper(header_fn[i]);
@@ -113,16 +113,16 @@ int main(int argc, char *argv[])
 		fprintf(out, "#ifndef %s\n"
 					 "#define %s\n"
 					 "\n"
-					 "static unsigned char %s[] = \n{\n",
+					 "static unsigned char %s[] =\n{\n",
 					 header_fn,
 					 header_fn,
 					 variable);
 
 // Print the size of the file
-		fprintf(out, "\t0x%02x, 0x%02x, 0x%02x, 0x%02x, \n",
-			(int)(total_bytes & 0xff000000) >> 24,
-			(int)(total_bytes & 0xff0000) >> 16,
-			(int)(total_bytes & 0xff00) >> 8,
+		fprintf(out, "\t0x%02x, 0x%02x, 0x%02x, 0x%02x,\n",
+			(int)(total_bytes >> 24) & 0xff,
+			(int)(total_bytes >> 16) & 0xff,
+			(int)(total_bytes >> 8) & 0xff,
 			(int)(total_bytes & 0xff));
 
 		while(total_bytes > 0)
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
 				total_bytes--;
 			}
 			if(total_bytes > 0)
-				sprintf(byte, ", \n");
+				sprintf(byte, ",\n");
 			else
 				sprintf(byte, "\n");
 

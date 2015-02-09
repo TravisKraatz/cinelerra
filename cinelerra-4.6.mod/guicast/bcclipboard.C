@@ -45,6 +45,7 @@ BC_Clipboard::BC_Clipboard(const char *display_name)
 	completion_atom = XInternAtom(out_display, "BC_CLOSE_EVENT", False);
 	primary = XA_PRIMARY;
 	secondary = XInternAtom(out_display, "CLIPBOARD", False);
+	targets_atom = XInternAtom(out_display, "TARGETS", False);
 	in_win = XCreateSimpleWindow(in_display, 
 				DefaultRootWindow(in_display), 
 				0, 0, 1, 1, 0, 0, 0);
@@ -143,33 +144,9 @@ void BC_Clipboard::run()
 				break;
 
 
-			case SelectionRequest: {
-				XEvent reply;
-				XSelectionRequestEvent *request = (XSelectionRequestEvent*)&event;
-				char *data_ptr = (request->selection == primary ? data[0] : data[1]);
-
-//printf("BC_Clipboard::run 2\n");					
-				XChangeProperty(out_display,
-					request->requestor, request->property,
-					XA_STRING, 8, PropModeReplace,
-					(unsigned char*)data_ptr, strlen(data_ptr));
-					
-				reply.xselection.property  = request->property;
-				reply.xselection.type      = SelectionNotify;
-				reply.xselection.display   = request->display;
-				reply.xselection.requestor = request->requestor;
-				reply.xselection.selection = request->selection;
-				reply.xselection.target    = request->target;
-				reply.xselection.time      = request->time;
-					
-
-				XSendEvent(out_display, request->requestor, 0, 0, &reply);
-				XFlush(out_display);
-				}
-//printf("SelectionRequest\n");
+			case SelectionRequest:
+				handle_selectionrequest((XSelectionRequestEvent*)&event);
 				break;
-			
-			
 			
 			case SelectionClear:
 				if(data[0]) data[0][0] = 0;
@@ -185,9 +162,66 @@ void BC_Clipboard::run()
 	}
 }
 
+void BC_Clipboard::handle_selectionrequest(XSelectionRequestEvent *request)
+{
+	int success = 0;
+	if (request->target == XA_STRING)
+		success = handle_request_string(request);
+	else if (request->target == targets_atom)
+		success = handle_request_targets(request);
+
+	XEvent reply;
+// 'None' tells the client that the request was denied
+	reply.xselection.property  = success ? request->property : None;
+	reply.xselection.type      = SelectionNotify;
+	reply.xselection.display   = request->display;
+	reply.xselection.requestor = request->requestor;
+	reply.xselection.selection = request->selection;
+	reply.xselection.target    = request->target;
+	reply.xselection.time      = request->time;
+					
+
+	XSendEvent(out_display, request->requestor, 0, 0, &reply);
+	XFlush(out_display);
+//printf("SelectionRequest\n");
+}
+
+int BC_Clipboard::handle_request_string(XSelectionRequestEvent *request)
+{
+	char *data_ptr = (request->selection == primary ? data[0] : data[1]);
+
+	XChangeProperty(out_display,
+			request->requestor,
+			request->property,
+			XA_STRING,
+			8,
+			PropModeReplace,
+			(unsigned char*)data_ptr,
+			strlen(data_ptr));
+	return 1;
+}
+
+int BC_Clipboard::handle_request_targets(XSelectionRequestEvent *request)
+{
+	Atom targets[] = {
+		targets_atom,
+		XA_STRING
+	};
+	XChangeProperty(out_display,
+			request->requestor,
+			request->property,
+			XA_ATOM,
+			32,
+			PropModeReplace,
+			(unsigned char*)targets,
+			sizeof(targets)/sizeof(targets[0]));
+//printf("BC_Clipboard::handle_request_targets\n");
+	return 1;
+}
+
 int BC_Clipboard::to_clipboard(const char *data, long len, int clipboard_num)
 {
-
+//printf("BC_Clipboard::to_clipboard %d: %d '%*.*s'\n",clipboard_num,len,len,len,data);
 	if(clipboard_num == BC_PRIMARY_SELECTION)
 	{
 		XStoreBuffer(out_display, data, len, clipboard_num);
@@ -317,7 +351,7 @@ int BC_Clipboard::from_clipboard(char *data, long maxlen, int clipboard_num)
 		if(type_return && temp_data)
 		{
 			strncpy(data, temp_data, maxlen);
-			data[size] = 0;
+			data[maxlen] = 0;
 		}
 		else
 			data[0] = 0;

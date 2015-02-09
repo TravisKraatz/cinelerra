@@ -26,6 +26,7 @@
 #include "bcsubwindow.h"
 #include "bctumble.h"
 #include "fonts.h"
+#include "bctextbox.inc"
 #include "bctimer.inc"
 
 #define BCCURSORW 2
@@ -40,43 +41,16 @@ class BC_ScrollTextBoxYScroll;
 class BC_TextBox : public BC_SubWindow
 {
 public:
-	BC_TextBox(int x,
-		int y,
-		int w,
-		int rows,
-		char *text,
-		int has_border = 1,
-		int font = MEDIUMFONT,
-		int size = BCTEXTLEN);
-	BC_TextBox(int x,
-		int y,
-		int w,
-		int rows,
-		const char *text,
-		int has_border = 1,
-		int font = MEDIUMFONT);
-	BC_TextBox(int x,
-		int y,
-		int w,
-		int rows,
-		int64_t text,
-		int has_border = 1,
-		int font = MEDIUMFONT);
-	BC_TextBox(int x,
-		int y,
-		int w,
-		int rows,
-		int text,
-		int has_border = 1,
-		int font = MEDIUMFONT);
-	BC_TextBox(int x,
-		int y,
-		int w,
-		int rows,
-		float text,
-		int has_border = 1,
-		int font = MEDIUMFONT,
-		int precision = 4);
+	BC_TextBox(int x, int y, int w, int rows, int size, char *text,
+		int has_border=1, int font=MEDIUMFONT);
+	BC_TextBox(int x, int y, int w, int rows, const char *text,
+		int has_border=1, int font=MEDIUMFONT, int is_utf8=1);
+	BC_TextBox(int x, int y, int w, int rows, int64_t text,
+		int has_border=1, int font=MEDIUMFONT);
+	BC_TextBox(int x, int y, int w, int rows, float text,
+		int has_border=1, int font=MEDIUMFONT, int precision=4);
+	BC_TextBox(int x, int y, int w, int rows,
+		int text, int has_border=1, int font=MEDIUMFONT);
 	virtual ~BC_TextBox();
 
 
@@ -89,6 +63,7 @@ public:
 	virtual int motion_event() { return 0; };
 	void set_selection(int char1, int char2, int ibeam);
 	int update(const char *text);
+	int update(const wchar_t *text);
 	int update(int64_t value);
 	int update(float value);
 	void disable();
@@ -110,6 +85,8 @@ public:
 	int activate();
 	int deactivate();
 	const char* get_text();
+	const char* get_utf8text();
+	const wchar_t* get_wtext();
 	void set_text(char *text, int isz);
 	int get_text_rows();
 // Set top left of text view
@@ -118,7 +95,7 @@ public:
 	int reposition_window(int x, int y, int w = -1, int rows = -1);
 	int uses_text();
 #ifdef X_HAVE_UTF8_STRING
-	int utf8seek(int &seekpoint, int reverse);
+	int utf8seek(int i, int reverse);
 #endif
 	static int calculate_h(BC_WindowBase *gui, int font, int has_border, int rows);
 	static int calculate_row_h(int rows, BC_WindowBase *parent_window, int has_border = 1, int font = MEDIUMFONT);
@@ -136,6 +113,10 @@ public:
 // separators.  The alnums are replaced by user text.
 	void set_separators(const char *separators);
 
+// 1 - selects text, -1 - deselects, 0 - do nothing
+// in all cases it returns text_selected after the operation
+	int select_whole_text(int select);
+	void cycle_textboxes(int amout);
 
 // Compute suggestions for a path
 // If entries is null, just search absolute paths
@@ -158,10 +139,10 @@ private:
 	void copy_selection(int clipboard_num);
 	void paste_selection(int clipboard_num);
 	void delete_selection(int letter1, int letter2, int text_len);
-	void insert_text(char *string);
+	void insert_text(const wchar_t *wcp, int len=-1);
 // Reformat text according to separators.
 // ibeam_left causes the ibeam to move left.
-	int is_separator(char *txt, int i);
+	int is_separator(const char *txt, int i);
 	void do_separators(int ibeam_left);
 	void get_ibeam_position(int &x, int &y);
 	void find_ibeam(int dispatch_event);
@@ -175,13 +156,8 @@ private:
 	int tstrcmp(const char *cp);
 	char *tstrcpy(const char *cp);
 	char *tstrcat(const char *cp);
-
-
-	int repeat_state;
-	enum
-	{
-
-	};
+	int text_update(const wchar_t *wcp, int wsz, char *tcp, int tsz);
+	int wtext_update();
 
 // Top left of text relative to window
 	int text_x, text_y;
@@ -201,10 +177,12 @@ private:
 	int highlighted;
 	int high_color, back_color;
 	int background_color;
-	int size, tsize;
+	int size, tsize, dirty;
+	int wlen, wsize, *positions, plen;
 	char *text;
-	char text_row[BCTEXTLEN];
+	wchar_t *wtext;
 	char temp_string[KEYPRESSLEN];
+	int is_utf8;
 	int active;
 	int enabled;
 	int precision;
@@ -214,7 +192,7 @@ private:
 	Timer *skip_cursor;
 // Used for custom formatting text boxes
 	int last_keypress;
-	char *separators;
+	const char *separators;
 	ArrayList<BC_ListBoxItem*> *suggestions;
 	BC_TextBoxSuggestions *suggestions_popup;
 	int suggestion_column;

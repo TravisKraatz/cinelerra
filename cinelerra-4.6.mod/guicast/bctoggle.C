@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcpixmap.h"
@@ -31,11 +31,11 @@
 
 #include <string.h>
 
-BC_Toggle::BC_Toggle(int x, int y, 
-		VFrame **data, 
-		int value, 
+BC_Toggle::BC_Toggle(int x, int y,
+		VFrame **data,
+		int value,
 		const char *caption,
-		int bottom_justify, 
+		int bottom_justify,
 		int font,
 		int color)
  : BC_SubWindow(x, y, 0, 0, -1)
@@ -72,17 +72,17 @@ int BC_Toggle::initialize()
 // Get the image
 	set_images(data);
 	calculate_extents(this,
-		data ? data : BC_WindowBase::get_resources()->checkbox_images,
+		data,
 		bottom_justify,
 		&text_line,
 		&w,
 		&h,
 		&toggle_x,
 		&toggle_y,
-		&text_x, 
+		&text_x,
 		&text_y,
 		&text_w,
-		&text_h, 
+		&text_h,
 		has_caption() ? caption : 0,
 		font);
 
@@ -96,7 +96,7 @@ int BC_Toggle::initialize()
 }
 
 
-void BC_Toggle::calculate_extents(BC_WindowBase *gui, 
+void BC_Toggle::calculate_extents(BC_WindowBase *gui,
 	VFrame **images,
 	int bottom_justify,
 	int *text_line,
@@ -105,9 +105,9 @@ void BC_Toggle::calculate_extents(BC_WindowBase *gui,
 	int *toggle_x,
 	int *toggle_y,
 	int *text_x,
-	int *text_y, 
+	int *text_y,
 	int *text_w,
-	int *text_h, 
+	int *text_h,
 	const char *caption,
 	int font)
 {
@@ -152,6 +152,7 @@ void BC_Toggle::calculate_extents(BC_WindowBase *gui,
 		*w = *text_x + *text_w;
 	}
 
+
 }
 
 void BC_Toggle::set_radial(int value)
@@ -171,8 +172,8 @@ int BC_Toggle::set_images(VFrame **data)
 	BC_Resources *resources = get_resources();
 	if(resources->toggle_highlight_bg)
 	{
-		bg_image = new BC_Pixmap(top_level, 
-			resources->toggle_highlight_bg, 
+		bg_image = new BC_Pixmap(top_level,
+			resources->toggle_highlight_bg,
 			PIXMAP_ALPHA);
 	}
 	return 0;
@@ -196,20 +197,20 @@ int BC_Toggle::draw_face(int flash, int flush)
 	if(has_caption())
 	{
 		if(enabled &&
-			(status == BC_Toggle::TOGGLE_UPHI || 
-				status == BC_Toggle::TOGGLE_DOWN || 
+			(status == BC_Toggle::TOGGLE_UPHI ||
+				status == BC_Toggle::TOGGLE_DOWN ||
 				status == BC_Toggle::TOGGLE_CHECKEDHI))
 		{
 // Draw highlight image
 			if(bg_image)
 			{
 				int x = text_x;
-				int y = text_line - get_text_ascent(font) / 2 - 
+				int y = text_line - get_text_ascent(font) / 2 -
 						bg_image->get_h() / 2;
 				y = MAX(y, 0);
 				int w = text_w;
-				draw_3segmenth(x, 
-					y, 
+				draw_3segmenth(x,
+					y,
 					w,
 					bg_image);
 			}
@@ -217,9 +218,9 @@ int BC_Toggle::draw_face(int flash, int flush)
 // Draw a plain box
 			{
 				set_color(LTGREY);
-				draw_box(text_x, 
-					text_line - get_text_ascent(font), 
-					get_w() - text_x, 
+				draw_box(text_x,
+					text_line - get_text_ascent(font),
+					get_w() - text_x,
 					get_text_height(font));
 			}
 		}
@@ -230,8 +231,8 @@ int BC_Toggle::draw_face(int flash, int flush)
 		else
 			set_color(get_resources()->disabled_text_color);
 		set_font(font);
-		draw_text(text_x + resources->toggle_text_margin, 
-			text_line, 
+		draw_text(text_x + resources->toggle_text_margin,
+			text_line,
 			caption);
 
 // Draw underline
@@ -381,8 +382,8 @@ int BC_Toggle::button_release_event()
 
 int BC_Toggle::cursor_motion_event()
 {
-	if(top_level->button_down && 
-		top_level->event_win == win && 
+	if(top_level->button_down &&
+		top_level->event_win == win &&
 		!cursor_inside())
 	{
 		if(status == BC_Toggle::TOGGLE_DOWN)
@@ -413,7 +414,7 @@ int BC_Toggle::set_value(int value, int draw)
 	if(value != this->value)
 	{
 		this->value = value;
-		if(value) 
+		if(value)
 		{
 			switch(status)
 			{
@@ -457,54 +458,54 @@ int BC_Toggle::has_caption()
 	return (caption != 0 && caption[0] != 0);
 }
 
-BC_Radial::BC_Radial(int x, 
-	int y, 
-	int value, 
-	const char *caption, 
+BC_Radial::BC_Radial(int x,
+	int y,
+	int value,
+	const char *caption,
 	int font,
 	int color)
- : BC_Toggle(x, 
- 	y, 
-	BC_WindowBase::get_resources()->radial_images, 
-	value, 
-	caption, 
-	0, 
+ : BC_Toggle(x,
+ 	y,
+	BC_WindowBase::get_resources()->radial_images,
+	value,
+	caption,
+	0,
 	font,
 	color)
 {
 	is_radial = 1;
 }
 
-BC_CheckBox::BC_CheckBox(int x, 
-	int y, 
-	int value, 
-	const char *caption, 
+BC_CheckBox::BC_CheckBox(int x,
+	int y,
+	int value,
+	const char *caption,
 	int font,
 	int color)
- : BC_Toggle(x, 
- 	y, 
-	BC_WindowBase::get_resources()->checkbox_images, 
-	value, 
-	caption, 
-	1, 
+ : BC_Toggle(x,
+ 	y,
+	BC_WindowBase::get_resources()->checkbox_images,
+	value,
+	caption,
+	0,
 	font,
 	color)
 {
 	this->value = 0;
 }
 
-BC_CheckBox::BC_CheckBox(int x, 
-	int y, 
-	int *value, 
-	const char *caption, 
+BC_CheckBox::BC_CheckBox(int x,
+	int y,
+	int *value,
+	const char *caption,
 	int font,
 	int color)
- : BC_Toggle(x, 
- 	y, 
-	BC_WindowBase::get_resources()->checkbox_images, 
-	*value, 
-	caption, 
-	1, 
+ : BC_Toggle(x,
+ 	y,
+	BC_WindowBase::get_resources()->checkbox_images,
+	*value,
+	caption,
+	1,
 	font,
 	color)
 {
@@ -525,24 +526,24 @@ void BC_CheckBox::calculate_extents(BC_WindowBase *gui, int *w, int *h,
 
 int BC_CheckBox::handle_event()
 {
-	if( value ) 
+	if( value )
 		*value = get_value();
 	return 1;
 }
 
 
 
-BC_Label::BC_Label(int x, 
-	int y, 
-	int value, 
+BC_Label::BC_Label(int x,
+	int y,
+	int value,
 	int font,
 	int color)
- : BC_Toggle(x, 
- 	y, 
-	BC_WindowBase::get_resources()->label_images, 
-	value, 
-	"", 
-	0, 
+ : BC_Toggle(x,
+ 	y,
+	BC_WindowBase::get_resources()->label_images,
+	value,
+	"",
+	0,
 	font,
 	color)
 {

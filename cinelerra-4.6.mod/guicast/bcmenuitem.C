@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcmenubar.h"
@@ -140,13 +140,13 @@ int BC_MenuItem::activate_submenu()
 	if(menu_popup->popup && submenu && !submenu->popup)
 	{
 		Window tempwin;
-		XTranslateCoordinates(top_level->display, 
-			menu_popup->get_popup()->win, 
-			top_level->rootwin, 
-			0, 
-			y, 
-			&new_x, 
-			&new_y, 
+		XTranslateCoordinates(top_level->display,
+			menu_popup->get_popup()->win,
+			top_level->rootwin,
+			0,
+			y,
+			&new_x,
+			&new_y,
 			&tempwin);
 		submenu->activate_menu(new_x + 5, new_y, menu_popup->w - 10, h, 0, 0);
 		highlighted = 1;
@@ -201,13 +201,13 @@ int BC_MenuItem::dispatch_button_release(int &redraw)
 
 	if(!result)
 	{
-		XTranslateCoordinates(top_level->display, 
-			top_level->event_win, 
-			menu_popup->get_popup()->win, 
-			top_level->cursor_x, 
-			top_level->cursor_y, 
-			&cursor_x, 
-			&cursor_y, 
+		XTranslateCoordinates(top_level->display,
+			top_level->event_win,
+			menu_popup->get_popup()->win,
+			top_level->cursor_x,
+			top_level->cursor_y,
+			&cursor_x,
+			&cursor_y,
 			&tempwin);
 
 		if(cursor_x >= 0 && cursor_x < menu_popup->get_w() &&
@@ -239,7 +239,7 @@ int BC_MenuItem::dispatch_motion_event(int &redraw)
 		result = submenu->dispatch_motion_event();
 	}
 
-	top_level->translate_coordinates(top_level->event_win, 
+	top_level->translate_coordinates(top_level->event_win,
 		menu_popup->get_popup()->win,
 		top_level->cursor_x,
 		top_level->cursor_y,
@@ -300,11 +300,11 @@ int BC_MenuItem::dispatch_key_press()
 	{
 		result = submenu->dispatch_key_press();
 	}
-	
+
 	if(!result)
 	{
 
-		if(top_level->get_keypress() == hotkey && 
+		if(top_level->get_keypress() == hotkey &&
 			shift_hotkey == top_level->shift_down() &&
 			alt_hotkey == top_level->alt_down() &&
 			ctrl_hotkey == top_level->ctrl_down())
@@ -351,10 +351,10 @@ int BC_MenuItem::draw()
 				}
 				else
 				{
-					menu_popup->get_popup()->draw_3d_box(MENUITEM_MARGIN, 
-						y, 
-						menu_popup->get_w() - MENUITEM_MARGIN * 2, 
-						h, 
+					menu_popup->get_popup()->draw_3d_box(MENUITEM_MARGIN,
+						y,
+						menu_popup->get_w() - MENUITEM_MARGIN * 2,
+						h,
 						resources->menu_shadow,
 						BLACK,
 						resources->menu_down,
@@ -377,15 +377,18 @@ int BC_MenuItem::draw()
 				else
 				{
 					menu_popup->get_popup()->set_color(resources->menu_highlighted);
-					menu_popup->get_popup()->draw_box(MENUITEM_MARGIN, 
-						y, 
-						menu_popup->get_w() - MENUITEM_MARGIN * 2, 
+					menu_popup->get_popup()->draw_box(MENUITEM_MARGIN,
+						y,
+						menu_popup->get_w() - MENUITEM_MARGIN * 2,
 						h);
 				}
 			}
+			menu_popup->get_popup()->set_color(resources->menu_highlighted_fontcolor);
 		}
-
+		else
+		  {
 		menu_popup->get_popup()->set_color(resources->menu_item_text);
+		  }
 		if(checked)
 		{
 			menu_popup->get_popup()->draw_check(10 + offset, y + 2 + offset);

@@ -17,6 +17,7 @@
 static inline int min(int a,int b) { return a<b ? a : b; }
 static inline int max(int a,int b) { return a>b ? a : b; }
 
+#define MAX_SEARCH 100
 
 DbWindow::
 DbWindow(MWindow *mwindow)
@@ -73,6 +74,8 @@ run()
 {
 	gui->lock_window("DbWindow::run");
 	gui->create_objects();
+	gui->search(MAX_SEARCH,"");
+	gui->start_drawing();
 	gui->unlock_window();
 	gui->run_window();
 	window_lock->lock("DbWindow::stop");
@@ -164,7 +167,7 @@ keypress_event()
 	switch(get_keypress())
 	{
 	case RETURN:
-		gui->search();
+		gui->search(MAX_SEARCH, get_text());
 		return 1;
 	}
 
@@ -187,6 +190,7 @@ DbWindowScan::~DbWindowScan()
 int DbWindowScan::
 handle_event()
 {
+	mwindow->commit_commercial();
 	mwindow->gui->db_window->start();
 	return 1;
 }
@@ -205,7 +209,7 @@ DbWindowStart::~DbWindowStart()
 int DbWindowStart::
 handle_event()
 {
-	gui->search();
+	gui->search(MAX_SEARCH,"");
 	return 1;
 }
 
@@ -266,7 +270,6 @@ DbWindowList(DbWindowGUI *gui, int x, int y, int w, int h)
 
 DbWindowList::~DbWindowList()
 {
-	thread->stop_drawing();
 	delete view_ticon;
 	delete view_popup;
 }
@@ -375,7 +378,6 @@ create_objects()
 	add_subwindow(title);  x += title->get_w();
 	search_text = new DbWindowText(this, x, y, get_w()-x-10);
 	add_subwindow(search_text);
-	text = search_text->get_text();
 	x = padx;  y += pady + 5;
 	title_text = new DbWindowTitleText(this, x, y);
 	add_subwindow(title_text);  x += title_text->get_w() + padx;
@@ -404,6 +406,7 @@ create_objects()
 	int list_h = min(search_y, cancel_y)-10 - list_y;
 	search_list = new DbWindowList(this, list_x, list_y, list_w, list_h);
 	add_subwindow(search_list);
+	search_list->show_window();
 	canvas_x = 0;
 	canvas_y = search_list->get_title_h();
 	canvas_w = search_list->get_w();
@@ -528,7 +531,7 @@ start_drawing(int update)
 	return 0;
 }
 
-int DbWindowGUI::search(const char *sp)
+int DbWindowGUI::search_string(const char *text, const char *sp)
 {
 	if( sp ) {
 		int n = strlen(text);
@@ -540,12 +543,12 @@ int DbWindowGUI::search(const char *sp)
 	return 0;
 }
 
-void DbWindowGUI::search_clips(MediaDb *mdb)
+void DbWindowGUI::search_clips(MediaDb *mdb, int n, const char *text)
 {
 	//Db::write_blocked by(mdb->db.Clip_set);
 	if( !mdb->clips_first_id() ) do {
-		if( (title_text_enable && search(mdb->clip_title())) ||
-		    (info_text_enable  && search(mdb->clip_path()) ) ) {
+		if( (title_text_enable && search_string(text, mdb->clip_title())) ||
+		    (info_text_enable  && search_string(text, mdb->clip_path())) ) {
 			int id = mdb->clip_id();
 			double system_time = mdb->clip_system_time();
 			double start_time = 0;
@@ -560,16 +563,16 @@ void DbWindowGUI::search_clips(MediaDb *mdb)
 			search_results.append(new DbWindowItem(id, mdb->clip_title(),
 				mdb->clip_path(), length, start_time, access_time, access_count));
 		}
-	} while( !mdb->clips_next_id() );
+	} while( --n >= 0 && !mdb->clips_next_id() );
 }
 
-void DbWindowGUI::search()
+void DbWindowGUI::search(int n, const char *text)
 {
 	stop_drawing(1);
         search_results.remove_all();
 	DbWindow::MDb *mdb = dwindow->mdb;
 	if( !mdb->attach_rd() ) {
-		search_clips(mdb);
+		search_clips(mdb, n, text);
 		mdb->detach();
 	}
 	start_drawing(1);
@@ -1081,6 +1084,7 @@ run()
 			if( interrupted ) break;
 			int64_t past = timer->get_difference();
 			int64_t delay = ticon->age - past;
+//printf("delay %6ld  clip %3d  seq %d\n",delay,ticon->clip_id, ticon->seq_no);
 			if( delay < 10 ) {
 				if( !ticon->get_seq_frame() ) ticon->draw_image();
 				period = !ticon->seq_no ? 2000 : ticon->frame_period;

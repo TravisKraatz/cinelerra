@@ -47,9 +47,6 @@ public:
 
 class DbWindowGUI : public BC_Window
 {
-	int search(const char *sp);
-	void search_clips(MediaDb *mdb);
-	int delete_selection(MediaDb *mdb);
 public:
 	DbWindow *dwindow;
 
@@ -80,10 +77,9 @@ public:
 	int search_columns[sizeof_col];
 	ArrayList<BC_ListBoxItem*> search_items[sizeof_col];
 	ArrayList<DbWindowItem*> search_results;
-	const char *text;
 
 	void create_objects();
-	void search();
+	void search(int n, const char *text);
 	void delete_items();
 	int close_event();
 	int resize_event(int x, int y);
@@ -113,6 +109,10 @@ public:
 
 	DbWindowGUI(DbWindow *dwindow);
 	~DbWindowGUI();
+private:
+	int search_string(const char *text, const char *sp);
+	void search_clips(MediaDb *mdb, int n, const char *text);
+	int delete_selection(MediaDb *mdb);
 };
 
 class DbWindowInfoText : public BC_CheckBox

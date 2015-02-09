@@ -447,7 +447,7 @@ int BC_Pixmap::use_alpha()
 
 void BC_Pixmap::enable_opengl()
 {
-printf("BC_Pixmap::enable_opengl called but it doesn't work.\n");
+//printf("BC_Pixmap::enable_opengl called but it doesn't work.\n");
 #ifdef HAVE_GL
 	BC_WindowBase *current_window = BC_WindowBase::get_synchronous()->current_window;
 	if(!gl_pixmap_context)

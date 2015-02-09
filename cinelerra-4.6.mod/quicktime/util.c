@@ -27,8 +27,8 @@ int quicktime_file_open(quicktime_t *file, char *path, int rd, int wr)
 	char flags[10];
 	if(rd && (file->stream = fopen(path, "rb")))
 	{
-		exists = 1; 
-		fclose(file->stream); 
+		exists = 1;
+		fclose(file->stream);
 	}
 
 	if(rd && !wr) sprintf(flags, "rb");
@@ -37,7 +37,7 @@ int quicktime_file_open(quicktime_t *file, char *path, int rd, int wr)
 	else
 	if(rd && wr)
 	{
-		if(exists) 
+		if(exists)
 			sprintf(flags, "rb+");
 		else
 			sprintf(flags, "wb+");
@@ -52,7 +52,7 @@ int quicktime_file_open(quicktime_t *file, char *path, int rd, int wr)
 
 	if(rd && exists)
 	{
-		file->total_length = quicktime_get_file_length(path);		
+		file->total_length = quicktime_get_file_length(path);
 	}
 
 	file->presave_buffer = calloc(1, QUICKTIME_PRESAVE);
@@ -154,7 +154,7 @@ printf("read data Size is larger than preload size. size=%llx preload_size=%llx\
 			file->ftell_position += size;
 		}
 		else
-		if(selection_start >= file->preload_start && 
+		if(selection_start >= file->preload_start &&
 			selection_start < file->preload_end &&
 			selection_end <= file->preload_end &&
 			selection_end > file->preload_start)
@@ -163,7 +163,7 @@ printf("read data Size is larger than preload size. size=%llx preload_size=%llx\
 			read_preload(file, data, size);
 		}
 		else
-		if(selection_end > file->preload_end && 
+		if(selection_end > file->preload_end &&
 			selection_end - file->preload_size < file->preload_end)
 		{
 /* Range is after buffer */
@@ -171,7 +171,7 @@ printf("read data Size is larger than preload size. size=%llx preload_size=%llx\
 			while(selection_end - file->preload_start > file->preload_size)
 			{
 				fragment_len = selection_end - file->preload_start - file->preload_size;
-				if(file->preload_ptr + fragment_len > file->preload_size) 
+				if(file->preload_ptr + fragment_len > file->preload_size)
 					fragment_len = file->preload_size - file->preload_ptr;
 				file->preload_start += fragment_len;
 				file->preload_ptr += fragment_len;
@@ -180,7 +180,7 @@ printf("read data Size is larger than preload size. size=%llx preload_size=%llx\
 
 /* Append sequential data after the preload end to the new end */
 			fragment_start = file->preload_ptr + file->preload_end - file->preload_start;
-			while(fragment_start >= file->preload_size) 
+			while(fragment_start >= file->preload_size)
 				fragment_start -= file->preload_size;
 
 			while(file->preload_end < selection_end)
@@ -225,7 +225,7 @@ void quicktime_set_presave(quicktime_t *file, int value)
 		file->presave_size = 0;
 		file->file_position = file->presave_position;
 		file->ftell_position = file->presave_position;
-		if(file->total_length < file->ftell_position) 
+		if(file->total_length < file->ftell_position)
 			file->total_length = file->ftell_position;
 	}
 	else
@@ -247,10 +247,11 @@ int quicktime_write_data(quicktime_t *file, char *data, int size)
 	if(!file->use_presave)
 	{
 //printf("quicktime_write_data 1\n");
+		quicktime_fseek(file, file->file_position);
 		writes_attempted = 1;
-		writes_succeeded = fwrite(data, 
-				size, 
-				1, 
+		writes_succeeded = fwrite(data,
+				size,
+				1,
 				file->stream);
 		file->file_position += size;
 		file->ftell_position += size;
@@ -279,7 +280,7 @@ int quicktime_write_data(quicktime_t *file, char *data, int size)
 			if(fragment_size + file->presave_size > QUICKTIME_PRESAVE)
 				fragment_size = QUICKTIME_PRESAVE- file->presave_size;
 
-			memcpy(file->presave_buffer + file->presave_size, 
+			memcpy(file->presave_buffer + file->presave_size,
 				data + data_offset,
 				fragment_size);
 
@@ -292,9 +293,9 @@ int quicktime_write_data(quicktime_t *file, char *data, int size)
 			{
 //if(++iterations > 1) printf("quicktime_write_data 2 iterations=%d\n", iterations);
 				quicktime_fseek(file, file->presave_position - file->presave_size);
-				writes_succeeded += fwrite(file->presave_buffer, 
-					file->presave_size, 
-					1, 
+				writes_succeeded += fwrite(file->presave_buffer,
+					file->presave_size,
+					1,
 					file->stream);
 				writes_attempted += file->presave_size;
 				file->presave_size = 0;
@@ -353,7 +354,7 @@ float quicktime_read_fixed32(quicktime_t *file)
 	b = data[1];
 	c = data[2];
 	d = data[3];
-	
+
 	a = (a << 8) + b;
 	b = (c << 8) + d;
 
@@ -443,7 +444,7 @@ int quicktime_write_char32(quicktime_t *file, char *string)
 float quicktime_read_fixed16(quicktime_t *file)
 {
 	unsigned char data[2];
-	
+
 	quicktime_read_data(file, data, 2);
 //printf("quicktime_read_fixed16 %02x%02x\n", data[0], data[1]);
 	if(data[1])
@@ -528,13 +529,13 @@ int64_t quicktime_read_int64(quicktime_t *file)
 	g = (unsigned char)data[6];
 	h = (unsigned char)data[7];
 
-	result = (a << 56) | 
-		(b << 48) | 
-		(c << 40) | 
-		(d << 32) | 
-		(e << 24) | 
-		(f << 16) | 
-		(g << 8) | 
+	result = (a << 56) |
+		(b << 48) |
+		(c << 40) |
+		(d << 32) |
+		(e << 24) |
+		(f << 16) |
+		(g << 8) |
 		h;
 	return (int64_t)result;
 }
@@ -554,13 +555,13 @@ int64_t quicktime_read_int64_le(quicktime_t *file)
 	g = (unsigned char)data[1];
 	h = (unsigned char)data[0];
 
-	result = (a << 56) | 
-		(b << 48) | 
-		(c << 40) | 
-		(d << 32) | 
-		(e << 24) | 
-		(f << 16) | 
-		(g << 8) | 
+	result = (a << 56) |
+		(b << 48) |
+		(c << 40) |
+		(d << 32) |
+		(e << 24) |
+		(f << 16) |
+		(g << 8) |
 		h;
 	return (int64_t)result;
 }
@@ -571,7 +572,7 @@ long quicktime_read_int24(quicktime_t *file)
 	unsigned long result;
 	unsigned long a, b, c;
 	char data[4];
-	
+
 	quicktime_read_data(file, data, 3);
 	a = (unsigned char)data[0];
 	b = (unsigned char)data[1];
@@ -587,7 +588,7 @@ int quicktime_write_int24(quicktime_t *file, long number)
 	data[0] = (number & 0xff0000) >> 16;
 	data[1] = (number & 0xff00) >> 8;
 	data[2] = (number & 0xff);
-	
+
 	return quicktime_write_data(file, data, 3);
 }
 
@@ -596,7 +597,7 @@ int quicktime_read_int16(quicktime_t *file)
 	unsigned long result;
 	unsigned long a, b;
 	char data[2];
-	
+
 	quicktime_read_data(file, data, 2);
 	a = (unsigned char)data[0];
 	b = (unsigned char)data[1];
@@ -610,7 +611,7 @@ int quicktime_read_int16_le(quicktime_t *file)
 	unsigned long result;
 	unsigned long a, b;
 	char data[2];
-	
+
 	quicktime_read_data(file, data, 2);
 	a = (unsigned char)data[0];
 	b = (unsigned char)data[1];
@@ -624,7 +625,7 @@ int quicktime_write_int16(quicktime_t *file, int number)
 	unsigned char data[2];
 	data[0] = (number & 0xff00) >> 8;
 	data[1] = (number & 0xff);
-	
+
 	return quicktime_write_data(file, data, 2);
 }
 
@@ -633,7 +634,7 @@ int quicktime_write_int16_le(quicktime_t *file, int number)
 	unsigned char data[2];
 	data[1] = (number & 0xff00) >> 8;
 	data[0] = (number & 0xff);
-	
+
 	return quicktime_write_data(file, data, 2);
 }
 
@@ -654,12 +655,12 @@ void quicktime_read_char32(quicktime_t *file, char *string)
 	quicktime_read_data(file, string, 4);
 }
 
-int64_t quicktime_position(quicktime_t *file) 
-{ 
-	return file->file_position; 
+int64_t quicktime_position(quicktime_t *file)
+{
+	return file->file_position;
 }
 
-int quicktime_set_position(quicktime_t *file, int64_t position) 
+int quicktime_set_position(quicktime_t *file, int64_t position)
 {
 	file->file_position = position;
 	if(!file->use_presave)
@@ -701,7 +702,7 @@ int quicktime_match_32(char *input, char *output)
 		input[2] == output[2] &&
 		input[3] == output[3])
 		return 1;
-	else 
+	else
 		return 0;
 }
 
@@ -711,7 +712,7 @@ int quicktime_match_24(char *input, char *output)
 		input[1] == output[1] &&
 		input[2] == output[2])
 		return 1;
-	else 
+	else
 		return 0;
 }
 

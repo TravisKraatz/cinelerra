@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #define GL_GLEXT_PROTOTYPES
@@ -51,7 +51,7 @@ void BC_Texture::clear_objects()
 {
 	if(get_texture_id() >= 0)
 	{
-// printf("VFrame::clear_objects %p window_id=%d texture_id=%d w=%d h=%d\n", 
+// printf("VFrame::clear_objects %p window_id=%d texture_id=%d w=%d h=%d\n",
 // this, window_id, texture_id, texture_w, texture_h);
 		BC_WindowBase::get_synchronous()->release_texture(
 			window_id,
@@ -61,8 +61,8 @@ void BC_Texture::clear_objects()
 }
 
 void BC_Texture::new_texture(BC_Texture **texture,
-	int w, 
-	int h, 
+	int w,
+	int h,
 	int colormodel)
 {
 	if(!(*texture))
@@ -93,20 +93,20 @@ void BC_Texture::create_texture(int w, int h, int colormodel)
 	if(new_w < w || new_h < h)
 	{
 		printf("BC_Texture::create_texture frame size %dx%d bigger than maximum texture %dx%d.\n",
-			w, 
+			w,
 			h,
-			max_texture_size, 
+			max_texture_size,
 			max_texture_size);
 	}
 
 // Delete existing texture
-	if(texture_id >= 0 && 
+	if(texture_id >= 0 &&
 		(new_h != texture_h ||
 		new_w != texture_w ||
 		new_components != texture_components ||
 		BC_WindowBase::get_synchronous()->current_window->get_id() != window_id))
 	{
-// printf("BC_Texture::create_texture released window_id=%d texture_id=%d\n", 
+// printf("BC_Texture::create_texture released window_id=%d texture_id=%d\n",
 // BC_WindowBase::get_synchronous()->current_window->get_id(),
 // texture_id);
 		BC_WindowBase::get_synchronous()->release_texture(
@@ -125,11 +125,11 @@ void BC_Texture::create_texture(int w, int h, int colormodel)
 	if(texture_id < 0)
 	{
 		texture_id = BC_WindowBase::get_synchronous()->get_texture(
-			texture_w, 
+			texture_w,
 			texture_h,
 			texture_components);
 // A new VFrame has no window_id, so it must read it from the matching texture.
-		if(texture_id >= 0) 
+		if(texture_id >= 0)
 			window_id = BC_WindowBase::get_synchronous()->current_window->get_id();
 	}
 
@@ -142,23 +142,23 @@ void BC_Texture::create_texture(int w, int h, int colormodel)
 		glBindTexture(GL_TEXTURE_2D, (GLuint)texture_id);
 		glEnable(GL_TEXTURE_2D);
 		if(texture_components == 4)
-			glTexImage2D(GL_TEXTURE_2D, 
-				0, 
-				4, 
-				texture_w, 
-    			texture_h, 
-				0, 
-				GL_RGBA, 
+			glTexImage2D(GL_TEXTURE_2D,
+				0,
+				4,
+				texture_w,
+    			texture_h,
+				0,
+				GL_RGBA,
 				GL_UNSIGNED_BYTE,
     			0);
 		else
-			glTexImage2D(GL_TEXTURE_2D, 
-				0, 
-				3, 
-				texture_w, 
-    			texture_h, 
-				0, 
-				GL_RGB, 
+			glTexImage2D(GL_TEXTURE_2D,
+				0,
+				3,
+				texture_w,
+    			texture_h,
+				0,
+				GL_RGB,
 				GL_UNSIGNED_BYTE,
     			0);
 
@@ -167,11 +167,8 @@ void BC_Texture::create_texture(int w, int h, int colormodel)
 			texture_w,
 			texture_h,
 			texture_components);
-// printf("BC_Texture::new_texture created texture_id=%d window_id=%d w=%d h=%d\n", 
-// texture_id,
-// window_id,
-// texture_w,
-// texture_h);
+//printf("BC_Texture::new_texture created texture_id=%d window_id=%d w=%d h=%d\n",
+// texture_id, window_id, texture_w, texture_h);
 	}
 	else
 	{
@@ -186,7 +183,7 @@ int BC_Texture::calculate_texture_size(int w, int *max)
 	int i;
 	for(i = 2; (max && i <= *max) || (!max && i < w); i *= 2)
 	{
-		if(i >= w) 
+		if(i >= w)
 		{
 			return i;
 			break;
@@ -231,7 +228,7 @@ void BC_Texture::bind(int texture_unit)
 		if(texture_unit >= 0) glActiveTexture(GL_TEXTURE0 + texture_unit);
 		glBindTexture(GL_TEXTURE_2D, texture_id);
 		glEnable(GL_TEXTURE_2D);
-		if(texture_unit >= 0) 
+		if(texture_unit >= 0)
 		{
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

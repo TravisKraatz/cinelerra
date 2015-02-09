@@ -1,4 +1,4 @@
-#include "avcodec.h"
+#include "libavcodec/avcodec.h"
 #include "colormodels.h"
 #include "funcprotos.h"
 #include <pthread.h>
@@ -11,8 +11,6 @@
 // This generates our own header using fixed parameters
 //#define MANUAL_HEADER
 
-// For the working version of x264
-#define GOOD_VERSION
 
 typedef struct
 {
@@ -54,7 +52,7 @@ static pthread_mutex_t h264_lock = PTHREAD_MUTEX_INITIALIZER;
 // Direct copy routines
 int quicktime_h264_is_key(unsigned char *data, long size, char *codec_id)
 {
-	
+
 }
 
 
@@ -89,7 +87,7 @@ static int delete_codec(quicktime_video_map_t *vtrack)
 		}
 	}
 
-	
+
 
 	if(codec->temp_frame) free(codec->temp_frame);
 	if(codec->work_buffer) free(codec->work_buffer);
@@ -140,14 +138,13 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 		codec->param.i_fps_num = quicktime_frame_rate_n(file, track);
 		codec->param.i_fps_den = quicktime_frame_rate_d(file, track);
 
-#ifndef GOOD_VERSION
+#if X264_BUILD >= 48
 		codec->param.rc.i_rc_method = X264_RC_CQP;
 #endif
-
 // Reset quantizer if fixed bitrate
 		x264_param_t default_params;
 		x264_param_default(&default_params);
-#ifdef GOOD_VERSION
+#if X264_BUILD < 48
 		if(codec->param.rc.b_cbr)
 #else
 		if(codec->param.rc.i_qp_constant)
@@ -167,9 +164,9 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 		codec->encoder[current_field] = x264_encoder_open(&codec->param);
 		codec->pic[current_field] = calloc(1, sizeof(x264_picture_t));
 //printf("encode 1 %d %d\n", codec->param.i_width, codec->param.i_height);
-  		x264_picture_alloc(codec->pic[current_field], 
-			X264_CSP_I420, 
-			codec->param.i_width, 
+  		x264_picture_alloc(codec->pic[current_field],
+			X264_CSP_I420,
+			codec->param.i_width,
 			codec->param.i_height);
 	}
 
@@ -207,19 +204,19 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 			row_pointers[1],
 			row_pointers[2],
 			0,        /* Dimensions to capture from input frame */
-			0, 
-			width, 
+			0,
+			width,
 			height,
 			0,       /* Dimensions to project on output frame */
-			0, 
-			width, 
+			0,
+			width,
 			height,
-			file->color_model, 
+			file->color_model,
 			BC_YUV420P,
 			0,         /* When transfering BC_RGBA8888 to non-alpha this is the background color in 0xRRGGBB hex */
 			width,       /* For planar use the luma rowspan */
 			codec->pic[current_field]->img.i_stride[0]);
-		
+
 	}
 
 
@@ -238,10 +235,10 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 	int nnal = 0;
 	do
 	{
-		x264_encoder_encode(codec->encoder[current_field], 
-			&nals, 
-			&nnal, 
-			codec->pic[current_field], 
+		x264_encoder_encode(codec->encoder[current_field],
+			&nals,
+			&nnal,
+			codec->pic[current_field],
 			&pic_out);
 //printf("encode %d nnal=%d\n", __LINE__, nnal);
 	} while(codec->header_only && !nnal);
@@ -255,11 +252,18 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 //printf("encode %d nnal=%d\n", __LINE__, nnal);
 	for(i = 0; i < nnal; i++)
 	{
+#if X264_BUILD >= 76
+                int size = nals[i].i_payload;
+                memcpy(codec->work_buffer + codec->buffer_size,
+			nals[i].p_payload,
+			nals[i].i_payload);
+#else
 		int size_return = 0;
-		int size = x264_nal_encode(codec->work_buffer + codec->buffer_size, 
-			&size_return, 
-			1, 
+		int size = x264_nal_encode(codec->work_buffer + codec->buffer_size,
+			&size_return,
+			1,
 			nals + i);
+#endif
 		unsigned char *ptr = codec->work_buffer + codec->buffer_size;
 
 //printf("encode %d size=%d\n", __LINE__, size);
@@ -297,7 +301,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 					got_sps = 1;
 					header[header_size++] = (avc_size & 0xff00) >> 8;
 					header[header_size++] = (avc_size & 0xff);
-					memcpy(&header[header_size], 
+					memcpy(&header[header_size],
 						ptr + 4,
 						avc_size);
 					header_size += avc_size;
@@ -310,7 +314,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 					header[header_size++] = 0x1;
 					header[header_size++] = (avc_size & 0xff00) >> 8;
 					header[header_size++] = (avc_size & 0xff);
-					memcpy(&header[header_size], 
+					memcpy(&header[header_size],
 						ptr + 4,
 						avc_size);
 					header_size += avc_size;
@@ -329,7 +333,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
  * printf("\n");
  */
 					quicktime_set_avcc_header(avcc,
-		  				header, 
+		  				header,
 		  				header_size);
 				}
 			}
@@ -361,20 +365,20 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 		if(codec->buffer_size)
 		{
 			quicktime_write_chunk_header(file, trak, &chunk_atom);
-			result = !quicktime_write_data(file, 
-				codec->work_buffer, 
+			result = !quicktime_write_data(file,
+				codec->work_buffer,
 				codec->buffer_size);
-			quicktime_write_chunk_footer(file, 
+			quicktime_write_chunk_footer(file,
 				trak,
 				vtrack->current_chunk,
-				&chunk_atom, 
+				&chunk_atom,
 				1);
 		}
 
 		if(is_keyframe)
 		{
-			quicktime_insert_keyframe(file, 
-				vtrack->current_position, 
+			quicktime_insert_keyframe(file,
+				vtrack->current_position,
 				track);
 		}
 		vtrack->current_chunk++;
@@ -404,11 +408,11 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 		width,
 		height,
 		stsd_table);
-	
+
 
 	if(codec->decoder) return quicktime_ffmpeg_decode(codec->decoder,
-		file, 
-		row_pointers, 
+		file,
+		row_pointers,
 		track);
 
 	return 1;
@@ -425,16 +429,16 @@ static int write_avcc_header(unsigned char *data)
 	static unsigned char test[] =
 	{
 
-		0x01, 0x42, 0xe0, 0x28, 0xff, 0xe1, 0x00, 0x1c, 0x67, 0x42, 
+		0x01, 0x42, 0xe0, 0x28, 0xff, 0xe1, 0x00, 0x1c, 0x67, 0x42,
 		0xe0, 0x28, 0x91, 0xb0, 0x1e, 0x00, 0x89, 0xf9, 0x70, 0x16,
 		0xe0, 0x20, 0x20, 0x28, 0x00, 0x00, 0x1f, 0x48, 0x00, 0x07,
 		0x53, 0x04, 0x20, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x68,
 		0xce, 0x38, 0x80
 
 // 		0x01, 0x4d, 0x40, 0x1f, 0xff, 0xe1, 0x00, 0x14,
-// 		0x27, 0x4d, 0x40, 0x1f, 0xa9, 0x18, 0x0a, 0x00, 
-// 		0xb7, 0x60, 0x0d, 0x40, 0x40, 0x40, 0x4c, 0x2b, 
-// 		0x5e, 0xf7, 0xc0, 0x40, 0x01, 0x00, 0x04, 0x28, 
+// 		0x27, 0x4d, 0x40, 0x1f, 0xa9, 0x18, 0x0a, 0x00,
+// 		0xb7, 0x60, 0x0d, 0x40, 0x40, 0x40, 0x4c, 0x2b,
+// 		0x5e, 0xf7, 0xc0, 0x40, 0x01, 0x00, 0x04, 0x28,
 // 		0xce, 0x0f, 0x88
 	};
 
@@ -462,19 +466,19 @@ static void flush(quicktime_t *file, int track)
 		unsigned char temp[1024];
 		int size = write_avcc_header(temp);
 
-// unsigned char temp[1024] = 
-// 0x64, 0x00, 0x29, 0xac, 0x1b, 0x1a, 0x50, 0x1e, 
-// 0x00, 0x89, 0xf9, 0x70, 0x16, 0xa0, 0x20, 0x20, 
-// 0x28, 0x00, 0x00, 0x1f, 0x48, 0x00, 0x05, 0xdc, 
-// 0x07, 0x13, 0x00, 0x00, 0x76, 0x41, 0x40, 0x00, 
-// 0x0e, 0x4e, 0x1d, 0x18, 0x9c, 0x07, 0xc7, 0x0c, 
+// unsigned char temp[1024] =
+// 0x64, 0x00, 0x29, 0xac, 0x1b, 0x1a, 0x50, 0x1e,
+// 0x00, 0x89, 0xf9, 0x70, 0x16, 0xa0, 0x20, 0x20,
+// 0x28, 0x00, 0x00, 0x1f, 0x48, 0x00, 0x05, 0xdc,
+// 0x07, 0x13, 0x00, 0x00, 0x76, 0x41, 0x40, 0x00,
+// 0x0e, 0x4e, 0x1d, 0x18, 0x9c, 0x07, 0xc7, 0x0c,
 // 0x29, 0x60;
 // int size = 42;
 
 
 		if(size)
 			quicktime_set_avcc_header(avcc,
-				temp, 
+				temp,
 				size);
 #endif
 
@@ -487,8 +491,8 @@ static void flush(quicktime_t *file, int track)
 
 
 
-static int reads_colormodel(quicktime_t *file, 
-		int colormodel, 
+static int reads_colormodel(quicktime_t *file,
+		int colormodel,
 		int track)
 {
 	quicktime_video_map_t *vtrack = &(file->vtracks[track]);
@@ -496,16 +500,16 @@ static int reads_colormodel(quicktime_t *file,
 	return (colormodel == BC_YUV420P);
 }
 
-static int writes_colormodel(quicktime_t *file, 
-		int colormodel, 
+static int writes_colormodel(quicktime_t *file,
+		int colormodel,
 		int track)
 {
 	return (colormodel == BC_YUV420P);
 }
 
-static int set_parameter(quicktime_t *file, 
-		int track, 
-		char *key, 
+static int set_parameter(quicktime_t *file,
+		int track,
+		char *key,
 		void *value)
 {
 	quicktime_video_map_t *vtrack = &(file->vtracks[track]);
@@ -525,21 +529,22 @@ static int set_parameter(quicktime_t *file,
 		else
 		if(!strcasecmp(key, "h264_quantizer"))
 		{
-			codec->param.rc.i_qp_constant = 
-				codec->param.rc.i_qp_min = 
+			codec->param.rc.i_qp_constant =
+				codec->param.rc.i_qp_min =
 				codec->param.rc.i_qp_max = *(int*)value;
 		}
 		else
 		if(!strcasecmp(key, "h264_fix_bitrate"))
-#ifdef GOOD_VERSION
+#if X264_BUILD < 48
 			codec->param.rc.b_cbr = (*(int*)value) / 1000;
 #else
-			codec->param.rc.i_qp_constant = (*(int*)value) / 1000;
+			codec->param.rc.i_bitrate = (*(int*)value) / 1000;
+//			codec->param.rc.i_qp_constant = (*(int*)value) / 1000;
 #endif
 	}
 }
 
-static quicktime_h264_codec_t* init_common(quicktime_video_map_t *vtrack, 
+static quicktime_h264_codec_t* init_common(quicktime_video_map_t *vtrack,
 	char *compressor,
 	char *title,
 	char *description)
@@ -562,6 +567,9 @@ static quicktime_h264_codec_t* init_common(quicktime_video_map_t *vtrack,
 
 	codec = (quicktime_h264_codec_t*)codec_base->priv;
 	x264_param_default(&codec->param);
+#if X264_BUILD >= 48
+	codec->param.rc.i_rc_method = X264_RC_CQP;
+#endif
 
 	return codec;
 }
@@ -580,7 +588,7 @@ void quicktime_init_codec_h264(quicktime_video_map_t *vtrack)
 // field based H.264
 void quicktime_init_codec_hv64(quicktime_video_map_t *vtrack)
 {
-	quicktime_h264_codec_t *result = init_common(vtrack, 
+	quicktime_h264_codec_t *result = init_common(vtrack,
 		QUICKTIME_HV64,
 		"Dual H.264",
 		"H.264 with two streams alternating every other frame.  (Not standardized)");

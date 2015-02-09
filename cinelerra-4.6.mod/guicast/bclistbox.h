@@ -133,6 +133,8 @@ public:
 // Column moved
 	virtual int move_column_event() { return 0; };
 
+	int enable();
+	int disable();
 
 // Get the column movement
 	int get_from_column();
@@ -515,7 +517,7 @@ private:
 
 // Window containing the listbox
 	BC_WindowBase *gui;
-
+	int disabled;
 // Size of the popup if there is one
 	char **column_titles;
 	int *column_width;

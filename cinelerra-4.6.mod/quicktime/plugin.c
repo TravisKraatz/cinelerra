@@ -7,8 +7,8 @@
 
 static int total_vcodecs = 0;
 static int total_acodecs = 0;
-static quicktime_codectable_t *vcodecs = NULL; 
-static quicktime_codectable_t *acodecs = NULL; 
+static quicktime_codectable_t *vcodecs = NULL;
+static quicktime_codectable_t *acodecs = NULL;
 
 
 
@@ -92,9 +92,11 @@ static void register_vcodecs()
 	register_vcodec(quicktime_init_codec_hv60);
 	register_vcodec(quicktime_init_codec_div5);
 	register_vcodec(quicktime_init_codec_div3);
+	register_vcodec(quicktime_init_codec_div3v2);
 	register_vcodec(quicktime_init_codec_div3lower);
 	register_vcodec(quicktime_init_codec_mp4v);
 	register_vcodec(quicktime_init_codec_xvid);
+	register_vcodec(quicktime_init_codec_dnxhd);
 	register_vcodec(quicktime_init_codec_svq1);
 	register_vcodec(quicktime_init_codec_svq3);
 	register_vcodec(quicktime_init_codec_h263);
@@ -166,7 +168,7 @@ int quicktime_find_acodec(quicktime_audio_map_t *atrack)
 		else
 // For reading AVI, sometimes the fourcc is 0 and the compression_id is used instead.
 // Sometimes the compression_id is the fourcc.
-		if((compressor[0] == 0 || compressor_int == codec_base->wav_id) && 
+		if((compressor[0] == 0 || compressor_int == codec_base->wav_id) &&
 			codec_base->wav_id == compression_id)
 		{
 			quicktime_copy_char32(compressor, codec_base->fourcc);
@@ -187,10 +189,10 @@ char* quicktime_acodec_title(char *fourcc)
 {
 	int i;
 	char *result = 0;
-	quicktime_audio_map_t *atrack = 
+	quicktime_audio_map_t *atrack =
 		(quicktime_audio_map_t*)calloc(1, sizeof(quicktime_audio_map_t));
-	quicktime_codec_t *codec_base = 
-		atrack->codec = 
+	quicktime_codec_t *codec_base =
+		atrack->codec =
 		(quicktime_codec_t*)calloc(1, sizeof(quicktime_codec_t));
 	int done = 0;
 	if(!total_acodecs) register_acodecs();
@@ -212,7 +214,7 @@ char* quicktime_acodec_title(char *fourcc)
 	}
 	free(codec_base);
 	free(atrack);
-	
+
 	if(!result)
 		return fourcc;
 	else
@@ -224,10 +226,10 @@ char* quicktime_vcodec_title(char *fourcc)
 	int i;
 	char *result = 0;
 
-	quicktime_video_map_t *vtrack = 
+	quicktime_video_map_t *vtrack =
 		(quicktime_video_map_t*)calloc(1, sizeof(quicktime_video_map_t));
-	quicktime_codec_t *codec_base = 
-		vtrack->codec = 
+	quicktime_codec_t *codec_base =
+		vtrack->codec =
 		(quicktime_codec_t*)calloc(1, sizeof(quicktime_codec_t));
 	int done = 0;
 

@@ -3,18 +3,18 @@
  * under the terms of the GNU Lesser General Public License as published
  * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
  * USA
  */
- 
+
  #ifndef LIBMJPEG_H
 #define LIBMJPEG_H
 
@@ -30,8 +30,8 @@ extern "C" {
 
 
 #include <stdio.h>
-#include "jpeglib.h"
-#include <png.h>              /* Need setjmp.h as included by png.h */
+#include <jpeglib.h>
+#include <png.h>
 #include "pthread.h"
 #include <setjmp.h>
 
@@ -79,8 +79,8 @@ typedef struct
 /* Temp rows for each MCU */
 	unsigned char **mcu_rows[3];
 /* Height of the field */
-	int field_h; 
-	int coded_field_h; 
+	int field_h;
+	int coded_field_h;
 } mjpeg_compressor;
 
 typedef struct
@@ -139,8 +139,8 @@ typedef struct
 
 
 // Entry points
-mjpeg_t* mjpeg_new(int w, 
-	int h, 
+mjpeg_t* mjpeg_new(int w,
+	int h,
 	int fields);
 void mjpeg_delete(mjpeg_t *mjpeg);
 
@@ -154,21 +154,21 @@ void mjpeg_set_rowspan(mjpeg_t *mjpeg, int rowspan);
 
 int mjpeg_get_fields(mjpeg_t *mjpeg);
 
-int mjpeg_decompress(mjpeg_t *mjpeg, 
-	unsigned char *buffer, 
+int mjpeg_decompress(mjpeg_t *mjpeg,
+	unsigned char *buffer,
 	long buffer_len,
-	long input_field2,  
-	unsigned char **row_pointers, 
-	unsigned char *y_plane, 
-	unsigned char *u_plane, 
+	long input_field2,
+	unsigned char **row_pointers,
+	unsigned char *y_plane,
+	unsigned char *u_plane,
 	unsigned char *v_plane,
 	int color_model,
 	int cpus);
 
-int mjpeg_compress(mjpeg_t *mjpeg, 
-	unsigned char **row_pointers, 
-	unsigned char *y_plane, 
-	unsigned char *u_plane, 
+int mjpeg_compress(mjpeg_t *mjpeg,
+	unsigned char **row_pointers,
+	unsigned char *y_plane,
+	unsigned char *u_plane,
 	unsigned char *v_plane,
 	int color_model,
 	int cpus);
@@ -194,13 +194,13 @@ void mjpeg_video_size(unsigned char *data, long data_size, int *w, int *h);
 // when passing VFrames.
 // field2_offset is set to -1 if the markers already exist or the field offset
 // if markers don't already exist.
-void mjpeg_insert_quicktime_markers(unsigned char **buffer, 
-	long *buffer_size, 
+void mjpeg_insert_quicktime_markers(unsigned char **buffer,
+	long *buffer_size,
 	long *buffer_allocated,
 	int fields,
 	long *field2_offset);
-void mjpeg_insert_avi_markers(unsigned char **buffer, 
-	long *buffer_size, 
+void mjpeg_insert_avi_markers(unsigned char **buffer,
+	long *buffer_size,
 	long *buffer_allocated,
 	int fields,
 	long *field2_offset);
@@ -211,7 +211,7 @@ long mjpeg_get_lml33_field2(unsigned char *buffer, long buffer_size);
 long mjpeg_get_quicktime_field2(unsigned char *buffer, long buffer_size);
 // Field dominance is retrieved for the jpeg decoder.  AVI stores field
 // dominance in each field.
-long mjpeg_get_avi_field2(unsigned char *buffer, 
+long mjpeg_get_avi_field2(unsigned char *buffer,
 	long buffer_size,
 	int *field_dominance);
 long mjpeg_get_field2(unsigned char *buffer, long buffer_size);

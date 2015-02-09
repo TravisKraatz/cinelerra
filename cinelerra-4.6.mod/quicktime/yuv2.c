@@ -13,7 +13,7 @@
 /*
  *		Y =  0.2990 * R + 0.5870 * G + 0.1140 * B
  *		U = -0.1687 * R - 0.3310 * G + 0.5000 * B
- *		V =  0.5000 * R - 0.4187 * G - 0.0813 * B  
+ *		V =  0.5000 * R - 0.4187 * G - 0.0813 * B
  */
 
 
@@ -41,8 +41,8 @@ static int quicktime_delete_codec_yuv2(quicktime_video_map_t *vtrack)
 	return 0;
 }
 #if 0
-static int quicktime_reads_colormodel_yuv2(quicktime_t *file, 
-		int colormodel, 
+static int quicktime_reads_colormodel_yuv2(quicktime_t *file,
+		int colormodel,
 		int track)
 {
 	return (colormodel == BC_RGB888 ||
@@ -121,7 +121,7 @@ static void convert_decode_2vuy(quicktime_yuv2_codec_t *codec, unsigned char **r
                         swap = in_row[2];
                         in_row[2] = in_row[3];
                         in_row[3] = swap;
-                        
+
                         x += 4;
 			in_row += 4;
 		}
@@ -142,6 +142,7 @@ static void initialize(quicktime_video_map_t *vtrack, quicktime_yuv2_codec_t *co
 		codec->work_buffer = malloc(codec->bytes_per_line *
 								codec->coded_h);
 		codec->initialized = 1;
+		codec->rows = malloc(height * sizeof(*(codec->rows)));
     }
 }
 
@@ -157,8 +158,8 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 	quicktime_set_video_position(file, vtrack->current_position, track);
 	bytes = quicktime_frame_size(file, vtrack->current_position, track);
 	if(file->color_model == BC_YUV422 &&
-		file->in_x == 0 && 
-		file->in_y == 0 && 
+		file->in_x == 0 &&
+		file->in_y == 0 &&
 		file->in_w == width &&
 		file->in_h == height &&
 		file->out_w == width &&
@@ -182,7 +183,7 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
                 else
                   convert_decode_yuv2(codec, codec->rows);
 
-		cmodel_transfer(row_pointers, 
+		cmodel_transfer(row_pointers,
 			codec->rows,
 			row_pointers[0],
 			row_pointers[1],
@@ -190,22 +191,22 @@ static int decode(quicktime_t *file, unsigned char **row_pointers, int track)
 			0,
 			0,
 			0,
-			file->in_x, 
-			file->in_y, 
-			file->in_w, 
+			file->in_x,
+			file->in_y,
+			file->in_w,
 			file->in_h,
-			0, 
-			0, 
-			file->out_w, 
+			0,
+			0,
+			file->out_w,
 			file->out_h,
-			BC_YUV422, 
+			BC_YUV422,
 			file->color_model,
 			0,
 			codec->coded_w,
 			file->out_w);
 	}
 
-	
+
 
 	return result;
 }
@@ -243,7 +244,7 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 		for(i = 0; i < height; i++)
 			codec->rows[i] = buffer + i * codec->bytes_per_line;
 
-		cmodel_transfer(codec->rows, 
+		cmodel_transfer(codec->rows,
 			row_pointers,
 			0,
 			0,
@@ -251,16 +252,16 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 			row_pointers[0],
 			row_pointers[1],
 			row_pointers[2],
-			0, 
-			0, 
-			width, 
+			0,
+			0,
+			width,
 			height,
-			0, 
-			0, 
-			width, 
+			0,
+			0,
+			width,
 			height,
 			file->color_model,
-			BC_YUV422, 
+			BC_YUV422,
 			0,
 			width,
 			codec->coded_w);
@@ -273,10 +274,10 @@ static int encode(quicktime_t *file, unsigned char **row_pointers, int track)
 		result = !quicktime_write_data(file, buffer, bytes);
 	}
 
-	quicktime_write_chunk_footer(file, 
+	quicktime_write_chunk_footer(file,
 		trak,
 		vtrack->current_chunk,
-		&chunk_atom, 
+		&chunk_atom,
 		1);
 printf("10\n");
 
@@ -284,8 +285,8 @@ printf("10\n");
 	return result;
 }
 
-static int reads_colormodel(quicktime_t *file, 
-		int colormodel, 
+static int reads_colormodel(quicktime_t *file,
+		int colormodel,
 		int track)
 {
 
@@ -295,8 +296,8 @@ static int reads_colormodel(quicktime_t *file,
 		colormodel == BC_YUV422);
 }
 
-static int writes_colormodel(quicktime_t *file, 
-		int colormodel, 
+static int writes_colormodel(quicktime_t *file,
+		int colormodel,
 		int track)
 {
 

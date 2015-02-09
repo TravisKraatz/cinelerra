@@ -64,7 +64,7 @@ void thread_fork()
 
 	arguments[total_arguments] = new char[strlen(path) + 1];
 	strcpy(arguments[total_arguments], path);
-printf("%s\n", arguments[total_arguments]);
+//printf("%s\n", arguments[total_arguments]);
 	total_arguments++;
 	arguments[total_arguments] = 0;
 
@@ -77,7 +77,7 @@ printf("%s\n", arguments[total_arguments]);
 			*argument_ptr++ = *ptr++;
 		}
 		*argument_ptr = 0;
-printf("%s\n", argument);
+//printf("%s\n", argument);
 
 		arguments[total_arguments] = new char[strlen(argument) + 1];
 		strcpy(arguments[total_arguments], argument);

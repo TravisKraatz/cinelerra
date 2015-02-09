@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef BCTHEME_H
@@ -46,10 +46,16 @@ public:
 // Compose widgets using standard images.
 // The arguments are copied into new VFrames for a new image set.
 // The image set is put in the image table only if the title is nonzero.
-	VFrame** new_button(const char *overlay_path, 
-		const char *up_path, 
-		const char *hi_path, 
+	VFrame** new_button(const char *overlay_path,
+		const char *up_path,
+		const char *hi_path,
 		const char *dn_path,
+		const char *title = 0);
+	VFrame** new_button4(const char *overlay_path,
+		const char *up_path,
+		const char *hi_path,
+		const char *dn_path,
+		const char *disabled_path,
 		const char *title = 0);
 	VFrame** new_button(const char *overlay_path,
 		VFrame *up,
@@ -115,8 +121,6 @@ private:
 // Decompressed image storage.
 // Sets of images.
 	ArrayList<BC_ThemeSet*> image_sets;
-	char path[BCTEXTLEN];
-	char default_path[BCTEXTLEN];
 
 // Compressed images are loaded in here.
 	char *data_ptr;

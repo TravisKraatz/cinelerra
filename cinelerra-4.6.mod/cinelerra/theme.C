@@ -418,6 +418,31 @@ void Theme::build_button(VFrame** &data,
 			&default_data);
 }
 
+void Theme::build_button(VFrame** &data,
+	unsigned char *png_overlay,
+	VFrame *up_vframe,
+	VFrame *hi_vframe,
+	VFrame *dn_vframe,
+	VFrame *at_vframe)
+{
+	if(!png_overlay) return;
+	VFrame default_data(png_overlay);
+
+	if(!up_vframe || !hi_vframe || !dn_vframe) return;
+	data = new VFrame*[4];
+	data[0] = NEW_VFRAME;
+	data[1] = NEW_VFRAME;
+	data[2] = NEW_VFRAME;
+	data[3] = NEW_VFRAME;
+	data[0]->copy_from(up_vframe);
+	data[1]->copy_from(hi_vframe);
+	data[2]->copy_from(dn_vframe);
+	data[2]->copy_from(at_vframe);
+	for(int i = 0; i < 4; i++)
+		overlay(data[i], 
+			&default_data);
+}
+
 void Theme::build_toggle(VFrame** &data,
 	unsigned char *png_overlay,
 	VFrame *up_vframe,

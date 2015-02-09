@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #define GL_GLEXT_PROTOTYPES
@@ -31,7 +31,6 @@
 #ifdef HAVE_GL
 #include <GL/gl.h>
 #endif
-#include <string.h>
 #include <unistd.h>
 
 #include <string.h>
@@ -60,10 +59,10 @@ ShaderID::~ShaderID()
 }
 
 #ifdef HAVE_GL
-PBufferID::PBufferID(int window_id, 
-	GLXPbuffer pbuffer, 
-	GLXContext gl_context, 
-	int w, 
+PBufferID::PBufferID(int window_id,
+	GLXPbuffer pbuffer,
+	GLXContext gl_context,
+	int w,
 	int h)
 {
 	this->pbuffer = pbuffer;
@@ -282,9 +281,9 @@ void BC_Synchronous::put_texture(int id, int w, int h, int components)
 			}
 		}
 
-		TextureID *new_id = new TextureID(current_window->get_id(), 
-			id, 
-			w, 
+		TextureID *new_id = new TextureID(current_window->get_id(),
+			id,
+			w,
 			h,
 			components);
 		texture_ids.append(new_id);
@@ -352,7 +351,7 @@ unsigned int BC_Synchronous::get_shader(char *source, int *got_it)
 	return 0;
 }
 
-void BC_Synchronous::put_shader(unsigned int handle, 
+void BC_Synchronous::put_shader(unsigned int handle,
 	char *source)
 {
 	table_lock->lock("BC_Resources::put_shader");
@@ -414,10 +413,8 @@ int debug = 0;
 		{
 			GLuint id = texture_ids.values[i]->id;
 			glDeleteTextures(1, &id);
-if(debug)
-printf("BC_Synchronous::delete_window_sync texture_id=%d window_id=%d\n", 
-id,
-window_id);
+//if(debug) printf("BC_Synchronous::delete_window_sync texture_id=%d window_id=%d\n",
+// id, window_id);
 			texture_ids.remove_object_number(i);
 			i--;
 		}
@@ -428,10 +425,9 @@ window_id);
 		if(shader_ids.values[i]->window_id == window_id)
 		{
 			glDeleteShader(shader_ids.values[i]->handle);
-if(debug)
-printf("BC_Synchronous::delete_window_sync shader_id=%d window_id=%d\n", 
-shader_ids.values[i]->handle,
-window_id);
+//if(debug)
+//printf("BC_Synchronous::delete_window_sync shader_id=%d window_id=%d\n",
+//shader_ids.values[i]->handle, window_id);
 			shader_ids.remove_object_number(i);
 			i--;
 		}
@@ -443,9 +439,9 @@ window_id);
 		{
 			glXDestroyPbuffer(display, pbuffer_ids.values[i]->pbuffer);
 			glXDestroyContext(display, pbuffer_ids.values[i]->gl_context);
-if(debug)
-printf("BC_Synchronous::delete_window_sync pbuffer_id=%p window_id=%d\n", 
-  (void*)pbuffer_ids.values[i]->pbuffer, window_id);
+//if(debug)
+//printf("BC_Synchronous::delete_window_sync pbuffer_id=%p window_id=%d\n",
+//  (void*)pbuffer_ids.values[i]->pbuffer, window_id);
 			pbuffer_ids.remove_object_number(i);
 			i--;
 		}
@@ -462,9 +458,9 @@ printf("BC_Synchronous::delete_window_sync pbuffer_id=%p window_id=%d\n",
 
 
 #ifdef HAVE_GL
-void BC_Synchronous::put_pbuffer(int w, 
-	int h, 
-	GLXPbuffer pbuffer, 
+void BC_Synchronous::put_pbuffer(int w,
+	int h,
+	GLXPbuffer pbuffer,
 	GLXContext gl_context)
 {
 	int exists = 0;
@@ -495,9 +491,9 @@ void BC_Synchronous::put_pbuffer(int w,
 	table_lock->unlock();
 }
 
-GLXPbuffer BC_Synchronous::get_pbuffer(int w, 
-	int h, 
-	int *window_id, 
+GLXPbuffer BC_Synchronous::get_pbuffer(int w,
+	int h,
+	int *window_id,
 	GLXContext *gl_context)
 {
 	table_lock->lock("BC_Resources::release_textures");
@@ -535,8 +531,8 @@ void BC_Synchronous::release_pbuffer(int window_id, GLXPbuffer pbuffer)
 	table_lock->unlock();
 }
 
-void BC_Synchronous::delete_pixmap(BC_WindowBase *window, 
-	GLXPixmap pixmap, 
+void BC_Synchronous::delete_pixmap(BC_WindowBase *window,
+	GLXPixmap pixmap,
 	GLXContext context)
 {
 	BC_SynchronousCommand *command = new_command();

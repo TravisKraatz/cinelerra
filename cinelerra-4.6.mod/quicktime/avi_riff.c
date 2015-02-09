@@ -28,12 +28,12 @@ void quicktime_read_riff(quicktime_t *file, quicktime_atom_t *parent_atom)
 		result = quicktime_atom_read_header(file, &leaf_atom);
 
 /*
- * printf("quicktime_read_riff 1 %llx %llx %c%c%c%c\n", 
+ * printf("quicktime_read_riff 1 %llx %llx %c%c%c%c\n",
  * leaf_atom.start,
  * leaf_atom.size,
- * leaf_atom.type[0], 
- * leaf_atom.type[1], 
- * leaf_atom.type[2], 
+ * leaf_atom.type[0],
+ * leaf_atom.type[1],
+ * leaf_atom.type[2],
  * leaf_atom.type[3]);
  */
 		if(!result)
@@ -88,7 +88,7 @@ void quicktime_read_riff(quicktime_t *file, quicktime_atom_t *parent_atom)
 				int64_t start_position = quicktime_position(file);
 				long temp_size = leaf_atom.end - start_position;
 				unsigned char *temp = malloc(temp_size);
-				quicktime_set_preload(file, 
+				quicktime_set_preload(file,
 					(temp_size < 0x100000) ? 0x100000 : temp_size);
 				quicktime_read_data(file, temp, temp_size);
 				quicktime_set_position(file, start_position);
@@ -201,18 +201,19 @@ void quicktime_import_avi(quicktime_t *file)
 
 // This is a check from mplayer that gives us the right strategy
 // for calculating real offset.
-// but first the 
+// is_odml is not currently set anywhere, but when we will support
+// odml, this will be ready...
+
 	int index_format = 0;
-	
+
 	if(idx1->table_size > 1)
 	{
-//		if((idx1->table[0].offset < first_riff->movi.atom.start ||
-//        		idx1->table[1].offset < first_riff->movi.atom.start) && 
+
 		if((idx1->table[0].offset < first_riff->movi.atom.start + 4 ||
         		idx1->table[1].offset < first_riff->movi.atom.start + 4) &&
         	!file->is_odml)
         	index_format = 1;
-    	else 
+    	else
         	index_format = 0;
 	}
 
@@ -244,12 +245,12 @@ void quicktime_import_avi(quicktime_t *file)
 /* Enter the offset and size no matter what so the sample counts */
 /* can be used to set keyframes */
 			if (index_format == 1)
-				quicktime_update_stco(stco, 
-						stco->total_entries + 1, 
+				quicktime_update_stco(stco,
+						stco->total_entries + 1,
 						idx1table->offset + first_riff->movi.atom.start);
-			else	
-				quicktime_update_stco(stco, 
-						stco->total_entries + 1, 
+			else
+				quicktime_update_stco(stco,
+						stco->total_entries + 1,
 						idx1table->offset);
 
 			if(is_video)
@@ -267,15 +268,15 @@ void quicktime_import_avi(quicktime_t *file)
 					if(stss->entries_allocated <= stss->total_entries)
 					{
 						stss->entries_allocated *= 2;
-						stss->table = realloc(stss->table, 
+						stss->table = realloc(stss->table,
 							sizeof(quicktime_stss_table_t) * stss->entries_allocated);
 					}
 					stss->table[stss->total_entries++].sample = frame;
 				}
 
 /* Set image size */
-				quicktime_update_stsz(stsz, 
-							stsz->total_entries, 
+				quicktime_update_stsz(stsz,
+							stsz->total_entries,
 							idx1table->size);
 			}
 			else
@@ -285,11 +286,11 @@ void quicktime_import_avi(quicktime_t *file)
 /* Set samples per chunk if PCM */
 				if(stsd->table[0].sample_size > 0)
 				{
-					quicktime_update_stsc(stsc, 
-						stsc->total_entries + 1, 
-						idx1table->size * 
-							8 / 
-							stsd->table[0].sample_size / 
+					quicktime_update_stsc(stsc,
+						stsc->total_entries + 1,
+						idx1table->size *
+							8 /
+							stsd->table[0].sample_size /
 							stsd->table[0].channels);
 				}
 			}
@@ -333,13 +334,13 @@ void quicktime_import_avi(quicktime_t *file)
 /* Do the same things that idx1 did to the chunk tables */
 /* Subtract the super indexes by size of the header.  McRoweSoft seems to */
 /* want the header before the ix offset but after the idx1 offset. */
-						quicktime_update_stco(stco, 
-							stco->total_entries + 1, 
+						quicktime_update_stco(stco,
+							stco->total_entries + 1,
 							ixtable->relative_offset + ix->base_offset - 8);
 						if(strl->is_video)
 						{
-							quicktime_update_stsz(stsz, 
-								stsz->total_entries, 
+							quicktime_update_stsz(stsz,
+								stsz->total_entries,
 								ixtable->size);
 						}
 						else
@@ -348,11 +349,11 @@ void quicktime_import_avi(quicktime_t *file)
 							strl->total_bytes += ixtable->size;
 							if(stsd->table[0].sample_size > 0)
 							{
-								quicktime_update_stsc(stsc, 
-									stsc->total_entries + 1, 
-									ixtable->size * 
-									8 / 
-									stsd->table[0].sample_size / 
+								quicktime_update_stsc(stsc,
+									stsc->total_entries + 1,
+									ixtable->size *
+									8 /
+									stsd->table[0].sample_size /
 									stsd->table[0].channels);
 							}
 						}
@@ -388,15 +389,15 @@ void quicktime_import_avi(quicktime_t *file)
 			int64_t chunk = stco->total_entries;
 			int64_t sample = 0;
 
-//printf("quicktime_import_avi %lld %lld %lld\n", 
+//printf("quicktime_import_avi %lld %lld %lld\n",
 //strl->total_bytes, strl->bytes_per_second, (int)stsd->table[0].sample_rate);
 // Derive stsc from bitrate for some MP3 files
 			if(!total_entries)
 			{
-				quicktime_update_stsc(stsc, 
-					++total_entries, 
-					strl->total_bytes / 
-						strl->bytes_per_second * 
+				quicktime_update_stsc(stsc,
+					++total_entries,
+					strl->total_bytes /
+						strl->bytes_per_second *
 						(int)stsd->table[0].sample_rate);
 			}
 
@@ -404,7 +405,7 @@ void quicktime_import_avi(quicktime_t *file)
 // Derive total samples from samples per chunk table
 			if(chunk > 0)
 			{
-				sample = quicktime_sample_of_chunk(trak, chunk) + 
+				sample = quicktime_sample_of_chunk(trak, chunk) +
 					stsc_table[total_entries - 1].samples;
 			}
 

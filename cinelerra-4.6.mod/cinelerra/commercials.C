@@ -44,11 +44,14 @@ Commercials(MWindow *mwindow)
 	scan_file = 0;
 	cancelled = 0;
 	muted = 0;
+	openDb();
+	detachDb();
 }
 
 Commercials::
 ~Commercials()
 {
+	closeDb();
 	delete mdb;
 	tracks.remove_all_objects();
 }
@@ -180,6 +183,7 @@ put_clip(File *file, int track, double position, double length)
 		if( (result=file->read_frame(&frame)) != 0 ) break;
 		if( (result=put_weight(&frame, i)) != 0 ) break;
 		result = scan_status->update_position(0, ++i);
+		++n;
 	}
 	// last 2 secs of frame data and weights
 	while( i < frames && !result ) {

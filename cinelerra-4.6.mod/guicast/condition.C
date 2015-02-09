@@ -91,45 +91,53 @@ void Condition::unlock()
 
 int Condition::timed_lock(int microseconds, const char *location)
 {
-	struct timeval now;
 	int result = 0;
 
 #ifndef NO_GUICAST
 	SET_LOCK(this, title, location);
 #endif
 	pthread_mutex_lock(&mutex);
-	gettimeofday(&now, 0);
 
-	struct timeval start_time;
-	struct timeval new_time;
+	struct timeval now;
+	gettimeofday(&now, 0);
+#if 1
+	struct timespec timeout;
+	timeout.tv_sec = now.tv_sec + microseconds / 1000000;
+	timeout.tv_nsec = now.tv_usec * 1000 + (microseconds % 1000000) * 1000;
+	while(value <= 0 && result != ETIMEDOUT)
+	{
+		result = pthread_cond_timedwait(&cond, &mutex, &timeout);
+	}
+
+	if( result ) result = result == ETIMEDOUT ? 1 : -1;
+
+#else
+	struct timeval timeout;
 	int64_t timeout_msec = ((int64_t)microseconds / 1000);
-	gettimeofday(&start_time, 0);
-// This doesn't work in all kernels
-//	struct timespec timeout;
-//	timeout.tv_sec = now.tv_sec + microseconds / 1000000;
-//	timeout.tv_nsec = now.tv_usec * 1000 + (microseconds % 1000000) * 1000;
-//	int result = pthread_cond_timedwait(&cond, &mutex, &timeout);
-//	if( result ) result = result == ETIMEDOUT ? 1 : -1;
-//
 // This is based on the most common frame rate since it's mainly used in
 // recording.
 	while( value <= 0 && !result ) {
 		pthread_mutex_unlock(&mutex);
 		usleep(20000);
-		gettimeofday(&new_time, 0);
-		new_time.tv_usec -= start_time.tv_usec;
-		new_time.tv_sec -= start_time.tv_sec;
+		gettimeofday(&timeout, 0);
+		timeout.tv_usec -= now.tv_usec;
+		timeout.tv_sec -= now.tv_sec;
 		pthread_mutex_lock(&mutex);
 		if( value > 0 ) break;
-		if( (int64_t)new_time.tv_sec * 1000 +
-		    (int64_t)new_time.tv_usec / 1000 > timeout_msec )
+		if( (int64_t)timeout.tv_sec * 1000 +
+		    (int64_t)timeout.tv_usec / 1000 > timeout_msec )
 			result = 1;
 	}
+#endif
 
 #ifndef NO_GUICAST
 	UNSET_LOCK2
 #endif
 //printf("Condition::timed_lock 2 %d %s %s\n", result, title, location);
+	if(is_binary)
+		value = 0;
+	else
+		--value;
 
 	pthread_mutex_unlock(&mutex);
 	return result;

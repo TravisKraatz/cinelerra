@@ -1725,7 +1725,7 @@ void CreateDVD_DiskSpace::update()
 }
 
 CreateDVD_TmpPath::CreateDVD_TmpPath(CreateDVD_GUI *gui, int x, int y, int w)
- : BC_TextBox(x, y, w, 1, gui->thread->tmp_path, 1, MEDIUMFONT, 0)
+ : BC_TextBox(x, y, w, 1, 0, gui->thread->tmp_path, 1, MEDIUMFONT)
 {
         this->gui = gui;
 }
@@ -1742,7 +1742,7 @@ int CreateDVD_TmpPath::handle_event()
 
 
 CreateDVD_AssetTitle::CreateDVD_AssetTitle(CreateDVD_GUI *gui, int x, int y, int w)
- : BC_TextBox(x, y, w, 1, gui->thread->asset_title, 1, MEDIUMFONT, 0)
+ : BC_TextBox(x, y, w, 1, 0, gui->thread->asset_title, 1, MEDIUMFONT)
 {
         this->gui = gui;
 }

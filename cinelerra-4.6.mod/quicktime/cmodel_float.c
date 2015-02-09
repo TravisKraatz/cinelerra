@@ -106,10 +106,10 @@ static inline void transfer_RGB_FLOAT_to_BGR8888(unsigned char *(*output),
 	unsigned char r = (unsigned char)(CLIP(input[0], 0, 1) * 0xff);
 	unsigned char g = (unsigned char)(CLIP(input[1], 0, 1) * 0xff);
 	unsigned char b = (unsigned char)(CLIP(input[2], 0, 1) * 0xff);
-	(*output)[0] = b;
-	(*output)[1] = g;
-	(*output)[2] = r;
-	(*output) += 4;
+	*(*output)++ = b;
+	*(*output)++ = g;
+	*(*output)++ = r;
+	*(*output)++ = 0xff;
 }
 
 static inline void transfer_RGB_FLOAT_to_YUV888(unsigned char *(*output), 
@@ -253,12 +253,14 @@ static inline void transfer_RGB_FLOAT_to_YUV422(unsigned char *(*output),
 	RGB_TO_YUV16(y, u, v, r, g, b);
 	if(!(j & 1))
 	{
+// Store U and V for even pixels only
 		(*output)[1] = u >> 8;
 		(*output)[3] = v >> 8;
 		(*output)[0] = y >> 8;
 	}
 	else
 	{
+// Store Y and advance output for odd pixels only
 		(*output)[2] = y >> 8;
 		(*output) += 4;
 	}
@@ -530,12 +532,14 @@ static inline void transfer_RGBA_FLOAT_to_YUV422(unsigned char *(*output),
 	RGB_TO_YUV16(y, u, v, r, g, b);
 	if(!(j & 1))
 	{
+// Store U and V for even pixels only
 		(*output)[1] = u >> 8;
 		(*output)[3] = v >> 8;
 		(*output)[0] = y >> 8;
 	}
 	else
 	{
+// Store Y and advance output for odd pixels only
 		(*output)[2] = y >> 8;
 		(*output) += 4;
 	}

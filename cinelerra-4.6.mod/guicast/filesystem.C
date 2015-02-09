@@ -1,21 +1,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2010 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcsignals.h"
@@ -40,12 +40,12 @@ FileItem::FileItem()
 	reset();
 }
 
-FileItem::FileItem(char *path, 
-	char *name, 
-	int is_dir, 
-	int64_t size, 
-	int month, 
-	int day, 
+FileItem::FileItem(char *path,
+	char *name,
+	int is_dir,
+	int64_t size,
+	int month,
+	int day,
 	int year,
 	int64_t calendar_time)
 {
@@ -107,7 +107,6 @@ const char* FileItem::get_name()
 	return name;
 }
 
-
 int FileItem::get_is_dir()
 {
 	return is_dir;
@@ -159,43 +158,31 @@ int FileSystem::set_sort_field(int field)
 	return 0;
 }
 
-int FileSystem::compare_items(ArrayList<FileItem*> *dir_list, 
-	int item1, 
-	int item2)
-{
-	int result = 0;
-	FileItem *ptr1 = dir_list->values[item1];
-	FileItem *ptr2 = dir_list->values[item2];
+// filename.with.dots.extension
+//   becomes
+// extension.dots.with.filename
 
-// Default to name in ascending order
-	switch(sort_field)
-	{
-		case SORT_PATH:
-			result = (sort_order == SORT_ASCENDING) ? 
-				strcasecmp(ptr1->name, ptr2->name) :
-				strcasecmp(ptr2->name, ptr1->name);
-			break;
-		case SORT_SIZE:
-			if(ptr1->size == ptr2->size || ptr1->is_dir)
-				result = strcasecmp(ptr1->name, ptr2->name);
-			else
-				result = (sort_order == SORT_ASCENDING) ?
-					(ptr1->size > ptr2->size) :
-					(ptr2->size > ptr1->size);
-			break;
-		case SORT_DATE:
-			if(ptr1->calendar_time == ptr2->calendar_time)
-				result = strcasecmp(ptr1->name, ptr2->name);
-			else
-				result = (sort_order == SORT_ASCENDING) ?
-					(ptr1->calendar_time > ptr2->calendar_time) :
-					(ptr2->calendar_time > ptr1->calendar_time);
-			break;
+int FileSystem::dot_reverse_filename(char *out, const char *in)
+{
+	int i, i2, j=0, lastdot;
+	lastdot = strlen(in);
+	for ( i=strlen(in); --i >= 0; ) {
+		if (in[i] == '.') {
+			i2 = i+1;
+				while (i2 < lastdot)
+					out[j++] = in[i2++];
+			out[j++] = in[i];
+			lastdot = i;
+		}
 	}
-	return result;
+	if (in[++i] != '.') {
+		while (i < lastdot) out[j++] = in[i++];
+	}
+	out[j++] = '\0';
+	return 0;
 }
 
-static int path_ascending(const void *ptr1, const void *ptr2)
+int FileSystem::path_ascending(const void *ptr1, const void *ptr2)
 {
 	FileItem *item1 = *(FileItem**)ptr1;
 	FileItem *item2 = *(FileItem**)ptr2;
@@ -203,7 +190,7 @@ static int path_ascending(const void *ptr1, const void *ptr2)
 	return strcasecmp(item1->name, item2->name);
 }
 
-static int path_descending(const void *ptr1, const void *ptr2)
+int FileSystem::path_descending(const void *ptr1, const void *ptr2)
 {
 	FileItem *item1 = *(FileItem**)ptr1;
 	FileItem *item2 = *(FileItem**)ptr2;
@@ -211,14 +198,14 @@ static int path_descending(const void *ptr1, const void *ptr2)
 }
 
 
-static int size_ascending(const void *ptr1, const void *ptr2)
+int FileSystem::size_ascending(const void *ptr1, const void *ptr2)
 {
 	FileItem *item1 = *(FileItem**)ptr1;
 	FileItem *item2 = *(FileItem**)ptr2;
 	return item1->size >= item2->size;
 }
 
-static int size_descending(const void *ptr1, const void *ptr2)
+int FileSystem::size_descending(const void *ptr1, const void *ptr2)
 {
 	FileItem *item1 = *(FileItem**)ptr1;
 	FileItem *item2 = *(FileItem**)ptr2;
@@ -226,18 +213,38 @@ static int size_descending(const void *ptr1, const void *ptr2)
 }
 
 
-static int date_ascending(const void *ptr1, const void *ptr2)
+int FileSystem::date_ascending(const void *ptr1, const void *ptr2)
 {
 	FileItem *item1 = *(FileItem**)ptr1;
 	FileItem *item2 = *(FileItem**)ptr2;
 	return item1->calendar_time >= item2->calendar_time;
 }
 
-static int date_descending(const void *ptr1, const void *ptr2)
+int FileSystem::date_descending(const void *ptr1, const void *ptr2)
 {
 	FileItem *item1 = *(FileItem**)ptr1;
 	FileItem *item2 = *(FileItem**)ptr2;
 	return item1->calendar_time <= item2->calendar_time;
+}
+
+int FileSystem::ext_ascending(const void *ptr1, const void *ptr2)
+{
+	char dotreversedname1[BCTEXTLEN], dotreversedname2[BCTEXTLEN];
+	FileItem *item1 = *(FileItem**)ptr1;
+	FileItem *item2 = *(FileItem**)ptr2;
+	dot_reverse_filename(dotreversedname1,item1->name);
+	dot_reverse_filename(dotreversedname2,item2->name);
+	return strcasecmp(dotreversedname1, dotreversedname2);
+}
+
+int FileSystem::ext_descending(const void *ptr1, const void *ptr2)
+{
+	char dotreversedname1[BCTEXTLEN], dotreversedname2[BCTEXTLEN];
+	FileItem *item1 = *(FileItem**)ptr1;
+	FileItem *item2 = *(FileItem**)ptr2;
+	dot_reverse_filename(dotreversedname1,item1->name);
+	dot_reverse_filename(dotreversedname2,item2->name);
+	return strcasecmp(dotreversedname2, dotreversedname1);
 }
 
 int FileSystem::sort_table(ArrayList<FileItem*> *dir_list)
@@ -268,28 +275,14 @@ int FileSystem::sort_table(ArrayList<FileItem*> *dir_list)
 			else
 				SORT_MACRO(date_descending)
 			break;
+		case SORT_EXTENSION:
+			if(sort_order == SORT_ASCENDING)
+				SORT_MACRO(ext_ascending)
+			else
+				SORT_MACRO(ext_descending)
+			break;
 	}
 
-
-// 	int changed;
-// 	FileItem *temp;
-// 	int i;
-// 
-// 	changed = 1;
-// 	while(changed)
-// 	{
-// 		changed = 0;
-// 		for(i = 0; i < dir_list->total - 1; i++)
-// 		{
-// 			if(compare_items(dir_list, i, i + 1) > 0)
-// 			{
-// 				temp = dir_list->values[i];
-// 				dir_list->values[i] = dir_list->values[i+1];
-// 				dir_list->values[i+1] = temp;
-// 				changed = 1;
-// 			}
-// 		}
-// 	}
 	return 0;
 }
 
@@ -362,7 +355,7 @@ int FileSystem::test_filter(FileItem *file)
 		}
 		else
 		{
-			if(!token_number) 
+			if(!token_number)
 				strcpy(string, filter);
 			else
 				done = 1;
@@ -386,7 +379,7 @@ int FileSystem::test_filter(FileItem *file)
 					int i;
 					for(i = 0; subfilter1 + i < subfilter2; i++)
 						string2[i] = subfilter1[i];
-					
+
 					string2[i] = 0;
 				}
 				else
@@ -400,7 +393,7 @@ int FileSystem::test_filter(FileItem *file)
 // Subfilter must exist at some later point in the string
 					if(subfilter1 > string)
 					{
-						if(!strstr(path, string2)) 
+						if(!strstr(path, string2))
 						{
 							result = 1;
 							token_done = 1;
@@ -411,8 +404,8 @@ int FileSystem::test_filter(FileItem *file)
 					else
 // Subfilter must exist at this point in the string
 					{
-						if(strncmp(path, string2, strlen(string2))) 
-//						if(strncasecmp(path, string2, strlen(string2))) 
+						if(strncmp(path, string2, strlen(string2)))
+//						if(strncasecmp(path, string2, strlen(string2)))
 						{
 							result = 1;
 							token_done = 1;
@@ -465,12 +458,12 @@ int FileSystem::update(const char *new_dir)
 		include_this = 1;
 
 // File is directory heirarchy
-		if(!strcmp(new_filename->d_name, ".") || 
+		if(!strcmp(new_filename->d_name, ".") ||
 			!strcmp(new_filename->d_name, "..")) include_this = 0;
 
 // File is hidden and we don't want all files
-		if(include_this && 
-			!show_all_files && 
+		if(include_this &&
+			!show_all_files &&
 			new_filename->d_name[0] == '.') include_this = 0;
 
 // file not hidden
@@ -509,10 +502,7 @@ int FileSystem::update(const char *new_dir)
 			}
 			else
 			{
-//printf("FileSystem::update 3 %s\n", full_path);
-				printf("FileSystem::update %s: %s\n",
-					full_path,
-					strerror(errno));
+				printf("FileSystem::update %s %s\n", full_path, strerror(errno));
 				include_this = 0;
 			}
 
@@ -567,7 +557,7 @@ int FileSystem::is_dir(const char *path)      // return 0 if the text is a direc
 
 	strcpy(new_dir, path);
 	complete_path(new_dir);
-	if(!stat(new_dir, &ostat) && S_ISDIR(ostat.st_mode)) 
+	if(!stat(new_dir, &ostat) && S_ISDIR(ostat.st_mode))
 		return 1;
 	else
 		return 0;
@@ -605,17 +595,17 @@ int FileSystem::parse_tildas(char *new_dir)
 		}
 		else
 // Another user's home directory
-		{                
+		{
 			char string[BCTEXTLEN], new_user[BCTEXTLEN];
 			struct passwd *pw;
 			int i, j;
-      
+
 			for(i = 1, j = 0; new_dir[i] != 0 && new_dir[i] != '/'; i++, j++)
 			{                // copy user name
 				new_user[j] = new_dir[i];
 			}
 			new_user[j] = 0;
-      
+
 			setpwent();
 			while( (pw = getpwent()) != 0 )
 			{
@@ -661,7 +651,7 @@ int FileSystem::parse_directories(char *new_dir)
 		}
 		else
 			sprintf(string, "%s%s", current_dir, new_dir);
-		
+
 //printf("FileSystem::parse_directories 3 %s %s\n", new_dir, string);
 		strcpy(new_dir, string);
 //printf("FileSystem::parse_directories 4\n");
@@ -684,13 +674,13 @@ int FileSystem::parse_dots(char *new_dir)
 			if(new_dir[i] == '.' && new_dir[j] == '.')
 			{
 // Ignore if character after .. doesn't qualify
-				if(j + 1 < len && 
+				if(j + 1 < len &&
 					new_dir[j + 1] != ' ' &&
 					new_dir[j + 1] != '/')
 					continue;
 
 // Ignore if character before .. doesn't qualify
-				if(i > 0 && 
+				if(i > 0 &&
 					new_dir[i - 1] != '/') continue;
 
 				changed = 1;
@@ -701,7 +691,7 @@ int FileSystem::parse_dots(char *new_dir)
 				}
 
 // find / before this /
-				if(i > 0) i--;  
+				if(i > 0) i--;
 				while(new_dir[i] != '/' && i > 0)
 				{
 // look for first / before first / before ..
@@ -791,12 +781,12 @@ int FileSystem::join_names(char *out, const char *dir_in, const char *name_in)
 
 	while(!result)
 		if(len == 0 || out[len] != 0) result = 1; else len--;
-	
+
 	if(len != 0)
 	{
 		if(out[len] != '/') strcat(out, "/");
 	}
-	
+
 	strcat(out, name_in);
 	return 0;
 }
@@ -820,16 +810,16 @@ int64_t FileSystem::get_size(char *filename)
 int FileSystem::change_dir(const char *new_dir, int update)
 {
 	char new_dir_full[BCTEXTLEN];
-	
+
 	strcpy(new_dir_full, new_dir);
 
 	complete_path(new_dir_full);
 // cut ending slash
-	if(strcmp(new_dir_full, "/") && 
-		new_dir_full[strlen(new_dir_full) - 1] == '/') 
+	if(strcmp(new_dir_full, "/") &&
+		new_dir_full[strlen(new_dir_full) - 1] == '/')
 		new_dir_full[strlen(new_dir_full) - 1] = 0;
 
-	if(update) 
+	if(update)
 		this->update(new_dir_full);
 	else
 	{

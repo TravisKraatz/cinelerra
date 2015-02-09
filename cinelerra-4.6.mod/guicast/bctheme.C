@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bctheme.h"
@@ -46,8 +46,8 @@ BC_Theme::~BC_Theme()
 
 void BC_Theme::dump()
 {
-	printf("BC_Theme::dump 1 image_sets=%d contents=%d\n", 
-		image_sets.total, 
+	printf("BC_Theme::dump 1 image_sets=%d contents=%d\n",
+		image_sets.total,
 		contents.total);
 	for(int i = 0; i < contents.total; i++)
 		printf("    %s %p\n", contents.values[i], pointers.values[i]);
@@ -65,7 +65,6 @@ VFrame* BC_Theme::new_image(const char *title, const char *path)
 	VFrame *existing_image = title[0] ? get_image(title, 0) : 0;
 	if(existing_image) return existing_image;
 
-//printf("BC_Theme::new_image %d added %s\n", __LINE__, title);
 	BC_ThemeSet *result = new BC_ThemeSet(1, 0, title);
 	result->data[0] = new VFrame(get_image_data(path));
 	image_sets.append(result);
@@ -165,6 +164,7 @@ VFrame* BC_Theme::get_image(const char *title, int use_default)
 	BC_ThemeSet* tsp = get_image_set_object(title);
 	if( tsp ) return tsp->data[0];
 
+
 // Return the first image it can find.  This should always work.
 	if(use_default) {
 		printf("BC_Theme::get_image: image \"%s\" not found.\n",
@@ -223,7 +223,7 @@ VFrame** BC_Theme::new_button(const char *overlay_path,
 	const char *title)
 {
 	VFrame default_data(get_image_data(overlay_path));
-	BC_ThemeSet *result = new BC_ThemeSet(3, 1, title ? title : (char*)"");
+	BC_ThemeSet *result = new BC_ThemeSet(3, 1, title ? title : "");
 	if(title) image_sets.append(result);
 
 	result->data[0] = new_image(up_path);
@@ -236,6 +236,30 @@ VFrame** BC_Theme::new_button(const char *overlay_path,
 	return result->data;
 }
 
+
+VFrame** BC_Theme::new_button4(const char *overlay_path, 
+	const char *up_path, 
+	const char *hi_path, 
+	const char *dn_path,
+	const char *disabled_path,
+	const char *title)
+{
+	VFrame default_data(get_image_data(overlay_path));
+	BC_ThemeSet *result = new BC_ThemeSet(4, 1, title ? title : "");
+	if(title) image_sets.append(result);
+
+	result->data[0] = new_image(up_path);
+	result->data[1] = new_image(hi_path);
+	result->data[2] = new_image(dn_path);
+	result->data[3] = new_image(disabled_path);
+	for(int i = 0; i < 4; i++)
+	{
+		overlay(result->data[i], &default_data, -1, -1, (i == 2));
+	}
+	return result->data;
+}
+
+
 VFrame** BC_Theme::new_button(const char *overlay_path, 
 	VFrame *up,
 	VFrame *hi,
@@ -243,7 +267,7 @@ VFrame** BC_Theme::new_button(const char *overlay_path,
 	const char *title)
 {
 	VFrame default_data(get_image_data(overlay_path));
-	BC_ThemeSet *result = new BC_ThemeSet(3, 0, title ? title : (char*)"");
+	BC_ThemeSet *result = new BC_ThemeSet(3, 0, title ? title : "");
 	if(title) image_sets.append(result);
 
 	result->data[0] = new VFrame(*up);
@@ -264,7 +288,7 @@ VFrame** BC_Theme::new_toggle(const char *overlay_path,
 	const char *title)
 {
 	VFrame default_data(get_image_data(overlay_path));
-	BC_ThemeSet *result = new BC_ThemeSet(5, 1, title ? title : (char*)"");
+	BC_ThemeSet *result = new BC_ThemeSet(5, 1, title ? title : "");
 	if(title) image_sets.append(result);
 
 	result->data[0] = new_image(up_path);
@@ -286,7 +310,7 @@ VFrame** BC_Theme::new_toggle(const char *overlay_path,
 	const char *title)
 {
 	VFrame default_data(get_image_data(overlay_path));
-	BC_ThemeSet *result = new BC_ThemeSet(5, 0, title ? title : (char*)"");
+	BC_ThemeSet *result = new BC_ThemeSet(5, 0, title ? title : "");
 	if(title) image_sets.append(result);
 
 	result->data[0] = new VFrame(*up);
@@ -346,7 +370,7 @@ void BC_Theme::overlay(VFrame *dst, VFrame *src, int in_x1, int in_x2, int shift
 						for(int j = shift; j < w; j++)
 						{
 							int opacity = in_row[3];
-							int transparency = out_row[3] * (0xff - opacity) / 0xff;
+							int transparency = 0xff - opacity;
 
 							out_row[0] = (in_row[0] * opacity + out_row[0] * transparency) / 0xff;
 							out_row[1] = (in_row[1] * opacity + out_row[1] * transparency) / 0xff;
@@ -407,7 +431,7 @@ void BC_Theme::set_data(unsigned char *ptr)
 		if(i < contents_size)
 		{
 			i++;
-			pointers.append((unsigned char*)data_ptr + 
+			pointers.append((unsigned char*)data_ptr +
 				*(unsigned int*)(contents_ptr + i));
 			i += 4;
 		}
@@ -489,7 +513,7 @@ BC_ThemeSet::BC_ThemeSet(int total, int is_reference, const char *title)
 
 BC_ThemeSet::~BC_ThemeSet()
 {
-	if(data) 
+	if(data)
 	{
 		if(!is_reference)
 		{

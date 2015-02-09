@@ -57,7 +57,7 @@ void quicktime_stsc_dump(quicktime_stsc_t *stsc)
 	printf("      total_entries %d\n", stsc->total_entries);
 	for(i = 0; i < stsc->total_entries; i++)
 	{
-		printf("       chunk %d samples 0x%x id %d\n", 
+		printf("       chunk %d samples 0x%x id %d\n",
 			stsc->table[i].chunk, stsc->table[i].samples, stsc->table[i].id);
 	}
 }
@@ -68,7 +68,7 @@ void quicktime_read_stsc(quicktime_t *file, quicktime_stsc_t *stsc)
 	stsc->version = quicktime_read_char(file);
 	stsc->flags = quicktime_read_int24(file);
 	stsc->total_entries = quicktime_read_int32(file);
-	
+
 	stsc->entries_allocated = stsc->total_entries;
 	stsc->table = (quicktime_stsc_table_t*)malloc(sizeof(quicktime_stsc_table_t) * stsc->total_entries);
 	for(i = 0; i < stsc->total_entries; i++)
@@ -123,7 +123,7 @@ int quicktime_update_stsc(quicktime_stsc_t *stsc, long chunk, long samples)
 
 	if(chunk > stsc->entries_allocated)
 	{
-		stsc->entries_allocated = chunk * 2;
+		stsc->entries_allocated = (chunk + 1) * 2;
 		stsc->table =(quicktime_stsc_table_t*)realloc(stsc->table, sizeof(quicktime_stsc_table_t) * stsc->entries_allocated);
 	}
 

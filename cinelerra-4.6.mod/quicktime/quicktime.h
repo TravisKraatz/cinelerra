@@ -23,6 +23,7 @@ extern "C" {
 #define QUICKTIME_MP42 "MP42"
 #define QUICKTIME_DIVX "DIVX"
 #define QUICKTIME_XVID "XVID"
+#define QUICKTIME_DNXHD "AVdn"
 #define QUICKTIME_MP4V "mp4v"
 
 #define QUICKTIME_H264 "avc1"
@@ -180,10 +181,10 @@ int quicktime_read_info(quicktime_t *file);
 /* set up tracks in a new file after opening and before writing */
 /* returns the number of quicktime tracks allocated */
 /* audio is stored two channels per quicktime track */
-int quicktime_set_audio(quicktime_t *file, 
-	int channels, 
-	long sample_rate, 
-	int bits, 
+int quicktime_set_audio(quicktime_t *file,
+	int channels,
+	long sample_rate,
+	int bits,
 	char *compressor);
 /* Samplerate can be set after file is created */
 void quicktime_set_framerate(quicktime_t *file, double framerate);
@@ -192,11 +193,11 @@ void quicktime_set_framerate(quicktime_t *file, double framerate);
 void quicktime_set_aspect(quicktime_t *file, double aspect);
 
 /* video is stored one layer per quicktime track */
-int quicktime_set_video(quicktime_t *file, 
-	int tracks, 
-	int frame_w, 
-	int frame_h, 
-	double frame_rate, 
+int quicktime_set_video(quicktime_t *file,
+	int tracks,
+	int frame_w,
+	int frame_h,
+	double frame_rate,
 	char *compressor);
 
 /* routines for setting various video parameters */
@@ -216,8 +217,8 @@ char* quicktime_vcodec_title(char *fourcc);
 
 
 /* Set the depth of the track. */
-void quicktime_set_depth(quicktime_t *file, 
-	int depth, 
+void quicktime_set_depth(quicktime_t *file,
+	int depth,
 	int track);
 
 
@@ -255,6 +256,9 @@ int quicktime_video_height(quicktime_t *file, int track);
 /* Number of bytes per pixel for the raw codec */
 int quicktime_video_depth(quicktime_t *file, int track);
 
+/* The interlace mode */
+int quicktime_video_interlacemode(quicktime_t *file, int track);
+
 /* Frames per second */
 double quicktime_frame_rate(quicktime_t *file, int track);
 /* Frames per second as numerator over denominator*/
@@ -283,14 +287,14 @@ int quicktime_set_video_position(quicktime_t *file, int64_t frame, int track);
 /* write data for one quicktime track */
 /* the user must handle conversion to the channels in this track */
 /*
- * int quicktime_write_audio(quicktime_t *file, 
- * 	char *audio_buffer, 
- * 	long samples, 
+ * int quicktime_write_audio(quicktime_t *file,
+ * 	char *audio_buffer,
+ * 	long samples,
  * 	int track);
  */
-int quicktime_write_frame(quicktime_t *file, 
-	unsigned char *video_buffer, 
-	int64_t bytes, 
+int quicktime_write_frame(quicktime_t *file,
+	unsigned char *video_buffer,
+	int64_t bytes,
 	int track);
 
 /* Read an entire chunk. */
@@ -328,22 +332,22 @@ int quicktime_supported_audio(quicktime_t *file, int track);
 /* The codecs can all support RGB in and out. */
 /* To find out if other color models are supported, use these functions. */
 /* Returns 1 if the codec can generate the color model with no conversion */
-int quicktime_reads_cmodel(quicktime_t *file, 
-		int colormodel, 
+int quicktime_reads_cmodel(quicktime_t *file,
+		int colormodel,
 		int track);
 
 /* Returns 1 if the codec can write the color model with no conversion */
-int quicktime_writes_cmodel(quicktime_t *file, 
-		int colormodel, 
+int quicktime_writes_cmodel(quicktime_t *file,
+		int colormodel,
 		int track);
 
 
 /* Utilities for direct copy of MPEG-4 */
 int quicktime_mpeg4_is_key(unsigned char *data, long size, char *codec_id);
 int quicktime_mpeg4_write_vol(unsigned char *data_start,
-	int vol_width, 
-	int vol_height, 
-	int time_increment_resolution, 
+	int vol_width,
+	int vol_height,
+	int time_increment_resolution,
 	double frame_rate);
 int quicktime_mpeg4_has_vol(unsigned char *data);
 
@@ -375,13 +379,13 @@ void quicktime_set_window(quicktime_t *file,
 	int out_h);
 
 /* Encode the frame into a frame buffer. */
-int quicktime_encode_video(quicktime_t *file, 
-	unsigned char **row_pointers, 
+int quicktime_encode_video(quicktime_t *file,
+	unsigned char **row_pointers,
 	int track);
 
 /* Decode a frame */
-long quicktime_decode_video(quicktime_t *file, 
-	unsigned char **row_pointers, 
+long quicktime_decode_video(quicktime_t *file,
+	unsigned char **row_pointers,
 	int track);
 
 /* Get memory used by video decoders.  Only counts frame caches. */
@@ -391,14 +395,14 @@ void quicktime_set_cache_max(quicktime_t *file, int bytes);
 /* Decode or encode audio for a single channel into the buffer. */
 /* Pass a buffer for the _i or the _f argument if you want int16 or float data. */
 /* Notice that encoding requires an array of pointers to each channel. */
-int quicktime_decode_audio(quicktime_t *file, 
-	int16_t *output_i, 
-	float *output_f, 
-	long samples, 
+int quicktime_decode_audio(quicktime_t *file,
+	int16_t *output_i,
+	float *output_f,
+	long samples,
 	int channel);
-int quicktime_encode_audio(quicktime_t *file, 
-	int16_t **input_i, 
-	float **input_f, 
+int quicktime_encode_audio(quicktime_t *file,
+	int16_t **input_i,
+	float **input_f,
 	long samples);
 
 
@@ -421,7 +425,8 @@ void quicktime_set_preload(quicktime_t *file, int64_t preload);
 
 int64_t quicktime_byte_position(quicktime_t *file);
 
-
+/* Set frame offset for programme timecode */
+void quicktime_set_frame_start(quicktime_t *file, int64_t value);
 
 #ifdef __cplusplus
 }

@@ -68,7 +68,7 @@ public:
 	int get_w();
 	int draw_items();
 	BC_Popup* get_popup();
-
+	int cursor_inside();
 private:
 	int get_dimensions();
 

@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef BCTOGGLE_H
@@ -32,9 +32,9 @@
 class BC_Toggle : public BC_SubWindow
 {
 public:
-	BC_Toggle(int x, int y, 
+	BC_Toggle(int x, int y,
 		VFrame **data,
-		int value, 
+		int value,
 		const char *caption = "",
 		int bottom_justify = 0,
 		int font = MEDIUMFONT,
@@ -51,7 +51,7 @@ public:
 	void enable();
 	void disable();
 	void set_status(int value);
-	static void calculate_extents(BC_WindowBase *gui, 
+	static void calculate_extents(BC_WindowBase *gui,
 		VFrame **images,
 		int bottom_justify,
 		int *text_line,
@@ -60,9 +60,9 @@ public:
 		int *toggle_x,
 		int *toggle_y,
 		int *text_x,
-		int *text_y, 
+		int *text_y,
 		int *text_w,
-		int *text_h, 
+		int *text_h,
 		const char *caption,
 		int font);
 
@@ -74,7 +74,7 @@ public:
 // In select drag mode these 3 need to be overridden and called back to.
 	virtual int button_press_event();
 	virtual int button_release_event();
-	virtual int cursor_motion_event();
+	int cursor_motion_event();
 	int repeat_event(int64_t repeat_id);
 	virtual int draw_face(int flash, int flush /* = 1 */);
 
@@ -119,10 +119,10 @@ public:
 class BC_Radial : public BC_Toggle
 {
 public:
-	BC_Radial(int x, 
-		int y, 
-		int value, 
-		const char *caption = "", 
+	BC_Radial(int x,
+		int y,
+		int value,
+		const char *caption = "",
 		int font = MEDIUMFONT,
 		int color = -1);
 };
@@ -130,16 +130,16 @@ public:
 class BC_CheckBox : public BC_Toggle
 {
 public:
-	BC_CheckBox(int x, 
-		int y, 
-		int value, 
-		const char *caption = "", 
+	BC_CheckBox(int x,
+		int y,
+		int value,
+		const char *caption = "",
 		int font = MEDIUMFONT,
 		int color = -1);
-	BC_CheckBox(int x, 
-		int y, 
-		int *value, 
-		const char *caption = "", 
+	BC_CheckBox(int x,
+		int y,
+		int *value,
+		const char *caption = "",
 		int font = MEDIUMFONT,
 		int color = -1);
 	virtual int handle_event();
@@ -152,9 +152,9 @@ public:
 class BC_Label : public BC_Toggle
 {
 public:
-	BC_Label(int x, 
-		int y, 
-		int value, 
+	BC_Label(int x,
+		int y,
+		int value,
 		int font = MEDIUMFONT,
 		int color = -1);
 };

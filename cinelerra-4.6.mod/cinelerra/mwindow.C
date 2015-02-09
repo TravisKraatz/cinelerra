@@ -221,7 +221,7 @@ MWindow::~MWindow()
 	brender_lock->unlock();
 	delete create_dvd;      create_dvd = 0;
 	delete batch_render;    batch_render = 0;
-	if( commercial_active ) commit_commercial();
+	commit_commercial();
 	if( commercials && !commercials->remove_user() ) commercials = 0;
 
 // Save defaults for open plugins
@@ -1154,14 +1154,15 @@ void MWindow::commit_commercial()
 {
 	if( !commercial_active ) return;
 	commercial_active = 0;
+	if( !commercials ) return;
 	commercials->commitDb();
-	commercials->closeDb();
 }
 
 void MWindow::undo_commercial()
 {
 	if( !commercial_active ) return;
 	commercial_active = 0;
+	if( !commercials ) return;
 	commercials->undoDb();
 }
 

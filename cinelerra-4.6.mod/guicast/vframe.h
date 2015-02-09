@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2011 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef VFRAME_H
@@ -28,6 +28,7 @@
 #include "bcpbuffer.inc"
 #include "bctexture.inc"
 #include "bcwindowbase.inc"
+#include "bccmodels.h"
 #include "bccmodels.h"
 #include "vframe.inc"
 
@@ -43,7 +44,7 @@ class PngReadFunction;
 class VFrameScene
 {
 public:
-	VFrameScene();	
+	VFrameScene();
 	virtual ~VFrameScene();
 };
 
@@ -54,29 +55,30 @@ class VFrame
 public:
 // Create new frame with shared data if *data is nonzero.
 // Pass 0 to *data & -1 to shmid if private data is desired.
-	VFrame(int w, 
-		int h, 
+	VFrame(int w,
+		int h,
 		int color_model);
-	VFrame(unsigned char *data, 
+	VFrame(unsigned char *data,
 		int shmid,
-		int w, 
-		int h, 
-		int color_model /* = BC_RGBA8888 */, 
+		int w,
+		int h,
+		int color_model /* = BC_RGBA8888 */,
 		long bytes_per_line /* = -1 */);
 	VFrame(unsigned char *data,  // 0
 		int shmid, // -1
 		long y_offset,
 		long u_offset,
 		long v_offset,
-		int w, 
-		int h, 
+		int w,
+		int h,
 		int color_model,  /* = BC_RGBA8888 */
 		long bytes_per_line /* = -1 */);
 	VFrame(BC_Bitmap *bitmap,
 		int w,
-		int h, 
+		int h,
 		int color_model,
 		long bytes_per_line);
+
 // Create a frame with the png image
 	VFrame(unsigned char *png_data);
 	VFrame(VFrame &vframe);
@@ -97,12 +99,12 @@ public:
 		long y_offset,         // plane offsets if shared YUV
 		long u_offset,
 		long v_offset,
-		int w, 
-		int h, 
-		int color_model, 
+		int w,
+		int h,
+		int color_model,
 		long bytes_per_line);        // -1 if unused
 
-	void set_memory(unsigned char *data, 
+	void set_memory(unsigned char *data,
 		int shmid,
 		long y_offset,
 		long u_offset,
@@ -155,7 +157,7 @@ public:
 // Get the data pointer
 	unsigned char* get_data();
 // return an array of pointers to rows
-	unsigned char** get_rows();       
+	unsigned char** get_rows();
 // return yuv planes
 	unsigned char* get_y();
 	unsigned char* get_u();
@@ -164,7 +166,7 @@ public:
 	int get_h();
 	int get_w_fixed();
 	int get_h_fixed();
-	static int get_scale_tables(int *column_table, int *row_table, 
+	static int get_scale_tables(int *column_table, int *row_table,
 			int in_x1, int in_y1, int in_x2, int in_y2,
 			int out_x1, int out_y1, int out_x2, int out_y2);
 	int get_bytes_per_pixel();
@@ -175,9 +177,9 @@ public:
 
 	static int calculate_bytes_per_pixel(int colormodel);
 // Get size + 4 for assembly language
-	static long calculate_data_size(int w, 
-		int h, 
-		int bytes_per_line = -1, 
+	static long calculate_data_size(int w,
+		int h,
+		int bytes_per_line = -1,
 		int color_model = BC_RGB888);
 // Get size of uncompressed frame buffer without extra 4 bytes
 	long get_data_size();
@@ -196,11 +198,11 @@ public:
 	int get_keyframe();
 // Overlay src onto this with blending and translation of input.
 // Source and this must have alpha
-	void overlay(VFrame *src, 
-		int out_x1, 
+	void overlay(VFrame *src,
+		int out_x1,
 		int out_y1);
 
-// If the opengl state is RAM, transfer image from RAM to the texture 
+// If the opengl state is RAM, transfer image from RAM to the texture
 // referenced by this frame.
 // If the opengl state is TEXTURE, do nothing.
 // If the opengl state is SCREEN, switch the current drawable to the pbuffer and
@@ -215,22 +217,22 @@ public:
 // Transfer from PBuffer to RAM.  Only used after Playback3D::overlay_sync
 	void to_ram();
 
-// Transfer contents of current pbuffer to texture, 
+// Transfer contents of current pbuffer to texture,
 // creating a new texture if necessary.
 // Coordinates are the coordinates in the drawable to copy.
-	void screen_to_texture(int x = -1, 
-		int y = -1, 
-		int w = -1, 
+	void screen_to_texture(int x = -1,
+		int y = -1,
+		int w = -1,
 		int h = -1);
 
 // Transfer contents of texture to the current drawable.
-// Just calls the vertex functions but doesn't initialize.  
+// Just calls the vertex functions but doesn't initialize.
 // The coordinates are relative to the VFrame size and flipped to make
 // the texture upright.
 // The default coordinates are the size of the VFrame.
 // flip_y flips the texture in the vertical direction and only used when
 // writing to the final surface.
-	void draw_texture(float in_x1, 
+	void draw_texture(float in_x1,
 		float in_y1,
 		float in_x2,
 		float in_y2,
@@ -289,7 +291,7 @@ public:
 
 // Bind the frame's texture to GL_TEXTURE_2D and enable it.
 // If a texture_unit is supplied, the texture unit is made active
-// and the commands are run in the right sequence to 
+// and the commands are run in the right sequence to
 // initialize it to our preferred specifications.
 	void bind_texture(int texture_unit = -1);
 
@@ -332,7 +334,7 @@ public:
 
 // It isn't enough to know the name of the neighboring effects.
 // Relevant configuration parameters must be passed on.
-	BC_Hash* get_params();	
+	BC_Hash* get_params();
 
 // Compare stacks and params from 2 images and return 1 if equal.
 	int equal_stacks(VFrame *src);
@@ -389,7 +391,7 @@ private:
 // Not integrated with shmem because that only affects codecs
 	VFrameScene *scene;
 
-// Create a PBuffer matching this frame's dimensions and to be 
+// Create a PBuffer matching this frame's dimensions and to be
 // referenced by this frame.  Does nothing if the pbuffer already exists.
 // If the frame is resized, the PBuffer is deleted.
 // Called by enable_opengl.
@@ -403,19 +405,19 @@ private:
 	int clear_objects(int do_opengl);
 	int reset_parameters(int do_opengl);
 	void create_row_pointers();
-	int allocate_data(unsigned char *data, 
+	int allocate_data(unsigned char *data,
 		int shmid,
 		long y_offset,
 		long u_offset,
 		long v_offset,
-		int w, 
-		int h, 
-		int color_model, 
+		int w,
+		int h,
+		int color_model,
 		long bytes_per_line);
 
 // Convenience storage
 	int field2_offset;
-	int memory_type; 
+	int memory_type;
 	enum
 	{
 		PRIVATE,
@@ -442,7 +444,7 @@ private:
 // Allocated space for compressed data
 	long compressed_allocated;
 // Size of stored compressed image
-	long compressed_size;   
+	long compressed_size;
 // Pointers to yuv planes
 	unsigned char *y, *u, *v;
 	long y_offset;

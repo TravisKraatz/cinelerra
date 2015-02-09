@@ -1,7 +1,7 @@
 
 /*
  * CINELERRA
- * Copyright (C) 1997-2014 Adam Williams <broadcast at earthling dot net>
+ * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@
 #include "bcsubwindow.h"
 #include "bcsynchronous.h"
 #include "bctimer.h"
+#include "bcwidgetgrid.h"
 #include "bcwindowbase.h"
 #include "bcwindowevents.h"
 #include "bccmodels.h"
@@ -53,6 +54,7 @@
 #endif
 #include <string.h>
 #include <unistd.h>
+#include <wchar.h>
 
 #include <X11/extensions/Xinerama.h>
 #include <X11/extensions/Xvlib.h>
@@ -132,9 +134,18 @@ BC_WindowBase::~BC_WindowBase()
 		delete subwindows;
 	}
 
-	delete pixmap;
+	if(widgetgrids)
+	{
+                while (widgetgrids->total)
+                {
+			delete widgetgrids->last();
+			widgetgrids->remove();
+                }
+                delete widgetgrids;
+        }
 
-	close_input_context();
+
+	delete pixmap;
 
 // Destroyed in synchronous thread if gl context exists.
 #ifdef HAVE_GL
@@ -178,6 +189,8 @@ BC_WindowBase::~BC_WindowBase()
  		if(smallfont_xft)
  			XftFontClose (display, (XftFont*)smallfont_xft);
 #endif
+		finit_im();
+
 		flush();
 		sync_display();
 
@@ -256,6 +269,7 @@ int BC_WindowBase::initialize()
 	top_level = 0;
 	parent_window = 0;
 	subwindows = 0;
+	widgetgrids = 0;
 	xinerama_info = 0;
 	xinerama_screens = 0;
 	xvideo_port_id = -1;
@@ -309,6 +323,12 @@ int BC_WindowBase::initialize()
     vm_switched = 0;
 #endif
 	smallfont_xft = 0;
+	bold_largefont_xft = 0;
+	bold_mediumfont_xft = 0;
+	bold_smallfont_xft = 0;
+	input_method = 0;
+	input_context = 0;
+
 	mediumfont_xft = 0;
 	largefont_xft = 0;
 	bigfont_xft = 0;
@@ -326,56 +346,9 @@ int BC_WindowBase::initialize()
 #ifdef HAVE_GL
 	gl_win_context = 0;
 #endif
-#ifdef X_HAVE_UTF8_STRING
-	im = 0;  ic = 0;
-#endif
-
 	return 0;
 }
 
-
-void BC_WindowBase::get_input_context()
-{
-#ifdef X_HAVE_UTF8_STRING
-	im = XOpenIM (display, NULL, NULL, NULL);
-	if( !im ) {
-		printf ("XOpenIM failed\n");
-		return;
-	}
-	XIMStyles *xim_styles = 0;
-	if( XGetIMValues(im, XNQueryInputStyle, &xim_styles, NULL) ) {
-		printf ("cant get input method styles\n");
-		return;
-	}
-	if( !xim_styles || !xim_styles->count_styles ) {
-		printf ("input method doesn't support any styles\n");
-		return;
-       	}
-	XIMStyle xim_style = 0;
-	int i = 0, nstyles = xim_styles->count_styles;
-	for( i=0; i<nstyles; ++i ) {
-		if( !(xim_style = xim_styles->supported_styles[i]) ) continue;
-		if( xim_style != (XIMPreeditNothing | XIMStatusNothing) ) break;
-	}
-	if( i < nstyles ) {
-		ic = XCreateIC(im, XNInputStyle, xim_style, XNClientWindow,
-				win, XNFocusWindow, win, NULL);
-		if( !ic )
-			printf ("XCreateIC failed\n");
-	}
-	else
-		printf ("input method doesn't support the style we support\n");
-	XFree(xim_styles);
-#endif
-}
-
-void BC_WindowBase::close_input_context()
-{
-#ifdef X_HAVE_UTF8_STRING
-	if( ic ) { XDestroyIC(ic);  ic = 0; }
-	if( im ) { XCloseIM(im);    im = 0; }
-#endif
-}
 
 
 #define DEFAULT_EVENT_MASKS EnterWindowMask | \
@@ -401,7 +374,8 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 				const char *display_name,
 				int window_type,
 				BC_Pixmap *bg_pixmap,
-				int group_it)
+				int group_it,
+				int options)
 {
 	XSetWindowAttributes attr;
 	unsigned long mask;
@@ -446,6 +420,7 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 	if(bg_pixmap) shared_bg_pixmap = 1;
 
 	subwindows = new BC_SubWindowList;
+	widgetgrids = new BC_WidgetGridList;
 
 	if(window_type == MAIN_WINDOW)
 	{
@@ -480,7 +455,7 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		vis = DefaultVisual(display, screen);
 		default_depth = DefaultDepth(display, screen);
 
-		client_byte_order = (*(u_int32_t*)"a   ") & 0x00000001;
+		client_byte_order = (*(const u_int32_t*)"a   ") & 0x00000001;
 		server_byte_order = (XImageByteOrder(display) == MSBFirst) ? 0 : 1;
 
 
@@ -553,16 +528,20 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			size_hints.y = this->y;
 		}
 
-		XSetStandardProperties(display,
-			win,
-			title,
-			title,
-			None,
-			0,
-			0,
-			&size_hints);
+		char *txlist[2];
+		txlist[0] = this->title;
+		txlist[1] = 0;
+		XTextProperty titleprop;
+		if(options & WINDOW_UTF8)
+			Xutf8TextListToTextProperty(display, txlist,  1,
+				XUTF8StringStyle, &titleprop);
+		else
+			XmbTextListToTextProperty(display, txlist, 1,
+				XStdICCTextStyle, &titleprop);
+		XSetWMProperties(display, win, &titleprop, &titleprop,
+			0, 0, &size_hints, 0, 0);
+		XFree(titleprop.value);
 		get_atoms();
-		get_input_context();
 
 #ifndef SINGLE_THREAD
 		clipboard = new BC_Clipboard(display_name);
@@ -583,17 +562,10 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			XSetClassHint(top_level->display, win, class_hints);
 			XFree(class_hints);
 			ClientLeaderXAtom = XInternAtom(display, "WM_CLIENT_LEADER", True);
-			XChangeProperty(display,
-					win,
-					ClientLeaderXAtom,
-					XA_WINDOW,
-					32,
-					PropModeReplace,
-					(unsigned char *)&XGroupLeader,
-					true);
-
+			XChangeProperty(display, win, ClientLeaderXAtom, XA_WINDOW, 32,
+				PropModeReplace, (unsigned char *)&XGroupLeader, true);
 		}
-
+		init_im();
 	}
 
 #ifdef HAVE_LIBXXF86VM
@@ -610,12 +582,8 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
     if(window_type == POPUP_WINDOW)
 #endif
 	{
-		mask = CWEventMask |
-			CWBackPixel |
-			CWColormap |
-			CWOverrideRedirect |
-			CWSaveUnder |
-			CWCursor;
+		mask = CWEventMask | CWBackPixel | CWColormap |
+			CWOverrideRedirect | CWSaveUnder | CWCursor;
 
 		attr.event_mask = DEFAULT_EVENT_MASKS |
 			KeyPressMask |
@@ -633,16 +601,8 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		attr.save_under = True;
 
 		win = XCreateWindow(top_level->display,
-			top_level->rootwin,
-			this->x,
-			this->y,
-			this->w,
-			this->h,
-			0,
-			top_level->default_depth,
-			InputOutput,
-			top_level->vis,
-			mask,
+			top_level->rootwin, this->x, this->y, this->w, this->h, 0,
+			top_level->default_depth, InputOutput, top_level->vis, mask,
 			&attr);
 
 		top_level->add_popup(this);
@@ -660,16 +620,8 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		else
 			attr.cursor = top_level->get_cursor_struct(ARROW_CURSOR);
 		win = XCreateWindow(top_level->display,
-			parent_window->win,
-			this->x,
-			this->y,
-			this->w,
-			this->h,
-			0,
-			top_level->default_depth,
-			InputOutput,
-			top_level->vis,
-			mask,
+			parent_window->win, this->x, this->y, this->w, this->h, 0,
+			top_level->default_depth, InputOutput, top_level->vis, mask,
 			&attr);
 		init_window_shape();
 		if(!hidden) XMapWindow(top_level->display, win);
@@ -925,17 +877,20 @@ BC_ActiveBitmaps::~BC_ActiveBitmaps()
 int BC_WindowBase::keysym_lookup(XEvent *event)
 {
 	for( int i = 0; i < KEYPRESSLEN; ++i ) keys_return[i] = 0;
-#ifdef X_HAVE_UTF8_STRING
-	if (ic) {
-		Status stat;
-  		int ret = Xutf8LookupString(ic, (XKeyEvent*)event,
-				keys_return, KEYPRESSLEN, &keysym, &stat);
-//printf("keysym_lookup %d %d %lx %x %x\n", ret, stat, keysym, keys_return[0], keys_return[1]);
-		if( stat == XLookupBoth ) return ret;
-		if( stat == XLookupKeySym ) return 0;
-		return -1;
-  	}
-#endif
+	for( int i = 0; i < 4; ++i ) wkey_string[i] = 0;
+
+	wkey_string_length = XwcLookupString(input_context,
+		(XKeyEvent*)event, wkey_string, 4, &keysym, 0);
+//printf("keysym_lookup 1 %d %d %lx %x %x %x %x\n", wkey_string_length, keysym,
+//  wkey_string[0], wkey_string[1], wkey_string[2], wkey_string[3]);
+
+	Status stat;
+  	int ret = Xutf8LookupString(input_context, (XKeyEvent*)event,
+			keys_return, KEYPRESSLEN, &keysym, &stat);
+//printf("keysym_lookup 2 %d %d %lx %x %x\n", ret, stat, keysym, keys_return[0], keys_return[1]);
+	if( stat == XLookupBoth ) return ret;
+	if( stat == XLookupKeySym ) return 0;
+
 	return XLookupString((XKeyEvent*)event, keys_return, KEYPRESSLEN, &keysym, 0);
 }
 
@@ -1043,6 +998,9 @@ locking_message = event->xclient.message_type;
 		if(ptr->message_type == SetDoneXAtom)
 		{
 			done = 1;
+			} else
+			{ // We currently use X marshalling for xatom events, we can switch to something else later
+				recieve_custom_xatoms((xatom_event *)ptr);
 		}
 		break;
 
@@ -1197,7 +1155,10 @@ locking_message = event->xclient.message_type;
 	case KeyPress:
 		get_key_masks(event->xkey.state);
 		keys_return[0] = 0;  keysym = -1;
-		if( top_level->keysym_lookup(event) < 0 ) {
+		if(XFilterEvent(event, win)) {
+			break;
+		}
+		if( keysym_lookup(event) < 0 ) {
 			printf("keysym %x\n", (uint32_t)keysym);
 			break;
 		}
@@ -1205,7 +1166,6 @@ locking_message = event->xclient.message_type;
 //printf("BC_WindowBase::dispatch_event %d keysym=0x%x\n",
 //__LINE__,
 //keysym);
-
 
 // block out control keys
 		if(keysym > 0xffe0 && keysym < 0xffff) break;
@@ -1320,7 +1280,6 @@ locking_message = event->xclient.message_type;
 		case XK_Pause:		key_pressed = KPAUSE;	break;  /* ('') */
 
 		default:
-			//key_pressed = keys_return[0];
 			key_pressed = keysym & 0xff;
 #ifdef X_HAVE_UTF8_STRING
 //printf("BC_WindowBase::dispatch_event %d\n", __LINE__);
@@ -1903,7 +1862,7 @@ int BC_WindowBase::set_repeat(int64_t duration)
 {
 	if(duration <= 0)
 	{
-		printf("BC_WindowBase::set_repeat duration=" _LD "\n", duration);
+		printf("BC_WindowBase::set_repeat duration=%jd\n", duration);
 		return 0;
 	}
 	if(window_type != MAIN_WINDOW) return top_level->set_repeat(duration);
@@ -1968,6 +1927,7 @@ int BC_WindowBase::unset_all_repeaters()
 // 	return top_level->next_repeat_id++;
 // }
 
+
 #ifndef SINGLE_THREAD
 int BC_WindowBase::arm_repeat(int64_t duration)
 {
@@ -1984,8 +1944,41 @@ int BC_WindowBase::arm_repeat(int64_t duration)
 }
 #endif
 
+int BC_WindowBase::recieve_custom_xatoms(xatom_event *event)
+{
+	return 0;
+}
+
+int BC_WindowBase::send_custom_xatom(xatom_event *event)
+{
+	XEvent *myevent = new XEvent;
+	XClientMessageEvent *ptr = (XClientMessageEvent*)myevent;
+	ptr->type = ClientMessage;
+	ptr->message_type = event->message_type;
+	ptr->format = event->format;
+	ptr->data.l[0] = event->data.l[0];
+	ptr->data.l[1] = event->data.l[1];
+	ptr->data.l[2] = event->data.l[2];
+	ptr->data.l[3] = event->data.l[3];
+	ptr->data.l[4] = event->data.l[4];
+
+	put_event(myevent);
+	return 0;
+}
+
+
+
+Atom BC_WindowBase::create_xatom(const char *atom_name)
+{
+	return XInternAtom(display, atom_name, False);
+}
+
 int BC_WindowBase::get_atoms()
 {
+	SetDoneXAtom =  create_xatom("BC_REPEAT_EVENT");
+	RepeaterXAtom = create_xatom("BC_CLOSE_EVENT");
+	DelWinXAtom =   create_xatom("WM_DELETE_WINDOW");
+	if(ProtoXAtom = create_xatom("WM_PROTOCOLS"))
 	SetDoneXAtom =  XInternAtom(display, "BC_REPEAT_EVENT", False);
 	RepeaterXAtom = XInternAtom(display, "BC_CLOSE_EVENT", False);
 	DelWinXAtom =   XInternAtom(display, "WM_DELETE_WINDOW", False);
@@ -1993,7 +1986,9 @@ int BC_WindowBase::get_atoms()
 		XChangeProperty(display, win, ProtoXAtom, XA_ATOM, 32,
 			PropModeReplace, (unsigned char *)&DelWinXAtom, True);
 	return 0;
+
 }
+
 
 void BC_WindowBase::init_cursors()
 {
@@ -2048,7 +2043,7 @@ int BC_WindowBase::evaluate_color_model(int client_byte_order, int server_byte_o
 			color_model = server_byte_order ? BC_BGR888 : BC_RGB888;
 			break;
 		case 32:
-			color_model = server_byte_order ? BC_BGR8888 : BC_RGBA8888;
+			color_model = server_byte_order ? BC_BGR8888 : BC_ARGB8888;
 			break;
 	}
 	return color_model;
@@ -2094,8 +2089,6 @@ int BC_WindowBase::init_colors()
 			}
 
 			allocate_color_table();
-// No antialiasing
-			get_resources()->use_xft = 0;
 			break;
 
 		default:
@@ -2174,6 +2167,12 @@ int BC_WindowBase::create_shared_colors()
 	create_color(MEPURPLE);
 	create_color(MDPURPLE);
 	create_color(DKPURPLE);
+
+	create_color(FGGREY);
+	create_color(MNBLUE);
+	create_color(ORANGE);
+	create_color(FTGREY);
+
 	return 0;
 }
 
@@ -2321,8 +2320,67 @@ void BC_WindowBase::init_xft()
 			resources.large_font_xft, largefont_xft,
 			resources.big_font_xft, bigfont_xft);
 		get_resources()->use_xft = 0;
+		exit(1);
 	}
 #endif // HAVE_XFT
+}
+
+void BC_WindowBase::init_im()
+{
+	XIMStyles *xim_styles;
+	XIMStyle xim_style;
+
+	if(!(input_method = XOpenIM(display, NULL, NULL, NULL)))
+	{
+		printf("BC_WindowBase::init_im: Could not open input method.\n");
+		exit(1);
+	}
+	if(XGetIMValues(input_method, XNQueryInputStyle, &xim_styles, NULL) ||
+			xim_styles == NULL)
+	{
+		printf("BC_WindowBase::init_im: Input method doesn't support any styles.\n");
+		XCloseIM(input_method);
+		exit(1);
+	}
+
+	xim_style = 0;
+	for(int z = 0;  z < xim_styles->count_styles;  z++)
+	{
+		if(xim_styles->supported_styles[z] == (XIMPreeditNothing | XIMStatusNothing))
+		{
+			xim_style = xim_styles->supported_styles[z];
+			break;
+		}
+	}
+	XFree(xim_styles);
+
+	if(xim_style == 0)
+	{
+		printf("BC_WindowBase::init_im: Input method doesn't support the style we need.\n");
+		XCloseIM(input_method);
+		exit(1);
+	}
+
+	input_context = XCreateIC(input_method, XNInputStyle, xim_style,
+		XNClientWindow, win, XNFocusWindow, win, NULL);
+	if(!input_context)
+	{
+		printf("BC_WindowBase::init_im: Failed to create input context.\n");
+		XCloseIM(input_method);
+		exit(1);
+	}
+}
+
+void BC_WindowBase::finit_im()
+{
+	if( input_context ) {
+		XDestroyIC(input_context);
+		input_context = 0;
+	}
+	if( input_method ) {
+		XCloseIM(input_method);
+		input_method = 0;
+	}
 }
 
 
@@ -2631,7 +2689,7 @@ XFontSet BC_WindowBase::get_fontset(int font)
 
 	if(get_resources()->use_fontset)
 	{
-		switch(font) {
+		switch(font & 0xff) {
 			case SMALLFONT:  fs = top_level->smallfontset; break;
 			case MEDIUMFONT: fs = top_level->mediumfontset; break;
 			case LARGEFONT:  fs = top_level->largefontset; break;
@@ -2645,14 +2703,14 @@ XFontSet BC_WindowBase::get_fontset(int font)
 #ifdef HAVE_XFT
 XftFont* BC_WindowBase::get_xft_struct(int font)
 {
-// Clear out unrelated flags
-	if(font & BOLDFACE) font ^= BOLDFACE;
-
 	switch(font) {
-		case SMALLFONT:    return (XftFont*)top_level->smallfont_xft;  break;
-		case MEDIUMFONT:   return (XftFont*)top_level->mediumfont_xft; break;
-		case LARGEFONT:    return (XftFont*)top_level->largefont_xft;  break;
-		case BIGFONT:      return (XftFont*)top_level->bigfont_xft;    break;
+		case SMALLFONT:    return (XftFont*)top_level->smallfont_xft;
+		case MEDIUMFONT:   return (XftFont*)top_level->mediumfont_xft;
+		case LARGEFONT:    return (XftFont*)top_level->largefont_xft;
+		case BIGFONT:      return (XftFont*)top_level->bigfont_xft;
+		case MEDIUMFONT_3D: return (XftFont*)top_level->bold_mediumfont_xft;
+		case SMALLFONT_3D:  return (XftFont*)top_level->bold_smallfont_xft;
+		case LARGEFONT_3D:  return (XftFont*)top_level->bold_largefont_xft;
 	}
 
 	return 0;
@@ -2675,7 +2733,6 @@ int BC_WindowBase::get_current_font()
 void BC_WindowBase::set_font(int font)
 {
 	top_level->current_font = font;
-
 
 #ifdef HAVE_XFT
 	if(get_resources()->use_xft) {}
@@ -2724,12 +2781,23 @@ int BC_WindowBase::get_single_text_width(int font, const char *text, int length)
 	{
 		XGlyphInfo extents;
 #ifdef X_HAVE_UTF8_STRING
-		XftTextExtentsUtf8(top_level->display,
-#else
- 		XftTextExtents8(top_level->display,
+		if(get_resources()->locale_utf8)
+		{
+			XftTextExtentsUtf8(top_level->display,
+				get_xft_struct(font),
+				(const XftChar8 *)text,
+				length,
+				&extents);
+		}
+		else
 #endif
-			get_xft_struct(font),
-			(const FcChar8*)text, length, &extents);
+		{
+			XftTextExtents8(top_level->display,
+				get_xft_struct(font),
+				(const XftChar8 *)text,
+				length,
+				&extents);
+		}
 		return extents.xOff;
 	}
 	else
@@ -2737,7 +2805,7 @@ int BC_WindowBase::get_single_text_width(int font, const char *text, int length)
 	if(get_resources()->use_fontset && top_level->get_fontset(font))
 		return XmbTextEscapement(top_level->get_fontset(font), text, length);
 	else
-	if(get_font_struct(font))
+	if(get_font_struct(font)) 
 		return XTextWidth(get_font_struct(font), text, length);
 	else
 	{
@@ -2755,48 +2823,97 @@ int BC_WindowBase::get_single_text_width(int font, const char *text, int length)
 	}
 }
 
+int BC_WindowBase::get_single_text_width(int font, const wchar_t *text, int length)
+{
+//#ifdef HAVE_XFT
+	XGlyphInfo extents;
+
+	XftTextExtents32(top_level->display,
+		get_xft_struct(font),
+		(const FcChar32*)text,
+		length,
+		&extents);
+	return extents.xOff;
+//#endif
+}
+
 int BC_WindowBase::get_text_width(int font, const char *text, int length)
 {
-	int w = 0;
-	const char *cp = text;
+	int i, j, w = 0, line_w = 0;
 	if(length < 0) length = strlen(text);
-	do {
-		const char *bp = cp;
-		while( cp-text < length && *cp != 0 && *cp != '\n' ) ++cp;
-		int n = cp - bp;
-		if( n > 0 && (n=get_single_text_width(font, bp, n)) > w ) w = n;
-	} while( *cp++ != 0 );
+
+	for(i = 0, j = 0; i <= length; i++)
+	{
+		line_w = 0;
+		if(text[i] == '\n')
+		{
+			line_w = get_single_text_width(font, &text[j], i - j);
+			j = i + 1;
+		}
+		else
+		if(text[i] == 0)
+		{
+			line_w = get_single_text_width(font, &text[j], length - j);
+		}
+		if(line_w > w) w = line_w;
+	}
+
+	if(i > length && w == 0)
+	{
+		w = get_single_text_width(font, text, length);
+	}
+
+	return w;
+}
+
+int BC_WindowBase::get_text_width(int font, const wchar_t *text, int length)
+{
+	int i, j, w = 0, line_w = 0;
+
+	if(length < 0) length = wcslen(text);
+
+	for(i = 0, j = 0; i <= length; i++)
+	{
+		line_w = 0;
+		if(text[i] == '\n')
+		{
+			line_w = get_single_text_width(font, &text[j], i - j);
+			j = i + 1;
+		}
+		else
+		if(text[i] == 0)
+			line_w = get_single_text_width(font, &text[j], length - j);
+
+		if(line_w > w) w = line_w;
+	}
+
+	if(i > length && w == 0)
+		w = get_single_text_width(font, text, length);
+
 	return w;
 }
 
 int BC_WindowBase::get_text_ascent(int font)
 {
 #ifdef HAVE_XFT
-	if(get_resources()->use_xft && get_xft_struct(font)) {
-		XGlyphInfo extents;
-#ifdef X_HAVE_UTF8_STRING
-		XftTextExtentsUtf8(top_level->display,
-#else
- 		XftTextExtents8(top_level->display,
+	XftFont *fstruct;
+	if(fstruct = get_xft_struct(font))
+		return fstruct->ascent;
 #endif
-			get_xft_struct(font),
-			(const FcChar8*)"O", 1, &extents);
-		return extents.y + 2;
-	}
-	else
-#endif
-	if(get_resources()->use_fontset && top_level->get_fontset(font)) {
-		XFontSetExtents *extents;
+	if(get_resources()->use_fontset && top_level->get_fontset(font))
+	{
+	        XFontSetExtents *extents;
+
 		extents = XExtentsOfFontSet(top_level->get_fontset(font));
 		return -extents->max_logical_extent.y;
 	}
+
 	if(get_font_struct(font))
 		return top_level->get_font_struct(font)->ascent;
+
 	switch(font) {
 		case MEDIUM_7SEGMENT:
 			return get_resources()->medium_7segment[0]->get_h();
-		default:
-			break;
 	}
 	return 0;
 }
@@ -2804,46 +2921,48 @@ int BC_WindowBase::get_text_ascent(int font)
 int BC_WindowBase::get_text_descent(int font)
 {
 #ifdef HAVE_XFT
-	if(get_resources()->use_xft && get_xft_struct(font))
+	XftFont *fstruct;
+	if(fstruct = get_xft_struct(font))
+		return fstruct->descent;
+#endif
+	if(get_resources()->use_fontset && top_level->get_fontset(font))
 	{
-		XGlyphInfo extents;
-#ifdef X_HAVE_UTF8_STRING
-		XftTextExtentsUtf8(top_level->display,
-#else
- 		XftTextExtents8(top_level->display,
-#endif
-			get_xft_struct(font),
-			(const FcChar8*)"j", 1, &extents);
-		return extents.height - extents.y;
-	}
-	else
-#endif
-	if(get_resources()->use_fontset && top_level->get_fontset(font)) {
 		XFontSetExtents *extents;
         	extents = XExtentsOfFontSet(top_level->get_fontset(font));
 	        return (extents->max_logical_extent.height
 			+ extents->max_logical_extent.y);
-    }
-    else
+	}
+
 	if(get_font_struct(font))
 		return top_level->get_font_struct(font)->descent;
-	switch(font) {
-		default:
-			break;
-	}
+
 	return 0;
 }
 
 int BC_WindowBase::get_text_height(int font, const char *text)
 {
-	int h = get_text_ascent(font) + get_text_descent(font);
-	if( text ) {
-		int lines = 1;
-		for( const char *cp=text; *cp!=0; ++cp )
-			if( *cp == '\n' ) ++lines;
-		h *= lines;
+	int rowh;
+#ifdef HAVE_XFT
+	XftFont *fstruct;
+	if(fstruct = get_xft_struct(font))
+		rowh = fstruct->height;
+	else
+#endif
+		rowh = get_text_ascent(font) + get_text_descent(font);
+
+	if(!text) return rowh;
+
+// Add height of lines
+	int h = 0, i, length = strlen(text);
+	for(i = 0; i <= length; i++)
+	{
+		if(text[i] == '\n')
+			h++;
+		else
+		if(text[i] == 0)
+			h++;
 	}
-	return h;
+	return h * rowh;
 }
 
 BC_Bitmap* BC_WindowBase::new_bitmap(int w, int h, int color_model)
@@ -3065,6 +3184,13 @@ BC_WindowBase* BC_WindowBase::add_tool(BC_WindowBase *subwindow)
 	return add_subwindow(subwindow);
 }
 
+BC_WidgetGrid* BC_WindowBase::add_widgetgrid(BC_WidgetGrid *widgetgrid)
+{
+	widgetgrids->append(widgetgrid);
+	return widgetgrid;
+}
+
+
 int BC_WindowBase::flash(int x, int y, int w, int h, int flush)
 {
 //printf("BC_WindowBase::flash %d %d %d %d %d\n", __LINE__, w, h, this->w, this->h);
@@ -3185,44 +3311,28 @@ void BC_WindowBase::set_done(int return_value)
 	if(window_type != MAIN_WINDOW)
 		top_level->set_done(return_value);
 	else
-#ifdef SINGLE_THREAD
 	{
+#ifdef SINGLE_THREAD
 		this->return_value = return_value;
 		BC_Display::display_global->arm_completion(this);
 		completion_lock->unlock();
-	}
 #else // SINGLE_THREAD
-	init_wait();
-	if(event_thread)
-	{
-// Must use a different display handle to send events.
-		lock_window("BC_WindowBase::set_done"); // ??? crashes without this
-		Display *display = BC_WindowBase::init_display(display_name);
-		unlock_window();
+		init_wait();
+		if( !event_thread ) return;
 		XEvent *event = new XEvent;
 		XClientMessageEvent *ptr = (XClientMessageEvent*)event;
-
 		event->type = ClientMessage;
 		ptr->message_type = SetDoneXAtom;
 		ptr->format = 32;
 		this->return_value = return_value;
-
-// May lock up here because XSendEvent doesn't work too well
+// May lock up here because XSendEvent doesn't work too well 
 // asynchronous with XNextEvent.
-// This causes BC_WindowEvents to forward a copy of the event to run_window where
+// This causes BC_WindowEvents to forward a copy of the event to run_window where 
 // it is deleted.
-		event_thread->done = 1;
-		XSendEvent(display,
-			win,
-			0,
-			0,
-			event);
-		XFlush(display);
-		XCloseDisplay(display);
+// Deletion of event_thread is done at the end of BC_WindowBase::run_window() - by calling the destructor
 		put_event(event);
 	}
 #endif
-
 }
 
 void BC_WindowBase::close(int return_value)
@@ -3794,6 +3904,13 @@ int BC_WindowBase::ctrl_down()
 	return top_level->ctrl_mask;
 }
 
+wchar_t* BC_WindowBase::get_wkeystring(int *length)
+{
+	if(length)
+		*length = top_level->wkey_string_length;
+	return top_level->wkey_string;
+}
+
 #ifdef X_HAVE_UTF8_STRING
 char* BC_WindowBase::get_keypress_utf8()
 {
@@ -3866,6 +3983,11 @@ int BC_WindowBase::resize_event(int w, int h)
 		this->h = h;
 	}
 	return 0;
+}
+
+int BC_WindowBase::reposition_widget(int x, int y, int w, int h)
+{
+	return reposition_window(x, y, w, h);
 }
 
 int BC_WindowBase::reposition_window(int x, int y)
@@ -3987,8 +4109,37 @@ void BC_WindowBase::set_background(VFrame *bitmap)
 
 void BC_WindowBase::set_title(const char *text)
 {
-	XSetStandardProperties(top_level->display, top_level->win, text, text, None, 0, 0, 0);
+	XTextProperty titleprop;
+	char *txlist[2];
+
 	strcpy(this->title, _(text));
+	txlist[0] = this->title;
+	txlist[1] = 0;
+
+	XmbTextListToTextProperty(top_level->display, txlist, 1,
+		XStdICCTextStyle, &titleprop);
+	XSetWMName(top_level->display, top_level->win, &titleprop);
+	XSetWMIconName(top_level->display, top_level->win, &titleprop);
+	XFree(titleprop.value);
+
+	flush();
+}
+
+void BC_WindowBase::set_utf8title(const char *text)
+{
+	XTextProperty titleprop;
+	char *txlist[2];
+
+	strcpy(this->title, text);
+	txlist[0] = this->title;
+	txlist[1] = 0;
+
+	Xutf8TextListToTextProperty(top_level->display, txlist,  1,
+		XUTF8StringStyle, &titleprop);
+	XSetWMName(top_level->display, top_level->win, &titleprop);
+	XSetWMIconName(top_level->display, top_level->win, &titleprop);
+	XFree(titleprop.value);
+
 	flush();
 }
 
@@ -4076,9 +4227,11 @@ int BC_WindowBase::load_defaults(BC_Hash *defaults)
 	resources->filebox_columntype[0] = defaults->get("FILEBOX_TYPE0", resources->filebox_columntype[0]);
 	resources->filebox_columntype[1] = defaults->get("FILEBOX_TYPE1", resources->filebox_columntype[1]);
 	resources->filebox_columntype[2] = defaults->get("FILEBOX_TYPE2", resources->filebox_columntype[2]);
+	resources->filebox_columntype[3] = defaults->get("FILEBOX_TYPE3", resources->filebox_columntype[3]);
 	resources->filebox_columnwidth[0] = defaults->get("FILEBOX_WIDTH0", resources->filebox_columnwidth[0]);
 	resources->filebox_columnwidth[1] = defaults->get("FILEBOX_WIDTH1", resources->filebox_columnwidth[1]);
 	resources->filebox_columnwidth[2] = defaults->get("FILEBOX_WIDTH2", resources->filebox_columnwidth[2]);
+	resources->filebox_columnwidth[3] = defaults->get("FILEBOX_WIDTH3", resources->filebox_columnwidth[3]);
 	defaults->get("FILEBOX_FILTER", resources->filebox_filter);
 	return 0;
 }
@@ -4100,9 +4253,11 @@ int BC_WindowBase::save_defaults(BC_Hash *defaults)
 	defaults->update("FILEBOX_TYPE0", resources->filebox_columntype[0]);
 	defaults->update("FILEBOX_TYPE1", resources->filebox_columntype[1]);
 	defaults->update("FILEBOX_TYPE2", resources->filebox_columntype[2]);
+	defaults->update("FILEBOX_TYPE3", resources->filebox_columntype[3]);
 	defaults->update("FILEBOX_WIDTH0", resources->filebox_columnwidth[0]);
 	defaults->update("FILEBOX_WIDTH1", resources->filebox_columnwidth[1]);
 	defaults->update("FILEBOX_WIDTH2", resources->filebox_columnwidth[2]);
+	defaults->update("FILEBOX_WIDTH3", resources->filebox_columnwidth[3]);
 	defaults->update("FILEBOX_FILTER", resources->filebox_filter);
 	return 0;
 }

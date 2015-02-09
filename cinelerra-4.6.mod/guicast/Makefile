@@ -42,6 +42,8 @@ OBJS = \
 	$(OBJDIR)/bcdisplayinfo.o \
 	$(OBJDIR)/bcdragwindow.o \
 	$(OBJDIR)/bcfilebox.o \
+	$(OBJDIR)/bcfontentry.o \
+	$(OBJDIR)/bcwidgetgrid.o \
 	$(OBJDIR)/bclistbox.o \
 	$(OBJDIR)/bclistboxitem.o \
 	$(OBJDIR)/bchash.o \
@@ -59,6 +61,8 @@ OBJS = \
 	$(OBJDIR)/bcpot.o \
 	$(OBJDIR)/bcprogress.o \
 	$(OBJDIR)/bcprogressbox.o \
+	$(OBJDIR)/bcrecentlist.o \
+	$(OBJDIR)/bcrelocatablewidget.o \
 	$(OBJDIR)/bcrename.o \
 	$(OBJDIR)/bcrepeater.o \
 	$(OBJDIR)/bcresources.o \
@@ -207,6 +211,8 @@ $(OBJDIR)/bcdisplay.o: 				      	      bcdisplay.C
 $(OBJDIR)/bcdisplayinfo.o: 				      bcdisplayinfo.C
 $(OBJDIR)/bcdragwindow.o:  				      bcdragwindow.C
 $(OBJDIR)/bcfilebox.o:     				      bcfilebox.C
+$(OBJDIR)/bcfontentry.o:				      bcfontentry.C
+$(OBJDIR)/bcwidgetgrid.o:				      bcwidgetgrid.C
 $(OBJDIR)/bchash.o:                                           bchash.C
 $(OBJDIR)/bcipc.o: 	   				      bcipc.C
 $(OBJDIR)/bclistbox.o:     				      bclistbox.C
@@ -228,6 +234,8 @@ $(OBJDIR)/bcprogressbox.o: 				      bcprogressbox.C
 $(OBJDIR)/bcrename.o:    				      bcrename.C
 $(OBJDIR)/bcrepeater.o:    				      bcrepeater.C
 $(OBJDIR)/bcresources.o:   				      bcresources.C
+$(OBJDIR)/bcrecentlist.o:				      bcrecentlist.C
+$(OBJDIR)/bcrelocatablewidget.o:			      bcrelocatablewidget.C
 $(OBJDIR)/bcscrollbar.o:   				      bcscrollbar.C
 $(OBJDIR)/bcsignals.o:     				      bcsignals.C
 $(OBJDIR)/bcslider.o: 	   				      bcslider.C

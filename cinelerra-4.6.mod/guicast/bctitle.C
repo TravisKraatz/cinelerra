@@ -2,39 +2,40 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcresources.h"
 #include "bctitle.h"
+#include "bcresources.h"
 #include <string.h>
 #include <unistd.h>
 
-BC_Title::BC_Title(int x, 
-		int y, 
-		const char *text, 
-		int font, 
-		int color, 
+BC_Title::BC_Title(int x,
+		int y,
+		const char *text,
+		int font,
+		int color,
 		int centered,
 		int fixed_w)
  : BC_SubWindow(x, y, -1, -1, -1)
 {
 	this->font = font;
-	if(color < 0) 
+	if(color < 0)
 		this->color = get_resources()->default_text_color;
 	else
 		this->color = color;
@@ -118,23 +119,26 @@ int BC_Title::draw(int flush)
 
  	if(font == MEDIUM_7SEGMENT)
  	{
-		BC_WindowBase::set_color(get_bg_color());
- 		draw_box(0, 0, w, h);
+		//leave it up to the theme to decide if we need a background or not.
+		if (top_level->get_resources()->draw_clock_background) {
+			BC_WindowBase::set_color(get_bg_color());
+			draw_box(0, 0, w, h);
+		}
  	}
 	else
  		draw_top_background(parent_window, 0, 0, w, h);
 
 	set_font(font);
 	BC_WindowBase::set_color(color);
-	int text_len = strlen(text); 
-	j = 0;  x = 0;  y = get_text_ascent(font); 
+	int text_len = strlen(text);
+	j = 0;  x = 0;  y = get_text_ascent(font);
 	for(i = 0; i <= text_len; i++)
 	{
 		if(text[i] == '\n' || text[i] == 0)
 		{
 			if(centered)
 			{
-				draw_center_text(get_w() / 2, 
+				draw_center_text(get_w() / 2,
 					y,
 					&text[j],
 					i - j);
@@ -142,7 +146,7 @@ int BC_Title::draw(int flush)
 			}
 			else
 			{
-				draw_text(x, 
+				draw_text(x,
 					y,
 					&text[j],
 					i - j);

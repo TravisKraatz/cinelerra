@@ -82,7 +82,7 @@ typedef struct
 {
 /* for AVI it's the end of the 8 byte header in the file */
 /* for Quicktime it's the start of the 8 byte header in the file */
-	int64_t start;      
+	int64_t start;
 	int64_t end;        /* byte endpoint in file */
 	int64_t size;       /* byte size for writing */
 	int use_64;         /* Use 64 bit header */
@@ -211,6 +211,10 @@ typedef struct
 
 	quicktime_esds_t esds;
 	quicktime_avcc_t avcc;
+
+	int extradata_size;
+	char *extradata;
+
 	quicktime_frma_t frma;
 } quicktime_stsd_table_t;
 
@@ -270,7 +274,7 @@ typedef struct
 	int version;
 	long flags;
 	long total_entries;
-	
+
 	long entries_allocated;
 	quicktime_stsc_table_t *table;
 } quicktime_stsc_t;
@@ -305,7 +309,7 @@ typedef struct
 	int version;
 	long flags;
 	long total_entries;
-	
+
 	long entries_allocated;    /* used by the library for allocating a table */
 	quicktime_stco_table_t *table;
 } quicktime_stco_t;
@@ -741,7 +745,7 @@ typedef struct
 
 /* I/O */
 /* Current position of virtual file descriptor */
-	int64_t file_position;      
+	int64_t file_position;
 
 /* Work around a bug in glibc where ftello returns only 32 bits by maintaining */
 /* our own position */
@@ -784,6 +788,9 @@ typedef struct
 	int in_x, in_y, in_w, in_h, out_w, out_h;
 	int color_model, row_span;
 
+/* Adjustable timecode frame number */
+	int64_t current_frame;
+
 } quicktime_t;
 
 
@@ -793,38 +800,38 @@ typedef struct
 	int (*delete_vcodec)(quicktime_video_map_t *vtrack);
 	int (*delete_acodec)(quicktime_audio_map_t *atrack);
 /* Decode a single frame */
-	int (*decode_video)(quicktime_t *file, 
-				unsigned char **row_pointers, 
+	int (*decode_video)(quicktime_t *file,
+				unsigned char **row_pointers,
 				int track);
 /* Encode a single frame */
-	int (*encode_video)(quicktime_t *file, 
-				unsigned char **row_pointers, 
+	int (*encode_video)(quicktime_t *file,
+				unsigned char **row_pointers,
 				int track);
 /* Decode a certain number of samples */
-	int (*decode_audio)(quicktime_t *file, 
-				int16_t *output_i, 
-				float *output_f, 
-				long samples, 
+	int (*decode_audio)(quicktime_t *file,
+				int16_t *output_i,
+				float *output_f,
+				long samples,
 				int track,
 				int channel);
 /* Encode a chunk of audio */
-	int (*encode_audio)(quicktime_t *file, 
-				int16_t **input_i, 
-				float **input_f, 
-				int track, 
+	int (*encode_audio)(quicktime_t *file,
+				int16_t **input_i,
+				float **input_f,
+				int track,
 				long samples);
-	int (*reads_colormodel)(quicktime_t *file, 
-		int colormodel, 
+	int (*reads_colormodel)(quicktime_t *file,
+		int colormodel,
 		int track);
-	int (*writes_colormodel)(quicktime_t *file, 
-		int colormodel, 
+	int (*writes_colormodel)(quicktime_t *file,
+		int colormodel,
 		int track);
 
-	int (*set_parameter)(quicktime_t *file, 
-		int track, 
-		char *key, 
+	int (*set_parameter)(quicktime_t *file,
+		int track,
+		char *key,
 		void *value);
-	void (*flush)(quicktime_t *file, 
+	void (*flush)(quicktime_t *file,
 		int track);
 
 /* AVI codec ID for audio.  AVI codec ID's are based on WAV files, by the way. */
@@ -840,7 +847,7 @@ typedef struct
 	char *desc;
 
 /* Frame cache for seeking only. */
-	
+
 
 /* Proprietary data for the codec to allocate and delete. */
 	void *priv;

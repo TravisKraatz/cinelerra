@@ -26,9 +26,15 @@ class BC_ActiveBitmaps;
 class BC_WindowBase;
 class BC_WindowList;
 #define BCTEXTLEN 1024
+#define BCSTRLEN 64
 #define KEYPRESSLEN 6
 // Milliseconds before cursor disappears during video playback
 #define VIDEO_CURSOR_TIMEOUT 2000
+
+// Window options
+// Splash is not implemented
+#define WINDOW_SPLASH  0x80
+#define WINDOW_UTF8    0x01
 
 // mouse wheel
 #define WHEEL_UP 4

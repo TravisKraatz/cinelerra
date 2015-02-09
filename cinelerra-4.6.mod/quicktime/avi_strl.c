@@ -17,7 +17,7 @@ quicktime_strl_t* quicktime_new_strl()
 }
 
 
-void quicktime_init_strl(quicktime_t *file, 
+void quicktime_init_strl(quicktime_t *file,
 	quicktime_audio_map_t *atrack,
 	quicktime_video_map_t *vtrack,
 	quicktime_trak_t *trak,
@@ -58,7 +58,7 @@ void quicktime_init_strl(quicktime_t *file,
 	if(vtrack)
 	{
 		quicktime_write_char32(file, "vids");
-		quicktime_write_char32(file, 
+		quicktime_write_char32(file,
 			trak->mdia.minf.stbl.stsd.table[0].format);
 /* flags */
         quicktime_write_int32_le(file, 0);
@@ -70,23 +70,23 @@ void quicktime_init_strl(quicktime_t *file,
         quicktime_write_int32_le(file, 0);
 
 /* framerate denominator */
-        quicktime_write_int32_le(file, 
+        quicktime_write_int32_le(file,
 			trak->mdia.minf.stbl.stts.table[0].sample_duration);
 /* framerate numerator */
-        quicktime_write_int32_le(file, 
+        quicktime_write_int32_le(file,
 			trak->mdia.mdhd.time_scale);
 
 /* start */
         quicktime_write_int32_le(file, 0);
 		strl->length_offset = quicktime_position(file);
 /* length: fill later */
-        quicktime_write_int32_le(file, 0); 
+        quicktime_write_int32_le(file, 0);
 /* suggested buffer size */
-        quicktime_write_int32_le(file, 0); 
+        quicktime_write_int32_le(file, 0);
 /* quality */
-        quicktime_write_int32_le(file, -1); 
+        quicktime_write_int32_le(file, -1);
 /* sample size */
-        quicktime_write_int32_le(file, 0); 
+        quicktime_write_int32_le(file, 0);
         quicktime_write_int16_le(file, 0);
         quicktime_write_int16_le(file, 0);
         quicktime_write_int16_le(file, trak->tkhd.track_width);
@@ -141,16 +141,16 @@ void quicktime_init_strl(quicktime_t *file,
 	if(vtrack)
 	{
 /* atom size repeated */
-		quicktime_write_int32_le(file, 40);  
+		quicktime_write_int32_le(file, 40);
 		quicktime_write_int32_le(file, trak->tkhd.track_width);
 		quicktime_write_int32_le(file, trak->tkhd.track_height);
 /* planes */
-		quicktime_write_int16_le(file, 1);  
+		quicktime_write_int16_le(file, 1);
 /* depth */
-		quicktime_write_int16_le(file, 24); 
-		quicktime_write_char32(file, 
+		quicktime_write_int16_le(file, 24);
+		quicktime_write_char32(file,
 			trak->mdia.minf.stbl.stsd.table[0].format);
-		quicktime_write_int32_le(file, 
+		quicktime_write_int32_le(file,
 			trak->tkhd.track_width * trak->tkhd.track_height * 3);
 		quicktime_write_int32_le(file, 0);
 		quicktime_write_int32_le(file, 0);
@@ -161,24 +161,36 @@ void quicktime_init_strl(quicktime_t *file,
 	if(atrack)
 	{
 /* By now the codec is instantiated so the WAV ID is available. */
-		int wav_id = 0x0;
 		quicktime_codec_t *codec_base = atrack->codec;
+		int wav_id = codec_base->wav_id;
 
-		if(codec_base->wav_id)
-			wav_id = codec_base->wav_id;
-		quicktime_write_int16_le(file, 
+		quicktime_write_int16_le(file,
 			wav_id);
-		quicktime_write_int16_le(file, 
+		quicktime_write_int16_le(file,
 			trak->mdia.minf.stbl.stsd.table[0].channels);
-		quicktime_write_int32_le(file, 
+/* nSamplesPerSec as per MSDN */
+		quicktime_write_int32_le(file,
 			trak->mdia.minf.stbl.stsd.table[0].sample_rate);
-/* bitrate in bytes */
-		quicktime_write_int32_le(file, 256000 / 8); 
-/* block align */
-		quicktime_write_int16_le(file, 1); 
+		if (wav_id == 0x01)     // PCM
+		{
+/* nAvgBytesPerSec as per MSDN*/
+			quicktime_write_int32_le(file, trak->mdia.minf.stbl.stsd.table[0].sample_rate * trak->mdia.minf.stbl.stsd.table[0].sample_size * trak->mdia.minf.stbl.stsd.table[0].channels / 8);
+/* nBlockAlign as per MSDN, very important value */
+/* nBlockAlign have to be the same is used in many players instead of dwSampleSize - so they should be the same */
+/* http://msdn.microsoft.com/library/default.asp?url=/library/en-us/wcemultimedia5/html/wce50conAVIStreamHeaders.asp */
+/* http://msdn.microsoft.com/library/default.asp?url=/library/en-us/wcemultimedia5/html/wce50lrfwaveformatex91.asp */
+			quicktime_write_int16_le(file, trak->mdia.minf.stbl.stsd.table[0].sample_size * trak->mdia.minf.stbl.stsd.table[0].channels / 8);
+		}
+		else
+		{
+/* FIXME: These two are complete rubbish, according to my knowledge, they depend on the codec */
+			quicktime_write_int32_le(file, 256000 / 8);        // nAvgBytesPerSec
+			quicktime_write_int16_le(file, 1);          // nBlockAling
+		}
+
 /* bits per sample */
-		quicktime_write_int16_le(file, 
-			trak->mdia.minf.stbl.stsd.table[0].sample_size); 
+		quicktime_write_int16_le(file,
+			trak->mdia.minf.stbl.stsd.table[0].sample_size);
 		quicktime_write_int16_le(file, 0);
 	}
 
@@ -195,7 +207,7 @@ void quicktime_init_strl(quicktime_t *file,
 
 
 	quicktime_atom_write_header(file, &junk_atom, "JUNK");
-	for(i = 0; i < JUNK_SIZE; i += 4)
+	for(i = 0; i < strl->padding_size; i += 4)
 		quicktime_write_int32_le(file, 0);
 	quicktime_atom_write_footer(file, &junk_atom);
 
@@ -215,8 +227,8 @@ void quicktime_delete_strl(quicktime_strl_t *strl)
 	free(strl);
 }
 
-void quicktime_read_strl(quicktime_t *file, 
-	quicktime_strl_t *strl, 
+void quicktime_read_strl(quicktime_t *file,
+	quicktime_strl_t *strl,
 	quicktime_atom_t *parent_atom)
 {
 // These are 0 if no track is currently being processed.
@@ -271,18 +283,18 @@ void quicktime_read_strl(quicktime_t *file,
 
 
 /* Codec */
-				quicktime_read_data(file, 
-					codec, 
+				quicktime_read_data(file,
+					codec,
 					4);
 /* Blank */
 				quicktime_set_position(file, quicktime_position(file) + 12);
 				denominator = quicktime_read_int32_le(file);
 				numerator = quicktime_read_int32_le(file);
 /*
- * printf("quicktime_read_strl 1 %c%c%c%c %d %d\n", 
- * codec[0], 
- * codec[1], 
- * codec[2], 
+ * printf("quicktime_read_strl 1 %c%c%c%c %d %d\n",
+ * codec[0],
+ * codec[1],
+ * codec[2],
  * codec[3],
  * numerator,
  * denominator);
@@ -315,8 +327,8 @@ void quicktime_read_strl(quicktime_t *file,
 				trak->tkhd.track_id = file->moov.mvhd.next_track_id;
 				file->moov.mvhd.next_track_id++;
 // codec tag
-				quicktime_read_data(file, 
-					codec, 
+				quicktime_read_data(file,
+					codec,
 					4);
 //printf("quicktime_read_strl 2 %c%c%c%c\n", codec[0], codec[1], codec[2], codec[3]);
 // flags 32, priority 16, language 16, initial frame 32
@@ -351,8 +363,8 @@ void quicktime_read_strl(quicktime_t *file,
 				quicktime_read_int16_le(file);
 /* Depth in bits */
 				depth = quicktime_read_int16_le(file);
-				quicktime_read_data(file, 
-					codec, 
+				quicktime_read_data(file,
+					codec,
 					4);
 			}
 			else
@@ -388,14 +400,14 @@ void quicktime_read_strl(quicktime_t *file,
 	if(strl->is_video)
 	{
 /* Generate quicktime structures */
-		quicktime_trak_init_video(file, 
-			trak, 
-			width, 
-			height, 
+		quicktime_trak_init_video(file,
+			trak,
+			width,
+			height,
 			frame_rate,
 			codec);
-		quicktime_mhvd_init_video(file, 
-			&file->moov.mvhd, 
+		quicktime_mhvd_init_video(file,
+			&file->moov.mvhd,
 			frame_rate);
 		trak->mdia.mdhd.duration = frames;
 //			trak->mdia.mdhd.time_scale = 1;
@@ -407,17 +419,17 @@ void quicktime_read_strl(quicktime_t *file,
 	{
 /* Generate quicktime structures */
 //printf("quicktime_read_strl 70 %d\n", sample_size);
-		quicktime_trak_init_audio(file, 
-					trak, 
-					channels, 
-					sample_rate, 
-					sample_size, 
+		quicktime_trak_init_audio(file,
+					trak,
+					channels,
+					sample_rate,
+					sample_size,
 					codec);
 
 
-// We store a constant samples per chunk based on the 
+// We store a constant samples per chunk based on the
 // packet size if sample_size zero
-// and calculate the samples per chunk based on the chunk size if sample_size 
+// and calculate the samples per chunk based on the chunk size if sample_size
 // is nonzero.
 //		trak->mdia.minf.stbl.stsd.table[0].sample_size = bytes_per_sample;
 		trak->mdia.minf.stbl.stsd.table[0].compression_id = compression_id;
@@ -429,7 +441,7 @@ void quicktime_read_strl(quicktime_t *file,
 			trak->mdia.minf.stbl.stsc.table[0].samples = samples_per_chunk;
 			trak->mdia.minf.stbl.stsc.total_entries = 1;
 		}
-//printf("quicktime_read_strl samples=%d samples_per_chunk=%d bytes_per_sample=%d bytes_per_second=%d\n", 
+//printf("quicktime_read_strl samples=%d samples_per_chunk=%d bytes_per_sample=%d bytes_per_second=%d\n",
 //strl->samples, samples_per_chunk, bytes_per_sample, strl->bytes_per_second);
 	}
 

@@ -118,10 +118,11 @@ void DefaultTheme::initialize()
 		"tumble_hi.png",
 		"tumble_botdn.png",
 		"tumble_topdn.png");
-	resources->listbox_button = new_image_set(3,
+	resources->listbox_button = new_image_set(4,
 		"listbox_button_up.png",
 		"listbox_button_hi.png",
-		"listbox_button_dn.png");
+		"listbox_button_dn.png",
+		"listbox_button_hi.png");
 	resources->listbox_column = new_image_set(3,
 		"listbox_column_up.png",
 		"listbox_column_hi.png",

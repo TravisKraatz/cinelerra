@@ -1,7 +1,7 @@
 
 /*
  * CINELERRA
- * Copyright (C) 1997-2014 Adam Williams <broadcast at earthling dot net>
+ * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,9 @@
 #ifndef BCWINDOWBASE_H
 #define BCWINDOWBASE_H
 
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 
 //#define HAVE_LIBXXF86VM
 
@@ -58,6 +61,7 @@
 #include "bcpopupmenu.inc"
 #include "bcpot.inc"
 #include "bcprogress.inc"
+#include "bcrelocatablewidget.h"
 #include "bcrepeater.inc"
 #include "bcresources.inc"
 #include "bcscrollbar.inc"
@@ -69,6 +73,7 @@
 #include "bctitle.inc"
 #include "bctoggle.inc"
 #include "bctumble.inc"
+#include "bcwidgetgrid.inc"
 #include "bcwindow.inc"
 #include "bcwindowbase.inc"
 #include "bcwindowevents.inc"
@@ -111,6 +116,9 @@ public:
 	int w, h;
 };
 
+typedef XClientMessageEvent xatom_event;
+
+
 class BC_ActiveBitmaps : public List<BC_BitmapImage> {
 	Mutex active_lock;
 public:
@@ -124,7 +132,7 @@ public:
 
 
 // Windows, subwindows, popupwindows inherit from this
-class BC_WindowBase
+class BC_WindowBase : public BC_RelocatableWidget
 {
 public:
 	BC_WindowBase();
@@ -154,6 +162,7 @@ public:
 	friend class BC_Pan;
 	friend class BC_PBuffer;
 	friend class BC_Pixmap;
+	friend class BC_PixmapSW;
 	friend class BC_Popup;
 	friend class BC_PopupMenu;
 	friend class BC_Pot;
@@ -170,10 +179,6 @@ public:
 	friend class BC_Tumbler;
 	friend class BC_Window;
 	friend class BC_WindowEvents;
-#ifdef X_HAVE_UTF8_STRING
-	XIM im;		/* Used to communicate with the input method (IM) server */
-	XIC ic;		/* Used for retaining the state, properties, and semantics of communication with the input method (IM) server */
-#endif
 
 // Main loop
 	int run_window();
@@ -239,7 +244,7 @@ public:
 // Not run in OpenGL thread because it has its own lock.
 	unsigned int get_shader(char *title, int *got_it);
 	void put_shader(unsigned int handle, char *title);
-
+	int get_opengl_server_version();
 
 	int flash(int x, int y, int w, int h, int flush = 1);
 	int flash(int flush = 1);
@@ -253,6 +258,8 @@ public:
 	BC_MenuBar* add_menubar(BC_MenuBar *menu_bar);
 	BC_WindowBase* add_subwindow(BC_WindowBase *subwindow);
 	BC_WindowBase* add_tool(BC_WindowBase *subwindow);
+	BC_WidgetGrid* add_widgetgrid(BC_WidgetGrid *widgetgrid);
+
 // Use this to get events for the popup window.
 // Events are not propagated to the popup window.
 	BC_WindowBase* add_popup(BC_WindowBase *window);
@@ -272,6 +279,7 @@ public:
 	virtual int get_h();
 	virtual int get_x();
 	virtual int get_y();
+	virtual int reposition_widgets(){ printf("foo1"); return 0; }
 	int get_root_w(int lock_display);
 	int get_root_h(int lock_display);
 	XineramaScreenInfo *get_xinerama_info(int screen);
@@ -296,6 +304,7 @@ public:
 	int get_buttonpress();
 	int get_has_focus();
 	int get_dragging();
+	wchar_t* get_wkeystring(int *length = 0);
 	int get_keypress();
 #ifdef X_HAVE_UTF8_STRING
 	char* get_keypress_utf8();
@@ -324,6 +333,7 @@ public:
 	int get_text_descent(int font);
 	int get_text_height(int font, const char *text = 0);
 	int get_text_width(int font, const char *text, int length = -1);
+	int get_text_width(int font, const wchar_t *text, int length = -1);
 	BC_Clipboard* get_clipboard();
 	void set_dragging(int value);
 	int set_w(int w);
@@ -375,17 +385,18 @@ public:
 	void clear_box(int x, int y, int w, int h, BC_Pixmap *pixmap = 0);
 	void draw_box(int x, int y, int w, int h, BC_Pixmap *pixmap = 0);
 	void draw_circle(int x, int y, int w, int h, BC_Pixmap *pixmap = 0);
-	void draw_arc(int x,
-		int y,
-		int w,
-		int h,
-		int start_angle,
-		int angle_length,
-		BC_Pixmap *pixmap = 0);
+	void draw_arc(int x, int y, int w, int h,
+		int start_angle, int angle_length, BC_Pixmap *pixmap = 0);
 	void draw_disc(int x, int y, int w, int h, BC_Pixmap *pixmap = 0);
+	void draw_text(int x, int y, const char *text, int length = -1, BC_Pixmap *pixmap = 0);
+	void draw_utf8_text(int x, int y, const char *text, int length = -1, BC_Pixmap *pixmap = 0);
 	void draw_text_line(int x, int y, const char *text, int len, BC_Pixmap *pixmap = 0);
-	void draw_text(int x, int y, const char *text, int len = -1, BC_Pixmap *pixmap = 0);
-	int draw_xft_text(int x, int y, const char *text, int len, BC_Pixmap *pixmap = 0);
+	void draw_xft_text(int x, int y, const char *text, int len,
+		BC_Pixmap *pixmap = 0, int is_utf8 = 0);
+	void draw_xft_text(int x, int y, const wchar_t *text,
+		int length, BC_Pixmap *pixmap);
+	void draw_wtext(int x, int y, const wchar_t *text, int length = -1,
+		BC_Pixmap *pixmap = 0, int *charpos = 0);
 // truncate the text to a ... version that fits in the width, using the current_font
 	void truncate_text(char *result, const char *text, int w);
 	void draw_center_text(int x, int y, const char *text, int length = -1);
@@ -393,113 +404,32 @@ public:
 	void draw_polygon(ArrayList<int> *x, ArrayList<int> *y, BC_Pixmap *pixmap = 0);
 	void fill_polygon(ArrayList<int> *x, ArrayList<int> *y, BC_Pixmap *pixmap = 0);
 	void draw_rectangle(int x, int y, int w, int h);
-	void draw_3segment(int x,
-		int y,
-		int w,
-		int h,
-		BC_Pixmap *left_image,
-		BC_Pixmap *mid_image,
-		BC_Pixmap *right_image,
-		BC_Pixmap *pixmap = 0);
-	void draw_3segment(int x,
-		int y,
-		int w,
-		int h,
-		VFrame *left_image,
-		VFrame *mid_image,
-		VFrame *right_image,
-		BC_Pixmap *pixmap = 0);
+	void draw_3segment(int x, int y, int w, int h, BC_Pixmap *left_image,
+		BC_Pixmap *mid_image, BC_Pixmap *right_image, BC_Pixmap *pixmap = 0);
+	void draw_3segment(int x, int y, int w, int h, VFrame *left_image,
+		VFrame *mid_image, VFrame *right_image, BC_Pixmap *pixmap = 0);
 // For drawing a changing level
-	void draw_3segmenth(int x,
-		int y,
-		int w,
-		int total_x,
-		int total_w,
-		VFrame *image,
-		BC_Pixmap *pixmap);
-	void draw_3segmenth(int x,
-		int y,
-		int w,
-		int total_x,
-		int total_w,
-		BC_Pixmap *src,
-		BC_Pixmap *dst = 0);
-	void draw_3segmentv(int x,
-		int y,
-		int h,
-		int total_y,
-		int total_h,
-		BC_Pixmap *src,
-		BC_Pixmap *dst = 0);
-	void draw_3segmentv(int x,
-		int y,
-		int h,
-		int total_y,
-		int total_h,
-		VFrame *src,
-		BC_Pixmap *dst = 0);
+	void draw_3segmenth(int x, int y, int w, int total_x, int total_w,
+		VFrame *image, BC_Pixmap *pixmap);
+	void draw_3segmenth(int x, int y, int w, int total_x, int total_w,
+		BC_Pixmap *src, BC_Pixmap *dst = 0);
+	void draw_3segmentv(int x, int y, int h, int total_y, int total_h,
+		BC_Pixmap *src, BC_Pixmap *dst = 0);
+	void draw_3segmentv(int x, int y, int h, int total_y, int total_h,
+		VFrame *src, BC_Pixmap *dst = 0);
 // For drawing a single level
-	void draw_3segmenth(int x,
-		int y,
-		int w,
-		VFrame *image,
-		BC_Pixmap *pixmap = 0);
-	void draw_3segmenth(int x,
-		int y,
-		int w,
-		BC_Pixmap *src,
-		BC_Pixmap *dst = 0);
-	void draw_3segmentv(int x,
-		int y,
-		int h,
-		BC_Pixmap *src,
-		BC_Pixmap *dst = 0);
-	void draw_3segmentv(int x,
-		int y,
-		int h,
-		VFrame *src,
-		BC_Pixmap *dst = 0);
-	void draw_9segment(int x,
-		int y,
-		int w,
-		int h,
-		VFrame *src,
-		BC_Pixmap *dst = 0);
-	void draw_9segment(int x,
-		int y,
-		int w,
-		int h,
-		BC_Pixmap *src,
-		BC_Pixmap *dst = 0);
-	void draw_3d_box(int x,
-		int y,
-		int w,
-		int h,
-		int light1,
-		int light2,
-		int middle,
-		int shadow1,
-		int shadow2,
-		BC_Pixmap *pixmap = 0);
-	void draw_3d_box(int x,
-		int y,
-		int w,
-		int h,
-		int is_down,
-		BC_Pixmap *pixmap = 0);
-	void draw_3d_border(int x,
-		int y,
-		int w,
-		int h,
-		int light1,
-		int light2,
-		int shadow1,
-		int shadow2);
-	void draw_3d_border(int x,
-		int y,
-		int w,
-		int h,
-		int is_down);
+	void draw_3segmenth(int x, int y, int w, VFrame *image, BC_Pixmap *pixmap = 0);
+	void draw_3segmenth(int x, int y, int w, BC_Pixmap *src, BC_Pixmap *dst = 0);
+	void draw_3segmentv(int x, int y, int h, BC_Pixmap *src, BC_Pixmap *dst = 0);
+	void draw_3segmentv(int x, int y, int h, VFrame *src, BC_Pixmap *dst = 0);
+	void draw_9segment(int x, int y, int w, int h, VFrame *src, BC_Pixmap *dst = 0);
+	void draw_9segment(int x, int y, int w, int h, BC_Pixmap *src, BC_Pixmap *dst = 0);
+	void draw_3d_box(int x, int y, int w, int h, int light1, int light2,
+		int middle, int shadow1, int shadow2, BC_Pixmap *pixmap = 0);
+	void draw_3d_box(int x, int y, int w, int h, int is_down, BC_Pixmap *pixmap = 0);
+	void draw_3d_border(int x, int y, int w, int h,
+		int light1, int light2, int shadow1, int shadow2);
+	void draw_3d_border(int x, int y, int w, int h, int is_down);
 	void draw_colored_box(int x, int y, int w, int h, int down, int highlighted);
 	void draw_check(int x, int y);
 	void draw_triangle_down_flat(int x, int y, int w, int h);
@@ -515,9 +445,11 @@ public:
 	void set_opaque();
 	void set_inverse();
 	void set_background(VFrame *bitmap);
-// Change the window title.  The title is translated internally.
+// Change the window title.
 	void set_title(const char *text);
 	const char *get_title();
+	void set_utf8title(const char *text);
+// Change the window title.  The title is translated internally.
 	void start_video();
 	void stop_video();
 	int get_id();
@@ -526,50 +458,27 @@ public:
 // Get a bitmap to draw on the window with
 	BC_Bitmap* new_bitmap(int w, int h, int color_model = -1);
 // Draw a bitmap on the window
-	void draw_bitmap(BC_Bitmap *bitmap,
-		int dont_wait,
-		int dest_x = 0,
-		int dest_y = 0,
-		int dest_w = 0,
-		int dest_h = 0,
-		int src_x = 0,
-		int src_y = 0,
-		int src_w = 0,
-		int src_h = 0,
+	void draw_bitmap(BC_Bitmap *bitmap, int dont_wait,
+		int dest_x = 0, int dest_y = 0, int dest_w = 0, int dest_h = 0,
+		int src_x = 0, int src_y = 0, int src_w = 0, int src_h = 0,
 		BC_Pixmap *pixmap = 0);
 	void draw_pixel(int x, int y, BC_Pixmap *pixmap = 0);
 // Draw a pixmap on the window
 	void draw_pixmap(BC_Pixmap *pixmap,
-		int dest_x = 0,
-		int dest_y = 0,
-		int dest_w = -1,
-		int dest_h = -1,
-		int src_x = 0,
-		int src_y = 0,
-		BC_Pixmap *dst = 0);
+		int dest_x = 0, int dest_y = 0, int dest_w = -1, int dest_h = -1,
+		int src_x = 0, int src_y = 0, BC_Pixmap *dst = 0);
 // Draw a vframe on the window
 	void draw_vframe(VFrame *frame,
-		int dest_x = 0,
-		int dest_y = 0,
-		int dest_w = -1,
-		int dest_h = -1,
-		int src_x = 0,
-		int src_y = 0,
-		int src_w = 0,
-		int src_h = 0,
+		int dest_x = 0, int dest_y = 0, int dest_w = -1, int dest_h = -1,
+		int src_x = 0, int src_y = 0, int src_w = 0, int src_h = 0,
 		BC_Pixmap *pixmap = 0);
 	void draw_border(char *text, int x, int y, int w, int h);
 // Draw a region of the background
 	void draw_top_background(BC_WindowBase *parent_window, int x, int y, int w, int h, BC_Pixmap *pixmap = 0);
 	void draw_top_tiles(BC_WindowBase *parent_window, int x, int y, int w, int h);
 	void draw_background(int x, int y, int w, int h);
-	void draw_tiles(BC_Pixmap *tile,
-		int origin_x,
-		int origin_y,
-		int x,
-		int y,
-		int w,
-		int h);
+	void draw_tiles(BC_Pixmap *tile, int origin_x, int origin_y,
+		int x, int y, int w, int h);
 	void slide_left(int distance);
 	void slide_right(int distance);
 	void slide_up(int distance);
@@ -583,9 +492,10 @@ public:
 	void set_tooltips(int v);
 	int resize_window(int w, int h);
 	int reposition_window(int x, int y);
-	int reposition_window(int x, int y, int w /* = -1 */, int h /* = -1*/ );
-	int reposition_window_relative(int dx, int dy, int w, int h);
+	int reposition_window(int x, int y, int w, int h);
 	int reposition_window_relative(int dx, int dy);
+	int reposition_window_relative(int dx, int dy, int w, int h);
+	int reposition_widget(int x, int y, int w, int h);
 // Cause a repeat event to be dispatched every duration.
 // duration is milliseconds
 	int set_repeat(int64_t duration);
@@ -614,21 +524,11 @@ public:
 private:
 // Create a window
 	virtual int create_window(BC_WindowBase *parent_window,
-				const char *title,
-				int x,
-				int y,
-				int w,
-				int h,
-				int minw,
-				int minh,
-				int allow_resize,
-				int private_color,
-				int hide,
-				int bg_color,
-				const char *display_name,
-				int window_type,
-				BC_Pixmap *bg_pixmap,
-				int group_it);
+		const char *title, int x, int y, int w, int h,
+		int minw, int minh, int allow_resize, int private_color,
+		int hide, int bg_color, const char *display_name,
+		int window_type, BC_Pixmap *bg_pixmap, int group_it,
+		int options = 0);
 
 	static Display* init_display(const char *display_name);
 // Get display from top level
@@ -636,6 +536,9 @@ private:
 	int get_screen();
 	virtual int initialize();
 	int get_atoms();
+// Function to overload to recieve customly defined atoms
+	virtual int recieve_custom_xatoms(xatom_event *event);
+
 	void init_cursors();
 	int init_colors();
 	int init_window_shape();
@@ -645,18 +548,20 @@ private:
 	int create_shared_colors();
 // Get width of a single line.  Used by get_text_width
 	int get_single_text_width(int font, const char *text, int length);
+	int get_single_text_width(int font, const wchar_t *text, int length);
 	int allocate_color_table();
 	int init_gc();
 	int init_fonts();
 	void init_xft();
+	void init_im();
+	void finit_im();
 	int get_color_rgb8(int color);
 	int64_t get_color_rgb16(int color);
 	int64_t get_color_bgr16(int color);
 	int64_t get_color_bgr24(int color);
 	XFontStruct* get_font_struct(int font);
-#ifdef HAVE_XFT
 	XftFont* get_xft_struct(int font);
-#endif
+	int wcharpos(const wchar_t *text, XftFont *font, int length, int *charpos);
 	Cursor get_cursor_struct(int cursor);
 	XFontSet get_fontset(int font);
 	XFontSet get_curr_fontset(void);
@@ -718,6 +623,8 @@ private:
 	BC_WindowBase* parent_window;
 // list of window bases in this window
 	BC_SubWindowList* subwindows;
+// list of window bases in this window
+	BC_WidgetGridList* widgetgrids;
 	ArrayList<BC_WindowBase*> popups;
 // Position of window
 	int x, y, w, h;
@@ -781,6 +688,8 @@ private:
 	int button_pressed;
 // Last key pressed
 	int key_pressed;
+	int wkey_string_length;
+	wchar_t wkey_string[4];
 #ifdef X_HAVE_UTF8_STRING
 	char* key_pressed_utf8;
 #endif
@@ -825,6 +734,7 @@ private:
 
 	int line_width;
 	int line_dashes;
+	void *bold_largefont_xft, *bold_mediumfont_xft, *bold_smallfont_xft;
 	int64_t current_color;
 // Coordinate of drag start
 	int drag_x, drag_y;
@@ -940,6 +850,17 @@ private:
 	Timer *cursor_timer;
 // unique ID of window.
 	int id;
+
+	// Used to communicate with the input method (IM) server
+	XIM input_method;
+	// Used for retaining the state, properties, and semantics
+	//  of communication with the input method (IM) server
+	XIC input_context;
+
+protected:
+	Atom create_xatom(const char *atom_name);
+	int send_custom_xatom(xatom_event *event);
+
 };
 
 

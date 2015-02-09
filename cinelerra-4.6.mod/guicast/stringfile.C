@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "stringfile.h"
@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 
-StringFile::StringFile(long length)
+StringFile::StringFile(size_t length)
 {
 	pointer = 0;
 	if(length == 0)
@@ -62,7 +62,7 @@ StringFile::StringFile(const char *filename)
 		string = new char[1];
 		string[0] = 0;
 	}
-	
+
 	pointer = 0;
 }
 
@@ -90,7 +90,7 @@ int StringFile::write_to_file(const char *filename)
 int StringFile::read_from_string(const char *string)
 {
 	int i;
-	
+
 	delete [] this->string;
 	length = strlen(string);
 	available = length;
@@ -100,24 +100,24 @@ int StringFile::read_from_string(const char *string)
 	return 0;
 }
 
-long StringFile::get_length()
+size_t StringFile::get_length()
 {
 	return strlen(string);
 }
 
-long StringFile::get_pointer()
+size_t StringFile::get_pointer()
 {
 	return pointer;
 }
 
 int StringFile::readline(char *arg2)
-{	
+{
 	readline(string1, arg2);
 	return 0;
 }
 
 int StringFile::readline()
-{	
+{
 	readline(string1, string1);
 	return 0;
 }
@@ -150,11 +150,10 @@ int StringFile::readline(char *arg1, char *arg2)
 {
 	int i, len, max;
 	len = 0; max = 1024;
-	
+
 	while(string[pointer] == ' ') pointer++; // skip indent
-	arg1[0] = 0;
-	arg2[0] = 0;
-	
+	arg1[0] = 0;    arg2[0] = 0;
+
 	for(i = 0; string[pointer] != ' ' && string[pointer] != '\n' && len < max; i++, pointer++)
 	{     // get title
 		arg1[i] = string[pointer];
@@ -183,12 +182,12 @@ int StringFile::backupline()
 		pointer--;     // first eoln
 	}
 	if(string[pointer] == 10) pointer--;        // skip eoln
-	
+
 	while(string[pointer] != 10 && pointer > 0)
 	{
 		pointer--;     // second eoln
 	}
-	
+
 	if(string[pointer] == 10) pointer++;      // skip eoln
 	return 0;
 }
@@ -219,7 +218,7 @@ int StringFile::writeline(char *arg1, int indent)
 {
 // reallocate the string
 	int len = strlen(arg1);
-	if(pointer + len > available)
+	if(len + indent > available - pointer)
 	{
 		char *newstring = new char[available * 2];
 		strcpy(newstring, string);
@@ -228,9 +227,9 @@ int StringFile::writeline(char *arg1, int indent)
 		length *= 2;
 		string = newstring;
 	}
-	
+
 	for(int i = 0; i < indent; i++) string[pointer++] = ' ';
-	strcpy(string + pointer, arg1);
+	strcpy(&string[pointer], arg1);
 	pointer += len;
 	return 0;
 }
@@ -264,7 +263,7 @@ int StringFile::writeline(char *arg1, float arg2, int indent)
 }
 
 int StringFile::writeline(char *arg1, Freq arg2, int indent)
-{	
+{
 	sprintf(string1, "%s %d\n", arg1, arg2.freq);
 	writeline(string1, indent);
 	return 0;

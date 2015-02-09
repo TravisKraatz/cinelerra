@@ -17,8 +17,8 @@ void quicktime_delete_indx(quicktime_indx_t *indx)
 	}
 }
 
-void quicktime_init_indx(quicktime_t *file, 
-	quicktime_indx_t *indx, 
+void quicktime_init_indx(quicktime_t *file,
+	quicktime_indx_t *indx,
 	quicktime_strl_t *strl)
 {
 	indx->longs_per_entry = 4;
@@ -27,8 +27,8 @@ void quicktime_init_indx(quicktime_t *file,
 	memcpy(indx->chunk_id, strl->tag, 4);
 }
 
-void quicktime_update_indx(quicktime_t *file, 
-	quicktime_indx_t *indx, 
+void quicktime_update_indx(quicktime_t *file,
+	quicktime_indx_t *indx,
 	quicktime_ix_t *ix)
 {
 	quicktime_indxtable_t *indx_table;
@@ -106,12 +106,11 @@ void quicktime_finalize_indx(quicktime_t *file)
 
 /* Rewrite JUNK less indx size and indx header size */
 		junk_size = strl->padding_size - indx->atom.size - 8;
-/*
- * 		quicktime_atom_write_header(file, &junk_atom, "JUNK");
- * 		for(j = 0; j < junk_size; j += 4)
- * 			quicktime_write_int32_le(file, 0);
- * 		quicktime_atom_write_footer(file, &junk_atom);
- */
+  		quicktime_atom_write_header(file, &junk_atom, "JUNK");
+  		for(j = 0; j < junk_size; j += 4)
+  			quicktime_write_int32_le(file, 0);
+  		quicktime_atom_write_footer(file, &junk_atom);
+
 	}
 }
 
@@ -123,8 +122,8 @@ void quicktime_finalize_indx(quicktime_t *file)
 
 
 
-void quicktime_read_indx(quicktime_t *file, 
-	quicktime_strl_t *strl, 
+void quicktime_read_indx(quicktime_t *file,
+	quicktime_strl_t *strl,
 	quicktime_atom_t *parent_atom)
 {
 	quicktime_indx_t *indx = &strl->indx;
@@ -142,8 +141,6 @@ void quicktime_read_indx(quicktime_t *file,
 	quicktime_read_int32_le(file);
 	quicktime_read_int32_le(file);
 
-
-//	file->is_odml = 1;
 
 //printf("quicktime_read_indx 1\n");
 /* Read indx entries */

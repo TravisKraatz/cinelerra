@@ -27,7 +27,7 @@ static unsigned long read_size(char *data)
 {
 	unsigned long result;
 	unsigned long a, b, c, d;
-	
+
 	a = (unsigned char)data[0];
 	b = (unsigned char)data[1];
 	c = (unsigned char)data[2];
@@ -53,13 +53,13 @@ static int64_t read_size64(char *data)
 	g = (unsigned char)data[6];
 	h = (unsigned char)data[7];
 
-	result = (a << 56) | 
-		(b << 48) | 
-		(c << 40) | 
-		(d << 32) | 
-		(e << 24) | 
-		(f << 16) | 
-		(g << 8) | 
+	result = (a << 56) |
+		(b << 48) |
+		(c << 40) |
+		(d << 32) |
+		(e << 24) |
+		(f << 16) |
+		(g << 8) |
 		h;
 
 	if(result < HEADER_LENGTH) result = HEADER_LENGTH;
@@ -89,7 +89,7 @@ int quicktime_atom_read_header(quicktime_t *file, quicktime_atom_t *atom)
 		atom->type[2] = header[2];
 		atom->type[3] = header[3];
 		atom->type[4] = 0;
-		atom->size = 
+		atom->size =
 			(((unsigned char)header[4])      ) |
 			(((unsigned char)header[5]) << 8 ) |
 			(((unsigned char)header[6]) << 16) |
@@ -109,7 +109,7 @@ int quicktime_atom_read_header(quicktime_t *file, quicktime_atom_t *atom)
 		atom->size = read_size(header);
 		atom->end = atom->start + atom->size;
 		if(debug)
-			printf("quicktime_atom_read_header 1 %c%c%c%c start=0x%llx size=0x%llx end=0x%llx ftell %llx %llx\n", 
+			printf("quicktime_atom_read_header 1 %c%c%c%c start=0x%llx size=0x%llx end=0x%llx ftell %llx %llx\n",
 				atom->type[0], atom->type[1], atom->type[2], atom->type[3],
 				atom->start, atom->size, atom->end,
 				file->file_position,
@@ -138,7 +138,7 @@ int quicktime_atom_read_header(quicktime_t *file, quicktime_atom_t *atom)
 			atom->size = read_size64(header);
 			atom->end = atom->start + atom->size;
 /*
- * printf("quicktime_atom_read_header 2 %c%c%c%c start %llx size %llx end %llx ftell %llx\n", 
+ * printf("quicktime_atom_read_header 2 %c%c%c%c start %llx size %llx end %llx ftell %llx\n",
  * 	atom->type[0], atom->type[1], atom->type[2], atom->type[3],
  * 	atom->start, atom->size, atom->end,
  * 	file->file_position);
@@ -163,8 +163,8 @@ int quicktime_atom_write_header64(quicktime_t *file, quicktime_atom_t *atom, cha
 	return result;
 }
 
-int quicktime_atom_write_header(quicktime_t *file, 
-	quicktime_atom_t *atom, 
+int quicktime_atom_write_header(quicktime_t *file,
+	quicktime_atom_t *atom,
 	char *text)
 {
 	int result = 0;
@@ -195,9 +195,12 @@ void quicktime_atom_write_footer(quicktime_t *file, quicktime_atom_t *atom)
 	{
 		quicktime_set_position(file, atom->start - 4);
 		quicktime_write_int32_le(file, atom->end - atom->start);
+		atom->size = atom->end - atom->start;
 	}
 	else
 	{
+		// We should calculate atom->size here also...  it is used in trak.c FIXME
+		// I don't know internals of the quicktime to know what is proper calculation - with or wirhout header?
 		if(atom->use_64)
 		{
 			quicktime_set_position(file, atom->start + 8);
@@ -210,7 +213,6 @@ void quicktime_atom_write_footer(quicktime_t *file, quicktime_atom_t *atom)
 			quicktime_write_int32(file, atom->end - atom->start);
 		}
 	}
-
 	quicktime_set_position(file, atom->end);
 }
 

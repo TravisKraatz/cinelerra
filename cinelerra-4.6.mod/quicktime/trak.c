@@ -417,25 +417,31 @@ int quicktime_chunk_bytes(quicktime_t *file,
 }
 
 int64_t quicktime_sample_range_size(quicktime_trak_t *trak, 
-	long chunk_sample, 
-	long sample)
+	int64_t chunk_sample, 
+	int64_t sample)
 {
-	quicktime_stsz_table_t *table = trak->mdia.minf.stbl.stsz.table;
 	int64_t i, total;
-
-	if(trak->mdia.minf.stbl.stsz.sample_size)
+	/* For PCM audio quicktime_sample_rage_size MAKES SENSE */
+	if(trak->mdia.minf.is_audio)
 	{
-/* assume audio */
-		return quicktime_samples_to_bytes(trak, sample - chunk_sample);
+// sample_size is in bits, so we divide by 8 at the end
+		return (sample - chunk_sample) *trak->mdia.minf.stbl.stsd.table[0].sample_size*trak->mdia.minf.stbl.stsd.table[0].channels/8;
 	}
 	else
 	{
-/* video or vbr audio */
-		for(i = chunk_sample, total = 0; 
-			i < sample && i < trak->mdia.minf.stbl.stsz.total_entries; 
-			i++)
+		/* All frames have the same size */
+		if(trak->mdia.minf.stbl.stsz.sample_size)
 		{
-			total += trak->mdia.minf.stbl.stsz.table[i].size;
+			total = (sample - chunk_sample) *
+			trak->mdia.minf.stbl.stsz.sample_size;
+		}
+		/* probably video */
+		else
+		{
+			for(i = chunk_sample, total = 0; i < sample; i++)
+			{
+				total += trak->mdia.minf.stbl.stsz.table[i].size;
+			}
 		}
 	}
 	return total;
@@ -443,7 +449,7 @@ int64_t quicktime_sample_range_size(quicktime_trak_t *trak,
 
 int64_t quicktime_sample_to_offset(quicktime_t *file, 
 	quicktime_trak_t *trak, 
-	long sample)
+	int64_t sample)
 {
 	int64_t chunk, chunk_sample, chunk_offset1, chunk_offset2;
 

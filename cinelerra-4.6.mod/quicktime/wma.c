@@ -1,4 +1,4 @@
-#include "avcodec.h"
+#include "libavcodec/avcodec.h"
 #include "funcprotos.h"
 #include "quicktime.h"
 #include <string.h>
@@ -93,11 +93,11 @@ static int init_decode(quicktime_audio_map_t *track_map,
 	return 0;
 }
 
-static int decode(quicktime_t *file, 
-					int16_t *output_i, 
-					float *output_f, 
-					long samples, 
-					int track, 
+static int decode(quicktime_t *file,
+					int16_t *output_i,
+					float *output_f,
+					long samples,
+					int track,
 					int channel)
 {
 	quicktime_audio_map_t *track_map = &(file->atracks[track]);
@@ -124,9 +124,9 @@ static int decode(quicktime_t *file,
 		current_position > codec->output_position + codec->output_size ||
 		!codec->decode_initialized)
 	{
-		quicktime_chunk_of_sample(&codec->output_position, 
-			&codec->chunk, 
-			trak, 
+		quicktime_chunk_of_sample(&codec->output_position,
+			&codec->chunk,
+			trak,
 			current_position);
 
 //printf("decode 1 %lld %d\n", codec->output_position, codec->chunk);
@@ -143,9 +143,9 @@ static int decode(quicktime_t *file,
 // Load chunk into work buffer
 		int64_t chunk_offset = 0;
 		int chunk_samples = quicktime_chunk_samples(trak, codec->chunk);
-		int chunk_size = quicktime_chunk_bytes(file, 
+		int chunk_size = quicktime_chunk_bytes(file,
 			&chunk_offset,
-			codec->chunk, 
+			codec->chunk,
 			trak);
 // Getting invalid numbers for this
 //		int max_samples = chunk_samples * 2;
@@ -155,7 +155,7 @@ static int decode(quicktime_t *file,
 printf("decode 2 %x %llx %llx\n", chunk_size, chunk_offset, chunk_offset + chunk_size);
 
 // Allocate packet buffer
-		if(codec->packet_allocated < chunk_size && 
+		if(codec->packet_allocated < chunk_size &&
 			codec->packet_buffer)
 		{
 			free(codec->packet_buffer);
@@ -187,11 +187,19 @@ printf("decode 2 %x %llx %llx\n", chunk_size, chunk_offset, chunk_offset + chunk
 
 // Decode chunk into work buffer.
 		pthread_mutex_lock(&ffmpeg_lock);
-		result = avcodec_decode_audio2(codec->decoder_context, 
-			(int16_t*)(codec->work_buffer + codec->output_size * sample_size), 
-            &bytes_decoded,
-            codec->packet_buffer, 
+#if LIBAVCODEC_VERSION_INT < ((52<<16)+(0<<8)+0)
+		result = avcodec_decode_audio(codec->decoder_context,
+			(int16_t*)(codec->work_buffer + codec->output_size * sample_size),
+			&bytes_decoded,
+			codec->packet_buffer,
 			chunk_size);
+#else
+		bytes_decoded = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+		result = avcodec_decode_audio2(codec->decoder_context,
+			(int16_t*)(codec->work_buffer + codec->output_size * sample_size),
+			&bytes_decoded, codec->packet_buffer, chunk_size);
+#endif
+
 		pthread_mutex_unlock(&ffmpeg_lock);
 		if(bytes_decoded <= 0)
 		{
@@ -213,7 +221,7 @@ printf("decode 2 %x %llx %llx\n", chunk_size, chunk_offset, chunk_offset + chunk
 // Transfer to output
 	if(output_i)
 	{
-		int16_t *pcm_ptr = (int16_t*)codec->work_buffer + 
+		int16_t *pcm_ptr = (int16_t*)codec->work_buffer +
 			(current_position - codec->output_position) * track_map->channels +
 			channel;
 		for(i = current_position - codec->output_position, j = 0;
@@ -227,7 +235,7 @@ printf("decode 2 %x %llx %llx\n", chunk_size, chunk_offset, chunk_offset + chunk
 	else
 	if(output_f)
 	{
-		int16_t *pcm_ptr = (int16_t*)codec->work_buffer + 
+		int16_t *pcm_ptr = (int16_t*)codec->work_buffer +
 			(current_position - codec->output_position) * track_map->channels +
 			channel;
 		for(i = current_position - codec->output_position, j = 0;
@@ -268,7 +276,7 @@ static void init_codec_common(quicktime_audio_map_t *atrack)
 /* Init public items */
 	codec_base->delete_acodec = delete_codec;
 	codec_base->decode_audio = decode;
-	
+
 
 /* Init private items */
 	codec = codec_base->priv = calloc(1, sizeof(quicktime_wma_codec_t));
@@ -295,7 +303,7 @@ void quicktime_init_codec_wmav2(quicktime_audio_map_t *atrack)
 	quicktime_codec_t *codec_base = (quicktime_codec_t*)atrack->codec;
 	quicktime_wma_codec_t *codec;
 	init_codec_common(atrack);
-	
+
 	codec = codec_base->priv;
 	codec_base->fourcc = QUICKTIME_WMA;
 	codec_base->title = "Win Media Audio 2";

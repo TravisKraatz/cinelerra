@@ -1,4 +1,4 @@
-/* 
+/*
    bttvgrab 0.15.4 [1999-03-23]
    (c) 1998, 1999 by Joerg Walter <trouble@moes.pmnet.uni-oldenburg.de>
    Maintained by: Joerg Walter
@@ -27,7 +27,7 @@
 
 /*#define MMX */
 
-#ifdef MMX
+#ifdef USE_MMX
 #include "mmx.h"
 #endif
 
@@ -60,7 +60,7 @@ typedef struct
 
 	__s16 *RTjpeg_old=NULL;
 
-#ifdef MMX
+#ifdef USE_MMX
 	mmx_t RTjpeg_lmask;
 	mmx_t RTjpeg_cmask;
 #else
@@ -68,7 +68,7 @@ typedef struct
 	__u16 RTjpeg_cmask;
 #endif
 	int RTjpeg_mtest=0;
-	
+
 	unsigned long tbls[128];
 } rtjpeg_t;
 
@@ -94,5 +94,5 @@ extern void RTjpeg_yuvrgb8(__u8 *buf, __u8 *rgb, int stride);
 extern void RTjpeg_yuvrgb16(__u8 *buf, __u8 *rgb, int stride);
 extern void RTjpeg_yuvrgb24(__u8 *buf, __u8 *rgb, int stride);
 extern void RTjpeg_yuvrgb32(__u8 *buf, __u8 *rgb, int stride);
-		  
+
 

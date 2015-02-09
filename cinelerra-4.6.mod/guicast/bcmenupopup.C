@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcmenubar.h"
@@ -61,10 +61,10 @@ BC_MenuPopup::~BC_MenuPopup()
 	delete item_bg[2];
 }
 
-int BC_MenuPopup::initialize(BC_WindowBase *top_level, 
-		BC_MenuBar *menu_bar, 
-		BC_Menu *menu, 
-		BC_MenuItem *menu_item, 
+int BC_MenuPopup::initialize(BC_WindowBase *top_level,
+		BC_MenuBar *menu_bar,
+		BC_Menu *menu,
+		BC_MenuItem *menu_item,
 		BC_PopupMenu *popup_menu)
 {
 	popup = 0;
@@ -184,19 +184,19 @@ int BC_MenuPopup::dispatch_translation_event()
 {
 	if(popup)
 	{
-		int new_x = x + 
-			(top_level->last_translate_x - 
-			top_level->prev_x - 
+		int new_x = x +
+			(top_level->last_translate_x -
+			top_level->prev_x -
 			top_level->get_resources()->get_left_border());
-		int new_y = y + 
-			(top_level->last_translate_y - 
+		int new_y = y +
+			(top_level->last_translate_y -
 			top_level->prev_y -
 			top_level->get_resources()->get_top_border());
 
-// printf("BC_MenuPopup::dispatch_translation_event %d %d %d %d\n", 
-// top_level->prev_x, 
-// top_level->last_translate_x, 
-// top_level->prev_y, 
+// printf("BC_MenuPopup::dispatch_translation_event %d %d %d %d\n",
+// top_level->prev_x,
+// top_level->last_translate_x,
+// top_level->prev_y,
 // top_level->last_translate_y);
 		popup->reposition_window(new_x, new_y, popup->get_w(), popup->get_h());
 		top_level->flush();
@@ -215,7 +215,7 @@ int BC_MenuPopup::dispatch_translation_event()
 int BC_MenuPopup::dispatch_cursor_leave()
 {
 	int result = 0;
-	
+
 	if(popup)
 	{
 		for(int i = 0; i < menu_items.total; i++)
@@ -227,11 +227,11 @@ int BC_MenuPopup::dispatch_cursor_leave()
 	return 0;
 }
 
-int BC_MenuPopup::activate_menu(int x, 
-	int y, 
-	int w, 
-	int h, 
-	int top_window_coords, 
+int BC_MenuPopup::activate_menu(int x,
+	int y,
+	int w,
+	int h,
+	int top_window_coords,
 	int vertical_justify)
 {
 	Window tempwin;
@@ -245,19 +245,19 @@ int BC_MenuPopup::activate_menu(int x,
 
 // Coords are relative to the main window
 	if(top_window_coords)
-		XTranslateCoordinates(top_level->display, 
-			top_level->win, 
-			top_level->rootwin, 
-			x, 
-			y, 
-			&new_x, 
-			&new_y, 
+		XTranslateCoordinates(top_level->display,
+			top_level->win,
+			top_level->rootwin,
+			x,
+			y,
+			&new_x,
+			&new_y,
 			&tempwin);
 	else
 // Coords are absolute
 	{
-		new_x = x; 
-		new_y = y; 
+		new_x = x;
+		new_y = y;
 	}
 
 // All coords are now relative to root window.
@@ -269,6 +269,9 @@ int BC_MenuPopup::activate_menu(int x,
 		if( this->y < top_y0 ) this->y = top_y0;
 		if(this->x + this->w > top_x1) this->x -= this->x + this->w - top_x1; // Right justify
 		if(this->y + this->h > top_y1) this->y -= this->h + h; // Bottom justify
+// Avoid top of menu going out of screen
+		if(this->y < 0)
+			this->y = 2;
 	}
 	else
 	{
@@ -286,28 +289,27 @@ int BC_MenuPopup::activate_menu(int x,
 	active = 1;
 	if(menu_bar)
 	{
-		popup = new BC_Popup(menu_bar, 
-					this->x, 
-					this->y, 
-					this->w, 
-					this->h, 
+		popup = new BC_Popup(menu_bar,
+					this->x,
+					this->y,
+					this->w,
+					this->h,
 					top_level->get_resources()->menu_up,
 					1,
 					menu_bar->bg_pixmap);
 	}
 	else
 	{
-		popup = new BC_Popup(top_level, 
-					this->x, 
-					this->y, 
-					this->w, 
-					this->h, 
+		popup = new BC_Popup(top_level,
+					this->x,
+					this->y,
+					this->w,
+					this->h,
 					top_level->get_resources()->menu_up,
 					1,
 					0);
 //		popup->set_background(top_level->get_resources()->menu_bg);
 	}
-
 	draw_items();
 	popup->show_window();
 	return 0;
@@ -350,7 +352,7 @@ int BC_MenuPopup::draw_items()
 	}
 	else
 	{
-		popup->draw_3d_border(0, 0, w, h, 
+		popup->draw_3d_border(0, 0, w, h,
 			top_level->get_resources()->menu_light,
 			top_level->get_resources()->menu_up,
 			top_level->get_resources()->menu_shadow,
@@ -375,7 +377,7 @@ int BC_MenuPopup::get_dimensions()
 
 // pad for border
 	h = 2;
-// Set up parameters in each item and get total h. 
+// Set up parameters in each item and get total h.
 	for(i = 0; i < menu_items.total; i++)
 	{
 		text_w = 10 + top_level->get_text_width(MEDIUMFONT, menu_items.values[i]->text);
@@ -385,7 +387,7 @@ int BC_MenuPopup::get_dimensions()
 		if(text_w > widest_text) widest_text = text_w;
 		if(key_w > widest_key) widest_key = key_w;
 
-		if(!strcmp(menu_items.values[i]->text, "-")) 
+		if(!strcmp(menu_items.values[i]->text, "-"))
 			menu_items.values[i]->h = 5;
 		else
 			menu_items.values[i]->h = top_level->get_text_height(MEDIUMFONT) + 4;
@@ -413,6 +415,11 @@ int BC_MenuPopup::get_key_x()
 BC_Popup* BC_MenuPopup::get_popup()
 {
 	return popup;
+}
+
+int BC_MenuPopup::cursor_inside()
+{
+	return !popup ? 0 : popup->cursor_inside();
 }
 
 int BC_MenuPopup::get_w()

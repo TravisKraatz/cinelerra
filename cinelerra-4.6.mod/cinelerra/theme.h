@@ -146,6 +146,12 @@ public:
 		VFrame *up_vframe,
 		VFrame *hi_vframe,
 		VFrame *dn_vframe);
+	void build_button(VFrame** &data,
+		unsigned char *png_overlay,
+		VFrame *up_vframe,
+		VFrame *hi_vframe,
+		VFrame *dn_vframe,
+		VFrame *at_vframe);
 	void build_toggle(VFrame** &data,
 		unsigned char *png_overlay,
 		VFrame *up_vframe,

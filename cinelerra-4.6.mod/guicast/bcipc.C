@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcipc.h"
@@ -68,7 +68,7 @@ void bc_ipc_termination(int signum)
 
 		for(i = 0; i < global_sema_db.total; i++)
 		{
-			if(!semctl(global_sema_db.values[i], 0, IPC_RMID, arg)) 
+			if(!semctl(global_sema_db.values[i], 0, IPC_RMID, arg))
 			{
 				printf("Deleted semaphore %d\n", global_sema_db.values[i]);
 			}
@@ -76,7 +76,7 @@ void bc_ipc_termination(int signum)
 
 		for(i = 0; i < global_msg_db.total; i++)
 		{
-			if(!msgctl(global_msg_db.values[i], IPC_RMID, NULL)) 
+			if(!msgctl(global_msg_db.values[i], IPC_RMID, NULL))
 			{
 				printf("Deleted message %d\n", global_msg_db.values[i]);
 			}
@@ -92,7 +92,7 @@ void bc_ipc_termination(int signum)
 
 
 // dispatch user specified signal handler
-		if(BC_Resources::signal_handler) 
+		if(BC_Resources::signal_handler)
 			BC_Resources::signal_handler->signal_handler(signum);
 		crashed = 1;
 	}
@@ -106,8 +106,9 @@ int bc_init_ipc()
 		signal(SIGSEGV, SIG_IGN);
 	if(signal(SIGBUS, bc_ipc_termination) == SIG_IGN)
 		signal(SIGBUS, SIG_IGN);
-	if(signal(SIGKILL, bc_ipc_termination) == SIG_IGN)
-		signal(SIGKILL, SIG_IGN);
+	//      SIGKILL can't be ignored
+	//	if(signal(SIGKILL, bc_ipc_termination) == SIG_IGN)
+	//		signal(SIGKILL, SIG_IGN);
 	if(signal(SIGINT, bc_ipc_termination) == SIG_IGN)
 		signal(SIGINT, SIG_IGN);
 	if(signal(SIGHUP, bc_ipc_termination) == SIG_IGN)
@@ -153,7 +154,7 @@ int bc_enter_id(ArrayList<int>* list, int id)
 	int i, result = 0;
 	global_ipc_lock.lock();
 	for(i = 0; i < list->total; i++)
-	{	
+	{
 		if(list->values[i] == id) result = 1;
 	}
 	if(!result) list->append(id);

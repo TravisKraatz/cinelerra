@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef BCSYNCHRONOUS_H
@@ -32,6 +32,9 @@
 #include "thread.h"
 #include "vframe.inc"
 
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#endif
 
 #ifdef HAVE_GL
 #include <GL/gl.h>
@@ -42,7 +45,7 @@
 
 // This takes requests and runs all OpenGL calls in the main thread.
 // Past experience showed OpenGL couldn't be run from multiple threads
-// reliably even if MakeCurrent was used and only 1 thread at a time did 
+// reliably even if MakeCurrent was used and only 1 thread at a time did
 // anything.
 
 // Also manages texture memory.  Textures are not deleted until the gl_context
@@ -76,7 +79,7 @@ public:
 	ShaderID(int window_id, unsigned int handle, char *source);
 	~ShaderID();
 
-// Should really use an MD5 to compare sources but this is easiest.	
+// Should really use an MD5 to compare sources but this is easiest.
 	char *source;
 	int window_id;
 	unsigned int handle;
@@ -87,10 +90,10 @@ class PBufferID
 public:
 	PBufferID() {};
 #ifdef HAVE_GL
-	PBufferID(int window_id, 
-		GLXPbuffer pbuffer, 
-		GLXContext gl_context, 
-		int w, 
+	PBufferID(int window_id,
+		GLXPbuffer pbuffer,
+		GLXContext gl_context,
+		int w,
 		int h);
 	GLXPbuffer pbuffer;
 	GLXContext gl_context;
@@ -178,7 +181,7 @@ public:
 // Called when a texture is created to associate it with the current window.
 // Must be called inside synchronous loop.
 	void put_texture(int id, int w, int h, int components);
-// Search for existing texture matching the parameters and not in use 
+// Search for existing texture matching the parameters and not in use
 // and return it.  If -1 is returned, a new texture must be created.
 // Must be called inside synchronous loop.
 // If someone proves OpenGL can delete texture memory, this function can be
@@ -192,7 +195,7 @@ public:
 // Not run in OpenGL thread because it has its own lock.
 // Sets *got_it to 1 on success.
 	unsigned int get_shader(char *source, int *got_it);
-// Add a new shader program by title if it doesn't exist.  
+// Add a new shader program by title if it doesn't exist.
 // Doesn't check if it already exists.
 	void put_shader(unsigned int handle, char *source);
 	void dump_shader(unsigned int handle);
@@ -201,15 +204,15 @@ public:
 #ifdef HAVE_GL
 // Push a pbuffer when it's created.
 // Must be called inside synchronous loop.
-	void put_pbuffer(int w, 
-		int h, 
-		GLXPbuffer pbuffer, 
+	void put_pbuffer(int w,
+		int h,
+		GLXPbuffer pbuffer,
 		GLXContext gl_context);
 // Get the PBuffer by window_id and dimensions if it exists.
 // Must be called inside synchronous loop.
-	GLXPbuffer get_pbuffer(int w, 
-		int h, 
-		int *window_id, 
+	GLXPbuffer get_pbuffer(int w,
+		int h,
+		int *window_id,
 		GLXContext *gl_context);
 // Release a pbuffer for use by get_pbuffer.
 	void release_pbuffer(int window_id, GLXPbuffer pbuffer);
@@ -217,8 +220,8 @@ public:
 // Schedule GL pixmap for deletion by the garbage collector.
 // Pixmaps don't wait until until the window is deleted but they must be
 // deleted before the window is deleted to have the display connection.
-	void delete_pixmap(BC_WindowBase *window, 
-		GLXPixmap pixmap, 
+	void delete_pixmap(BC_WindowBase *window,
+		GLXPixmap pixmap,
 		GLXContext context);
 #endif
 

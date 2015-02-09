@@ -343,10 +343,11 @@ void SUV::initialize()
 		"tumble_hi.png",
 		"tumble_bottom.png",
 		"tumble_top.png");
-	resources->listbox_button = new_button("listbox_button.png",
-		"editpanel_up.png",
-		"editpanel_hi.png",
-		"editpanel_dn.png");
+        resources->listbox_button = new_button4("listbox_button.png",
+                "editpanel_up.png",
+                "editpanel_hi.png",
+                "editpanel_dn.png",
+                "editpanel_hi.png");
 	resources->listbox_column = new_image_set(3,
 		"column_up.png",
 		"column_hi.png",

@@ -245,7 +245,7 @@ void MicroTheme::initialize()
 	build_button(BC_WindowBase::get_resources()->filebox_icons_images, get_image("filebox_icons.png"), &editpanel_up, &editpanel_hi, &editpanel_dn);
 	build_button(BC_WindowBase::get_resources()->filebox_text_images, get_image("filebox_text.png"), &editpanel_up, &editpanel_hi, &editpanel_dn);
 
-	build_button(BC_WindowBase::get_resources()->listbox_button, get_image("listbox_button.png"), &editpanel_up, &editpanel_hi, &editpanel_dn);
+	build_button(BC_WindowBase::get_resources()->listbox_button, get_image("listbox_button.png"), &editpanel_up, &editpanel_hi, &editpanel_dn, &editpanel_hi);
 	build_button(bottom_justify, get_image("bottom_justify.png"), &editpanel_up, &editpanel_hi, &editpanel_dn);
 	build_button(center_justify, get_image("center_justify.png"), &editpanel_up, &editpanel_hi, &editpanel_dn);
 	build_button(copy_data, get_image("copy.png"), &editpanel_up, &editpanel_hi, &editpanel_dn);
