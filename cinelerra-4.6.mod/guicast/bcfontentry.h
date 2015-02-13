@@ -23,6 +23,7 @@
 #define BCFONTENTRY_H
 
 #include "bcfontentry.inc"
+#include "vframe.inc"
 
 class BC_FontEntry
 {
@@ -32,11 +33,25 @@ public:
 
 	void dump();
 
+	VFrame *image;
+	char *displayname;
 	char *path;
 	char *foundry;
 	char *family;
-	char *displayname;
+	char *weight;
+	char *slant;
+	char *swidth;
+	char *adstyle;
+	int pixelsize;
+	int pointsize;
+	int xres;
+	int yres;
 	int style;
+	char *spacing;
+	int avg_width;
+	char *registry;
+	char *encoding;
+	int fixed_style;
 };
 
 #endif

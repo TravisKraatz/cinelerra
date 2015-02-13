@@ -62,13 +62,6 @@ class TitleTranslate;
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <sys/types.h>
-#include <string>
-using std::string;
-
-// Style bitwise ORed
-#define FONT_ITALIC    0x1
-#define FONT_BOLD      0x2
-#define FONT_OUTLINE   0x4
 
 // Motion strategy
 #define TOTAL_PATHS 5
@@ -87,7 +80,6 @@ using std::string;
 #define JUSTIFY_TOP     0x0
 #define JUSTIFY_MID     0x1
 #define JUSTIFY_BOTTOM  0x2
-
 
 class TitleConfig
 {
@@ -149,34 +141,6 @@ public:
 	double stroke_width;
 // Size of window
 	int window_w, window_h;
-};
-
-class FontEntry
-{
-public:
-	FontEntry();
-	~FontEntry();
-
-	void dump();
-
-	VFrame *image;
-	char *path;
-	char *foundary;
-	char *family;
-	char *weight;
-	char *slant;
-	char *swidth;
-	char *adstyle;
-	int pixelsize;
-	int pointsize;
-	int xres;
-	int yres;
-	char *spacing;
-	int avg_width;
-	char *registry;
-	char *encoding;
-	char *fixed_title;
-	int fixed_style;
 };
 
 class TitleGlyph
@@ -391,7 +355,6 @@ public:
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);
 
-	void build_fonts();
 	void build_previews(TitleWindow *gui);
 	void draw_glyphs();
 	int draw_mask();
@@ -419,8 +382,6 @@ public:
 	void convert_encoding();
 	static const char* motion_to_text(int motion);
 	static int text_to_motion(const char *text);
-
-        static ArrayList<FontEntry*> *fonts;
 
 	ArrayList<TitleGlyph*> glyphs;
 	Mutex glyph_lock;

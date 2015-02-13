@@ -1860,6 +1860,11 @@ void MWindow::create_objects(int want_gui,
 	init_theme();
 	if(debug) PRINT_TRACE
 
+	char string[BCTEXTLEN];
+	strcpy(string, preferences->plugin_dir);
+	strcat(string, "/fonts");
+	BC_Resources::init_fontconfig(string);
+	if(debug) PRINT_TRACE
 
 // Initialize before too much else is running
 // Preferences & theme are required for building MPEG table of contents

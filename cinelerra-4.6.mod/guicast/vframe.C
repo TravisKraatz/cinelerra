@@ -105,7 +105,8 @@ VFrame::VFrame(VFrame &frame)
 
 VFrame::VFrame(int w,
 	int h,
-	int color_model)
+	int color_model,
+	long bytes_per_line)
 {
 	reset_parameters(1);
 	params = new BC_Hash;
@@ -117,7 +118,7 @@ VFrame::VFrame(int w,
 		w,
 		h,
 		color_model,
-		-1);
+		bytes_per_line);
 }
 
 VFrame::VFrame(unsigned char *data,

@@ -456,6 +456,7 @@ LIBS += \
 	-ldl \
 	-lbz2 \
 	-lfontconfig \
+	-lfreetype
 
 #	-lXxf86vm \
 

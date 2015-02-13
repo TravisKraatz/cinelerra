@@ -57,7 +57,8 @@ public:
 // Pass 0 to *data & -1 to shmid if private data is desired.
 	VFrame(int w,
 		int h,
-		int color_model);
+		int color_model,
+		long bytes_per_line=-1);
 	VFrame(unsigned char *data,
 		int shmid,
 		int w,

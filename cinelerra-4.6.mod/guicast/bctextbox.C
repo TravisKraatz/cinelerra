@@ -63,10 +63,10 @@ BC_TextBox::BC_TextBox(int x, int y, int w, int rows,
 {
 	is_utf8 = 1;
 	skip_cursor = 0;
-	if( size <= 0 ) size = 2*wcslen(wtext) + 1;
+	wsize = size > 0 ? size : wcslen(wtext);
+	if( size <= 0 ) size = 2*wsize;
 	reset_parameters(rows, has_border, font, size);
-	wsize = size;
-	wtext = new wchar_t[wsize+1];
+	this->wtext = new wchar_t[wsize+1];
 	wcsncpy(this->wtext, wtext, wsize);
 	this->wtext[wsize] = 0;
 }
@@ -2313,7 +2313,7 @@ BC_ScrollTextBox::BC_ScrollTextBox(BC_WindowBase *parent_window,
 
 BC_ScrollTextBox::BC_ScrollTextBox(BC_WindowBase *parent_window,
 	int x, int y, int w, int rows,
-	const wchar_t *default_text, int default_size)
+	const wchar_t *default_wtext, int default_size)
 {
 	this->parent_window = parent_window;
 	this->x = x;

@@ -864,25 +864,18 @@ int PluginClient::send_hide_gui()
 
 int PluginClient::send_configure_change()
 {
+	if(server->mwindow)
+		server->mwindow->undo->update_undo_before("tweek", this);
 #ifdef USE_KEYFRAME_SPANNING
 	KeyFrame keyframe;
-	if(server->mwindow)
-		server->mwindow->undo->update_undo_before("tweek", this);
-
+	keyframe.copy_from(server->get_keyframe());
 	save_data(&keyframe);
 	server->apply_keyframe(&keyframe);
-
 #else
 	KeyFrame* keyframe = server->get_keyframe();
-	if(server->mwindow)
-		server->mwindow->undo->update_undo_before("tweek", this);
-
 // Call save routine in plugin
 	save_data(keyframe);
-
 #endif
-
-
 	if(server->mwindow)
 		server->mwindow->undo->update_undo_after("tweek", LOAD_AUTOMATION);
 	server->sync_parameters();

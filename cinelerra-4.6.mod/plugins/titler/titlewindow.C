@@ -71,6 +71,7 @@ TitleWindow::TitleWindow(TitleMain *client)
 	speed = 0;
 	center = 0;
 	italic = 0;
+	format_title = 0;
 	text_title = 0;
 	motion_title = 0;
 	fadeout_title = 0;
@@ -118,7 +119,6 @@ void TitleWindow::create_objects()
 
 #define COLOR_W 50
 #define COLOR_H 30
-	client->build_fonts();
 	client->build_previews(this);
 
 	encodings.append(new BC_ListBoxItem("ISO8859-1"));
@@ -176,13 +176,13 @@ void TitleWindow::create_objects()
 
 
 // Construct font list
-	ArrayList<FontEntry*> *fontlist = client->fonts;
+	ArrayList<BC_FontEntry*> *fontlist = get_resources()->fontlist;
 
 	for(int i = 0; i < fontlist->size(); i++) {
 		int exists = 0;
 		for(int j = 0; j < fonts.size(); j++) {
 			if(!strcasecmp(fonts.get(j)->get_text(),
-				fontlist->get(i)->fixed_title)) {
+				fontlist->get(i)->displayname)) {
 				exists = 1;
 				break;
 			}
@@ -191,7 +191,7 @@ void TitleWindow::create_objects()
 		BC_ListBoxItem *item = 0;
 		if(!exists) {
 			fonts.append(item = new
-				BC_ListBoxItem(fontlist->get(i)->fixed_title));
+				BC_ListBoxItem(fontlist->get(i)->displayname));
 			if(!strcmp(client->config.font, item->get_text()))
 				item->set_selected(1);
 			if(fontlist->values[i]->image)
@@ -328,6 +328,9 @@ void TitleWindow::create_objects()
 	y += outline_title->get_h() + margin;
 	add_tool(timecode = new TitleTimecode(client, x, y));
 	x += timecode->get_w() + margin;
+
+	add_tool(format_title = new BC_Title(x, y + 3, _("Format:")));
+	x += format_title->get_w() + margin;
 	add_tool(timecode_format = new TitleTimecodeFormat(client, x, y,
 		Units::print_time_format(client->config.timecode_format, string)));
 	timecode_format->create_objects();
@@ -335,17 +338,9 @@ void TitleWindow::create_objects()
 	y += timecode_format->get_h() + margin;
 
 	add_tool(text_title = new BC_Title(x, y + 3, _("Text:")));
-
-	x = 10;
 	y += text_title->get_h() + margin;
-
-	x += timecode->get_w() + 5;
-	BC_SubWindow *thisw;
-	add_tool(thisw = new BC_Title(x, y+4, _("Format:")));
-	x += thisw->get_w() + 5;
-	text = new TitleText(client, this, x, y,
-		get_w() - x - 10, get_h() - y - 10);
-
+	text = new TitleText(client, this, x, y, get_w() - x - 10, get_h() - y - 50);
+	text->create_objects();
 	update_color();
 
 	show_window(1);
@@ -392,6 +387,7 @@ int TitleWindow::resize_event(int w, int h)
 	fade_in->reposition_window(fade_in->get_x(), fade_in->get_y());
 	fadeout_title->reposition_window(fadeout_title->get_x(), fadeout_title->get_y());
 	fade_out->reposition_window(fade_out->get_x(), fade_out->get_y());
+	format_title->reposition_window(format_title->get_x(), format_title->get_y());
 	text_title->reposition_window(text_title->get_x(), text_title->get_y());
 #ifdef USE_OUTLINE
 	stroke_width->reposition_window(stroke_width->get_x(), stroke_width->get_y());
@@ -488,10 +484,10 @@ void TitleWindow::update()
 {
 	title_x->update((int64_t)client->config.x);
 	title_y->update((int64_t)client->config.y);
-	italic->update(client->config.style & FONT_ITALIC);
-	bold->update(client->config.style & FONT_BOLD);
+	italic->update(client->config.style & BC_FONT_ITALIC);
+	bold->update(client->config.style & BC_FONT_BOLD);
 #ifdef USE_OUTLINE
-	stroke->update(client->config.style & FONT_OUTLINE);
+	stroke->update(client->config.style & BC_FONT_OUTLINE);
 #endif
 	size->update(client->config.size);
 #ifndef X_HAVE_UTF8_STRING
@@ -604,7 +600,7 @@ int TitleSizeTumble::handle_down_event()
 }
 
 TitleBold::TitleBold(TitleMain *client, TitleWindow *window, int x, int y)
- : BC_CheckBox(x, y, client->config.style & FONT_BOLD, _("Bold"))
+ : BC_CheckBox(x, y, client->config.style & BC_FONT_BOLD, _("Bold"))
 {
 	this->client = client;
 	this->window = window;
@@ -612,20 +608,24 @@ TitleBold::TitleBold(TitleMain *client, TitleWindow *window, int x, int y)
 
 int TitleBold::handle_event()
 {
-	client->config.style = (client->config.style & ~FONT_BOLD) | (get_value() ? FONT_BOLD : 0);
+	client->config.style =
+		(client->config.style & ~BC_FONT_BOLD) |
+			(get_value() ? BC_FONT_BOLD : 0);
 	client->send_configure_change();
 	return 1;
 }
 
 TitleItalic::TitleItalic(TitleMain *client, TitleWindow *window, int x, int y)
- : BC_CheckBox(x, y, client->config.style & FONT_ITALIC, _("Italic"))
+ : BC_CheckBox(x, y, client->config.style & BC_FONT_ITALIC, _("Italic"))
 {
 	this->client = client;
 	this->window = window;
 }
 int TitleItalic::handle_event()
 {
-	client->config.style = (client->config.style & ~FONT_ITALIC) | (get_value() ? FONT_ITALIC : 0);
+	client->config.style =
+		(client->config.style & ~BC_FONT_ITALIC) |
+			(get_value() ? BC_FONT_ITALIC : 0);
 	client->send_configure_change();
 	return 1;
 }
@@ -817,6 +817,7 @@ int TitleText::handle_event()
 	int len =  sizeof(client->config.wtext) / sizeof(wchar_t);
 	wcsncpy(client->config.wtext, get_wtext(), len);
 	client->config.wtext[len-1] = 0;
+	client->config.wlen = wcslen(client->config.wtext);
 	client->send_configure_change();
 	return 1;
 }

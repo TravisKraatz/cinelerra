@@ -24,6 +24,12 @@
 
 class BC_FontEntry;
 
+
+// Style bitwise ORed
+#define BC_FONT_ITALIC    0x1
+#define BC_FONT_BOLD      0x2
+#define BC_FONT_OUTLINE   0x4
+
 // Bits in BC_FontEntry::style
 #define FL_WEIGHT_THIN          0x0000001
 #define FL_WEIGHT_EXTRALIGHT    0x0000002

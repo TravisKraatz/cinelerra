@@ -29,6 +29,7 @@
 #include "bcwindowbase.h"
 #include "colors.h"
 #include "bccmodels.h"
+#include "cstrdup.h"
 #include "fonts.h"
 #include "language.h"
 #include "vframe.h"
@@ -764,15 +765,350 @@ int BC_Resources::init_fontconfig(const char *search_path)
 	if( fontlist ) return 0;
 	fontlist = new ArrayList<BC_FontEntry*>;
 
+#define get_str(str,sep,ptr,cond) do { char *out = str; \
+  while( *ptr && !strchr(sep,*ptr) && (cond) ) *out++ = *ptr++; \
+  *out = 0; \
+} while(0)
+
+#define skip_str(sep,ptr) do { \
+  while( *ptr && strchr(sep,*ptr) ) *ptr++; \
+} while(0)
+
+	char find_command[BCTEXTLEN];
+	sprintf(find_command,
+		"find %s -name 'fonts.dir' -print -exec cat {} \\;",
+		search_path);
+	FILE *in = popen(find_command, "r");
+
+	FT_Library freetype_library = 0;
+//	FT_Face freetype_face = 0;
+//	FT_Init_FreeType(&freetype_library);
+
+	char current_dir[BCTEXTLEN];
+	current_dir[0] = 0;
+
+	while(!feof(in)) {
+		char string[BCTEXTLEN], string2[BCTEXTLEN];
+		(void)fgets(string, BCTEXTLEN, in);
+		if(!strlen(string)) break;
+
+		char *in_ptr = string;
+		char *out_ptr;
+
+// Get current directory
+		if(string[0] == '/') {
+			get_str(current_dir, "\n", in_ptr,1);
+			for( int i=strlen(current_dir); --i>=0 && current_dir[i]!='/'; )
+				current_dir[i] = 0;
+			continue;
+		}
+
+//printf("TitleMain::build_fonts %s\n", string);
+		BC_FontEntry *entry = new BC_FontEntry;
+// Path
+		get_str(string2, "\n", in_ptr, in_ptr[0]!=' ' || in_ptr[1]!='-');
+		entry->path = cstrcat(2, current_dir, string2);
+// Foundary
+		skip_str(" -", in_ptr);
+		get_str(string2, " -\n", in_ptr, 1);
+		if( !string2[0] ) { delete entry;  continue; }
+		entry->foundry = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+// Family
+		get_str(string2, "-\n", in_ptr, 1);
+		if( !string2[0] ) { delete entry;  continue; }
+		entry->family = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+// Weight
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->weight = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+// Slant
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->slant = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+// SWidth
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->swidth = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+// Adstyle
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->adstyle = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+// pixelsize
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->pixelsize = atol(string2);
+		if(*in_ptr == '-') in_ptr++;
+// pointsize
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->pointsize = atol(string2);
+		if(*in_ptr == '-') in_ptr++;
+// xres
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->xres = atol(string2);
+		if(*in_ptr == '-') in_ptr++;
+// yres
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->yres = atol(string2);
+		if(*in_ptr == '-') in_ptr++;
+// spacing
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->spacing = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+// avg_width
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->avg_width = atol(string2);
+		if(*in_ptr == '-') in_ptr++;
+// registry
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->registry = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+// encoding
+		get_str(string2, "-\n", in_ptr, 1);
+		entry->encoding = cstrdup(string2);
+		if(*in_ptr == '-') in_ptr++;
+
+// Add to list
+//printf("TitleMain::build_fonts 1 %s\n", entry->path);
+// This takes a real long time to do.  Instead just take all fonts
+// 		if(!load_freetype_face(freetype_library,
+// 			freetype_face, entry->path) )
+// Fix parameters
+		sprintf(string, "%s (%s)", entry->family, entry->foundry);
+		entry->displayname = cstrdup(string);
+
+		if(!strcasecmp(entry->weight, "demibold") ||
+		    !strcasecmp(entry->weight, "bold"))
+			entry->fixed_style |= BC_FONT_BOLD;
+		if(!strcasecmp(entry->slant, "i") ||
+		    !strcasecmp(entry->slant, "o"))
+			entry->fixed_style |= BC_FONT_ITALIC;
+		fontlist->append(entry);
+//		printf("TitleMain::build_fonts %s: success\n",	entry->path);
+//printf("TitleMain::build_fonts 2\n");
+	}
+	pclose(in);
+
+
+// Load all the fonts from fontconfig
+	FcPattern *pat;
+	FcFontSet *fs;
+	FcObjectSet *os;
+	FcChar8 *family, *file, *foundry, *style, *format;
+	int slant, spacing, width, weight;
+	int force_style = 0;
+	int limit_to_trutype = 0; // if you want limit search to TrueType put 1
+	FcConfig *config;
+	FcBool resultfc;
+	int i;
+	char tmpstring[BCTEXTLEN];
+	resultfc = FcInit();
+	config = FcConfigGetCurrent();
+	FcConfigSetRescanInterval(config, 0);
+
+	pat = FcPatternCreate();
+	os = FcObjectSetBuild ( FC_FAMILY, FC_FILE, FC_FOUNDRY, FC_WEIGHT,
+		FC_WIDTH, FC_SLANT, FC_FONTFORMAT, FC_SPACING, FC_STYLE, (char *) 0);
+	FcPatternAddBool(pat, FC_SCALABLE, true);
+
+	if(language[0]) {
+		char langstr[LEN_LANG * 3];
+		strcpy(langstr, language);
+
+		if(region[0]) {
+			strcat(langstr, "-");
+			strcat(langstr, region);
+		}
+
+		FcLangSet *ls =  FcLangSetCreate();
+		if(FcLangSetAdd(ls, (const FcChar8*)langstr))
+		if(FcPatternAddLangSet(pat, FC_LANG, ls))
+		FcLangSetDestroy(ls);
+	}
+
+	fs = FcFontList(config, pat, os);
+	FcPatternDestroy(pat);
+	FcObjectSetDestroy(os);
+
+	for (i = 0; fs && i < fs->nfont; i++) {
+		FcPattern *font = fs->fonts[i];
+		force_style = 0;
+		FcPatternGetString(font, FC_FONTFORMAT, 0, &format);
+		//on this point you can limit font search
+		if(!limit_to_trutype || !strcmp((char *)format, "TrueType"))
+			continue;
+
+		sprintf(tmpstring, "%s", format);
+		BC_FontEntry *entry = new BC_FontEntry;
+		if(FcPatternGetString(font, FC_FILE, 0, &file) == FcResultMatch) {
+			entry->path = cstrdup((char*)file);
+		}
+
+		if(FcPatternGetString(font, FC_FOUNDRY, 0, &foundry) == FcResultMatch) {
+			entry->foundry = cstrdup((char*)foundry);
+		}
+
+		if(FcPatternGetInteger(font, FC_WEIGHT, 0, &weight) == FcResultMatch) {
+			switch(weight) {
+			case FC_WEIGHT_THIN:
+			case FC_WEIGHT_EXTRALIGHT:
+			case FC_WEIGHT_LIGHT:
+			case FC_WEIGHT_BOOK:
+				force_style = 1;
+				entry->weight = cstrdup("medium");
+				break;
+
+			case FC_WEIGHT_NORMAL:
+			case FC_WEIGHT_MEDIUM:
+			default:
+				entry->weight = cstrdup("medium");
+				break;
+
+			case FC_WEIGHT_BLACK:
+			case FC_WEIGHT_SEMIBOLD:
+			case FC_WEIGHT_BOLD:
+				entry->weight = cstrdup("bold");
+				entry->fixed_style |= BC_FONT_BOLD;
+				break;
+
+			case FC_WEIGHT_EXTRABOLD:
+			case FC_WEIGHT_EXTRABLACK:
+				force_style = 1;
+				entry->weight = cstrdup("bold");
+				entry->fixed_style |= BC_FONT_BOLD;
+				break;
+			}
+		}
+
+		if(FcPatternGetString(font, FC_FAMILY, 0, &family) == FcResultMatch)
+			entry->family = cstrdup((char*)family);
+
+		if(FcPatternGetInteger(font, FC_SLANT, 0, &slant) == FcResultMatch) {
+			switch(slant) {
+			case FC_SLANT_ROMAN:
+			default:
+				entry->slant = cstrdup("r");
+				break;
+			case FC_SLANT_ITALIC:
+				entry->slant = cstrdup("i");
+				entry->fixed_style |= BC_FONT_ITALIC;
+				break;
+			case FC_SLANT_OBLIQUE:
+				entry->slant = cstrdup("o");
+				entry->fixed_style |= BC_FONT_ITALIC;
+				break;
+			}
+		}
+
+		if(FcPatternGetInteger(font, FC_WIDTH, 0, &width) == FcResultMatch) {
+			switch(width) {
+			case FC_WIDTH_ULTRACONDENSED:
+				entry->swidth = cstrdup("ultracondensed");
+				break;
+
+			case FC_WIDTH_EXTRACONDENSED:
+				entry->swidth = cstrdup("extracondensed");
+				break;
+
+			case FC_WIDTH_CONDENSED:
+				entry->swidth = cstrdup("condensed");
+				break;
+			case FC_WIDTH_SEMICONDENSED:
+				entry->swidth = cstrdup("semicondensed");
+				break;
+
+			case FC_WIDTH_NORMAL:
+			default:
+				entry->swidth = cstrdup("normal");
+				break;
+
+			case FC_WIDTH_SEMIEXPANDED:
+				entry->swidth = cstrdup("semiexpanded");
+				break;
+
+			case FC_WIDTH_EXPANDED:
+				entry->swidth = cstrdup("expanded");
+				break;
+
+			case FC_WIDTH_EXTRAEXPANDED:
+				entry->swidth = cstrdup("extraexpanded");
+				break;
+
+			case FC_WIDTH_ULTRAEXPANDED:
+				entry->swidth = cstrdup("ultraexpanded");
+				break;
+			}
+		}
+
+		if(FcPatternGetInteger(font, FC_SPACING, 0, &spacing) == FcResultMatch) {
+			switch(spacing) {
+			case 0:
+			default:
+				entry->spacing = cstrdup("p");
+				break;
+
+			case 90:
+				entry->spacing = cstrdup("d");
+				break;
+
+			case 100:
+				entry->spacing = cstrdup("m");
+				break;
+
+			case 110:
+				entry->spacing = cstrdup("c");
+				break;
+			}
+		}
+
+		// Add fake stuff for compatibility
+		entry->adstyle = cstrdup(" ");
+		entry->pixelsize = 0;
+		entry->pointsize = 0;
+		entry->xres = 0;
+		entry->yres = 0;
+		entry->avg_width = 0;
+		entry->registry = cstrdup("utf");
+		entry->encoding = cstrdup("8");
+
+		if(!FcPatternGetString(font, FC_STYLE, 0, &style) == FcResultMatch)
+			force_style = 0;
+
+		// If font has a style unmanaged by titler plugin, force style to be displayed on name
+		// in this way we can shown all available fonts styles.
+		if(force_style) {
+			sprintf(tmpstring, "%s (%s)", entry->family, style);
+			entry->displayname = cstrdup(tmpstring);
+		}
+		else {
+			if(strcmp(entry->foundry, "unknown")) {
+				sprintf(tmpstring, "%s (%s)", entry->family, entry->foundry);
+				entry->displayname = cstrdup(tmpstring);
+			}
+			else {
+				sprintf(tmpstring, "%s", entry->family);
+				entry->displayname = cstrdup(tmpstring);
+			}
+
+		}
+		fontlist->append(entry);
+	}
+
+	FcFontSetDestroy(fs);
+	if(freetype_library)
+		FT_Done_FreeType(freetype_library);
+// for(int i = 0; i < fonts->total; i++)
+//	fonts->values[i]->dump();
+
 	if(!FcInit())
 		return 1;
 
 	FcConfigAppFontAddDir(0, (const FcChar8*)search_path);
 	FcConfigSetRescanInterval(0, 0);
-	FcPattern *pat = FcPatternCreate();
-	FcObjectSet *os = FcObjectSetBuild(FC_FAMILY, FC_FILE, FC_FOUNDRY, FC_WEIGHT,
-		FC_WIDTH, FC_SLANT, FC_SPACING, FC_STYLE, (char *)0);
 
+	os = FcObjectSetBuild(FC_FAMILY, FC_FILE, FC_FOUNDRY, FC_WEIGHT,
+		FC_WIDTH, FC_SLANT, FC_SPACING, FC_STYLE, (char *)0);
+	pat = FcPatternCreate();
 	FcPatternAddBool(pat, FC_SCALABLE, true);
 
 	if(language[0])
@@ -792,7 +1128,7 @@ int BC_Resources::init_fontconfig(const char *search_path)
 		FcLangSetDestroy(ls);
 	}
 
-	FcFontSet *fs = FcFontList(0, pat, os);
+	fs = FcFontList(0, pat, os);
 	FcPatternDestroy(pat);
 	FcObjectSetDestroy(os);
 

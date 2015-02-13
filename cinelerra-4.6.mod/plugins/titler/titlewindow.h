@@ -113,6 +113,7 @@ public:
 	TitleFade *fade_in;
 	BC_Title *fadeout_title;
 	TitleFade *fade_out;
+	BC_Title *format_title;
 	BC_Title *text_title;
 	TitleText *text;
 	BC_Title *justify_title;
