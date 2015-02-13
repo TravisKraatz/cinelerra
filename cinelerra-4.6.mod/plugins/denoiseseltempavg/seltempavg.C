@@ -186,7 +186,7 @@ int SelTempAvgMain::process_buffer(VFrame *frame,
 // Create new frames
 				for( ; i < config.frames; i++)
 				{
-					history2[i] = new VFrame(0, -1, w, h, color_model, -1);
+					history2[i] = new VFrame(w, h, color_model);
 					history_frame2[i] = -0x7fffffff;
 					history_valid2[i] = 0;
 				}
@@ -203,7 +203,7 @@ int SelTempAvgMain::process_buffer(VFrame *frame,
 		{
 			history = new VFrame*[config.frames];
 			for(int i = 0; i < config.frames; i++)
-				history[i] = new VFrame(0, -1, w, h, color_model, -1);
+				history[i] = new VFrame(w, h, color_model);
 			history_size = config.frames;
 			history_frame = new int64_t[config.frames];
 			bzero(history_frame, sizeof(int64_t) * config.frames);

@@ -177,9 +177,12 @@ public:
 	int ccanvas_x, ccanvas_y, ccanvas_w, ccanvas_h;
 	int ccomposite_x, ccomposite_y, ccomposite_w, ccomposite_h;
 	int cstatus_x, cstatus_y;
+	int cdest_x, cdest_y;
 	int cedit_x, cedit_y;
 	int channel_position_color;
 	int cmeter_x, cmeter_y, cmeter_h;
+	int cslider_x, cslider_y, cslider_w;
+	int ctime_x, ctime_y;
 	int ctimebar_x, ctimebar_y, ctimebar_w, ctimebar_h;
 	int timebar_cursor_color;
 	int ctransport_x, ctransport_y;
@@ -281,14 +284,17 @@ public:
 	int setformat_channels_x, setformat_channels_y, setformat_channels_w, setformat_channels_h;
 	int title_h;
 	int title_font, title_color;
+	int edit_font_color;
 	int vcanvas_x, vcanvas_y, vcanvas_w, vcanvas_h;
 	int vedit_x, vedit_y;
 	int vmeter_x, vmeter_y, vmeter_h;
 	int vslider_x, vslider_y, vslider_w;
+	int vsource_x, vsource_y;
 	int vtimebar_x, vtimebar_y, vtimebar_w, vtimebar_h;
 	int vtime_x, vtime_y, vtime_w;
 	int vdivision_x;
 	int vtransport_x, vtransport_y;
+	int vzoom_x, vzoom_y;
 	int window_border;
 	int widget_border;
 	int clock_bg_color;
@@ -307,6 +313,7 @@ public:
 	VFrame *camerakeyframe_data;
 	VFrame **cancel_data;
 	VFrame **chain_data;
+	VFrame *channel_bg_data;
 	VFrame *channel_position_data;
 	VFrame **delete_all_indexes_data;
 	VFrame **deletebin_data;

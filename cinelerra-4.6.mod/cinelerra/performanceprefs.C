@@ -95,9 +95,14 @@ void PerformancePrefs::create_objects()
 	int x1 = force_1cpu->get_x() + force_1cpu->get_w() + 50;
 	int y1 = force_1cpu->get_y();
 
-	add_subwindow(new PrefsTrapSigSEGV(pwindow, x1, y1));
+	PrefsTrapSigSEGV *trap_segv = new PrefsTrapSigSEGV(pwindow, x1, y1);
+	add_subwindow(trap_segv);
+	int x2 = x1 + trap_segv->get_w() + 10;
+	add_subwindow(new BC_Title(x2, y1, _("(must be root)"), MEDIUMFONT, RED));
 	y1 += 30;
-	add_subwindow(new PrefsTrapSigINTR(pwindow, x1, y1));
+	PrefsTrapSigINTR *trap_intr = new PrefsTrapSigINTR(pwindow, x1, y1);
+	add_subwindow(trap_intr);
+	add_subwindow(new BC_Title(x2, y1, _("(must be root)"), MEDIUMFONT, RED));
 	y += 30;
 	add_subwindow(new PrefsFileForking(pwindow, x, y));
 

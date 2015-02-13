@@ -19,7 +19,7 @@
  * 
  */
 
-#include "1080to540.h"
+#include "1080to480.h"
 #include "clip.h"
 #include "bchash.h"
 #include "filexml.h"
@@ -39,28 +39,28 @@
 #include <string.h>
 
 
-REGISTER_PLUGIN(_1080to540Main)
+REGISTER_PLUGIN(_1080to480Main)
 
 
 
 
-_1080to540Config::_1080to540Config()
+_1080to480Config::_1080to480Config()
 {
 	first_field = 0;
 }
 
-int _1080to540Config::equivalent(_1080to540Config &that)
+int _1080to480Config::equivalent(_1080to480Config &that)
 {
 	return first_field == that.first_field;
 }
 
-void _1080to540Config::copy_from(_1080to540Config &that)
+void _1080to480Config::copy_from(_1080to480Config &that)
 {
 	first_field = that.first_field;
 }
 
-void _1080to540Config::interpolate(_1080to540Config &prev, 
-	_1080to540Config &next, 
+void _1080to480Config::interpolate(_1080to480Config &prev, 
+	_1080to480Config &next, 
 	long prev_frame, 
 	long next_frame, 
 	long current_frame)
@@ -72,42 +72,30 @@ void _1080to540Config::interpolate(_1080to540Config &prev,
 
 
 
-_1080to540Window::_1080to540Window(_1080to540Main *client, int x, int y)
- : BC_Window(client->gui_string, 
- 	x, 
-	y, 
-	200, 
-	100, 
-	200, 
-	100, 
-	0, 
-	0,
-	1)
+_1080to480Window::_1080to480Window(_1080to480Main *client)
+ : PluginClientWindow(client, 200, 100, 0, 0, 1)
 { 
 	this->client = client; 
 }
 
 
-_1080to540Window::~_1080to540Window()
+_1080to480Window::~_1080to480Window()
 {
 }
 
-int _1080to540Window::create_objects()
+void _1080to480Window::create_objects()
 {
 	int x = 10, y = 10;
 
-	add_tool(odd_first = new _1080to540Option(client, this, 1, x, y, _("Odd field first")));
+	add_tool(odd_first = new _1080to480Option(client, this, 1, x, y, _("Odd field first")));
 	y += 25;
-	add_tool(even_first = new _1080to540Option(client, this, 0, x, y, _("Even field first")));
+	add_tool(even_first = new _1080to480Option(client, this, 0, x, y, _("Even field first")));
 
 	show_window();
 	flush();
-	return 0;
 }
 
-WINDOW_CLOSE_EVENT(_1080to540Window)
-
-int _1080to540Window::set_first_field(int first_field, int send_event)
+int _1080to480Window::set_first_field(int first_field, int send_event)
 {
 	odd_first->update(first_field == 1);
 	even_first->update(first_field == 0);
@@ -124,8 +112,8 @@ int _1080to540Window::set_first_field(int first_field, int send_event)
 
 
 
-_1080to540Option::_1080to540Option(_1080to540Main *client, 
-		_1080to540Window *window, 
+_1080to480Option::_1080to480Option(_1080to480Main *client, 
+		_1080to480Window *window, 
 		int output, 
 		int x, 
 		int y, 
@@ -140,7 +128,7 @@ _1080to540Option::_1080to540Option(_1080to540Main *client,
 	this->output = output;
 }
 
-int _1080to540Option::handle_event()
+int _1080to480Option::handle_event()
 {
 	window->set_first_field(output, 1);
 	return 1;
@@ -155,32 +143,32 @@ int _1080to540Option::handle_event()
 
 
 
-_1080to540Main::_1080to540Main(PluginServer *server)
+_1080to480Main::_1080to480Main(PluginServer *server)
  : PluginVClient(server)
 {
 	
 	temp = 0;
 }
 
-_1080to540Main::~_1080to540Main()
+_1080to480Main::~_1080to480Main()
 {
 	
 	if(temp) delete temp;
 }
 
-char* _1080to540Main::plugin_title() { return N_("1080 to 540"); }
-int _1080to540Main::is_realtime() { return 1; }
+const char* _1080to480Main::plugin_title() { return N_("1080 to 480"); }
+int _1080to480Main::is_realtime() { return 1; }
 
-NEW_WINDOW_MACRO(_1080to540Main, _1080to540Window)
-NEW_PICON_MACRO(_1080to540Main)
-LOAD_CONFIGURATION_MACRO(_1080to540Main, _1080to540Config)
+NEW_WINDOW_MACRO(_1080to480Main, _1080to480Window)
+NEW_PICON_MACRO(_1080to480Main)
+LOAD_CONFIGURATION_MACRO(_1080to480Main, _1080to480Config)
 
 
 #define TEMP_W 854
-#define TEMP_H 540
+#define TEMP_H 480
 #define OUT_ROWS 270
 
-void _1080to540Main::reduce_field(VFrame *output, VFrame *input, int src_field, int dst_field)
+void _1080to480Main::reduce_field(VFrame *output, VFrame *input, int src_field, int dst_field)
 {
 	int w = input->get_w();
 	int h = input->get_h();
@@ -246,15 +234,12 @@ for(int i = 0; i < OUT_ROWS; i++) \
 
 }
 
-int _1080to540Main::process_realtime(VFrame *input, VFrame *output)
+int _1080to480Main::process_realtime(VFrame *input, VFrame *output)
 {
 	load_configuration();
 	if(!temp)
 	{
-		temp = new VFrame(0,
-			input->get_w(),
-			input->get_h(),
-			input->get_color_model());
+		temp = new VFrame(input->get_w(), input->get_h(), input->get_color_model());
 		temp->clear_frame();
 	}
 
@@ -267,38 +252,39 @@ int _1080to540Main::process_realtime(VFrame *input, VFrame *output)
 }
 
 
-void _1080to540Main::save_data(KeyFrame *keyframe)
+void _1080to480Main::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
 	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
-	output.tag.set_title("1080TO540");
+	output.tag.set_title("1080TO480");
 	output.tag.set_property("FIRST_FIELD", config.first_field);
 	output.append_tag();
 	output.terminate_string();
 }
 
-void _1080to540Main::read_data(KeyFrame *keyframe)
+void _1080to480Main::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
 	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
 
 	while(!input.read_tag())
 	{
-		if(input.tag.title_is("1080TO540"))
+		if(input.tag.title_is("1080TO480"))
 		{
 			config.first_field = input.tag.get_property("FIRST_FIELD", config.first_field);
 		}
 	}
 }
 
-void _1080to540Main::update_gui()
+void _1080to480Main::update_gui()
 {
 	if(thread) 
 	{
 		load_configuration();
-		thread->window->lock_window();
-		thread->window->set_first_field(config.first_field, 0);
-		thread->window->unlock_window();
+		_1080to480Window *window = (_1080to480Window *)thread->window;
+		window->lock_window();
+		window->set_first_field(config.first_field, 0);
+		window->unlock_window();
 	}
 }
 

@@ -46,9 +46,6 @@ REGISTER_PLUGIN(DenoiseMJPEG)
 
 
 
-
-
-
 DenoiseMJPEGConfig::DenoiseMJPEGConfig()
 {
 	radius = 8;
@@ -363,17 +360,8 @@ int DenoiseMJPEGDelay::handle_event()
 
 
 
-DenoiseMJPEGWindow::DenoiseMJPEGWindow(DenoiseMJPEG *plugin, int x, int y)
- : BC_Window(plugin->gui_string, 
- 	x, 
-	y, 
-	250, 
-	350, 
-	250, 
-	350, 
-	0, 
-	0,
-	1)
+DenoiseMJPEGWindow::DenoiseMJPEGWindow(DenoiseMJPEG *plugin)
+ : PluginClientWindow(plugin, 250, 350, 0, 0, 1)
 {
 	this->plugin = plugin;
 }
@@ -443,20 +431,6 @@ int DenoiseMJPEGWindow::close_event()
 
 
 
-
-
-PLUGIN_THREAD_OBJECT(DenoiseMJPEG, DenoiseMJPEGThread, DenoiseMJPEGWindow)
-
-
-
-
-
-
-
-
-
-
-
 DenoiseMJPEG::DenoiseMJPEG(PluginServer *server)
  : PluginVClient(server)
 {
@@ -478,34 +452,25 @@ int DenoiseMJPEG::process_realtime(VFrame *input, VFrame *output)
 
 }
 
-char* DenoiseMJPEG::plugin_title() { return N_("Denoise video2"); }
+const char* DenoiseMJPEG::plugin_title() { return N_("Denoise video2"); }
 int DenoiseMJPEG::is_realtime() { return 1; }
-
-VFrame* DenoiseMJPEG::new_picon()
-{
-	return new VFrame(picon_png);
-}
-
-SHOW_GUI_MACRO(DenoiseMJPEG, DenoiseMJPEGThread)
-
-RAISE_WINDOW_MACRO(DenoiseMJPEG)
 
 void DenoiseMJPEG::update_gui()
 {
 	if(thread) 
 	{
 		load_configuration();
-		thread->window->lock_window();
-		thread->window->delay->update(config.delay);
-		thread->window->threshold1->update(config.threshold);
-		thread->window->unlock_window();
+		DenoiseMJPEGWindow *window = (DenoiseMJPEGWindow *)thread->window;
+		window->lock_window();
+		window->delay->update(config.delay);
+		window->threshold1->update(config.threshold);
+		window->unlock_window();
 	}
 }
 
 
-
-SET_STRING_MACRO(DenoiseMJPEG);
-
+NEW_PICON_MACRO(DenoiseMJPEG)
+NEW_WINDOW_MACRO(DenoiseMJPEG, DenoiseMJPEGWindow)
 LOAD_CONFIGURATION_MACRO(DenoiseMJPEG, DenoiseMJPEGConfig)
 
 

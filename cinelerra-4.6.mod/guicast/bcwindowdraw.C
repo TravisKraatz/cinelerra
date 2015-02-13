@@ -1053,12 +1053,12 @@ void BC_WindowBase::draw_vframe(VFrame *frame,
 		dest_w,
 		dest_h,
 		get_color_model(),
-		1);
+		0);
 
 	temp_bitmap->match_params(dest_w,
 		dest_h,
 		get_color_model(),
-		1);
+		0);
 
 	temp_bitmap->read_frame(frame,
 		src_x,

@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcdisplayinfo.h"
@@ -41,13 +41,14 @@ public:
 	void boundaries();
 	int equivalent(ReframeRTConfig &src);
 	void copy_from(ReframeRTConfig &src);
-	void interpolate(ReframeRTConfig &prev, 
-		ReframeRTConfig &next, 
-		int64_t prev_frame, 
-		int64_t next_frame, 
+	void interpolate(ReframeRTConfig &prev,
+		ReframeRTConfig &next,
+		int64_t prev_frame,
+		int64_t next_frame,
 		int64_t current_frame);
 	double scale;
 	int stretch;
+	int interp;
 	int optic_flow;
 };
 
@@ -87,6 +88,18 @@ public:
 	ReframeRTWindow *gui;
 };
 
+class ReframeRTInterpolate : public BC_CheckBox
+{
+public:
+	ReframeRTInterpolate(ReframeRT *plugin,
+		ReframeRTWindow *gui,
+		int x,
+		int y);
+	int handle_event();
+	ReframeRT *plugin;
+	ReframeRTWindow *gui;
+};
+
 class ReframeRTWindow : public PluginClientWindow
 {
 public:
@@ -97,6 +110,7 @@ public:
 	ReframeRTScale *scale;
 	ReframeRTStretch *stretch;
 	ReframeRTDownsample *downsample;
+	ReframeRTInterpolate *interpolate;
 };
 
 
@@ -108,6 +122,8 @@ public:
 
 	PLUGIN_CLASS_MEMBERS(ReframeRTConfig)
 
+	int load_defaults();
+	int save_defaults();
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);
 	void update_gui();
@@ -132,33 +148,43 @@ ReframeRTConfig::ReframeRTConfig()
 {
 	scale = 1.0;
 	stretch = 0;
+	interp = 0;
 	optic_flow = 1;
 }
 
 int ReframeRTConfig::equivalent(ReframeRTConfig &src)
 {
 	return fabs(scale - src.scale) < 0.0001 &&
-		stretch == src.stretch;
+		stretch == src.stretch &&
+		interp == src.interp;
 }
 
 void ReframeRTConfig::copy_from(ReframeRTConfig &src)
 {
 	this->scale = src.scale;
 	this->stretch = src.stretch;
+	this->interp = src.interp;
 }
 
-void ReframeRTConfig::interpolate(ReframeRTConfig &prev, 
-	ReframeRTConfig &next, 
-	int64_t prev_frame, 
-	int64_t next_frame, 
+void ReframeRTConfig::interpolate(ReframeRTConfig &prev,
+	ReframeRTConfig &next,
+	int64_t prev_frame,
+	int64_t next_frame,
 	int64_t current_frame)
 {
-//	double next_scale = (double)(current_frame - prev_frame) / (next_frame - prev_frame);
-//	double prev_scale = (double)(next_frame - current_frame) / (next_frame - prev_frame);
-
-//	this->scale = prev.scale * prev_scale + next.scale * next_scale;
-	this->scale = prev.scale;
+	this->interp = prev.interp;
 	this->stretch = prev.stretch;
+
+	if (this->interp && prev_frame != next_frame)
+	{
+		// for interpolation, this is (for now) a simple linear slope to the next keyframe.
+		double slope = (next.scale - prev.scale) / (next_frame - prev_frame);
+		this->scale = (slope * (current_frame - prev_frame)) + prev.scale;
+	}
+	else
+	{
+		this->scale = prev.scale;
+	}
 }
 
 void ReframeRTConfig::boundaries()
@@ -174,11 +200,11 @@ void ReframeRTConfig::boundaries()
 
 
 ReframeRTWindow::ReframeRTWindow(ReframeRT *plugin)
- : PluginClientWindow(plugin, 
-	210, 
-	160, 
-	200, 
-	160, 
+ : PluginClientWindow(plugin,
+	210,
+	160,
+	200,
+	160,
 	0)
 {
 	this->plugin = plugin;
@@ -194,21 +220,26 @@ void ReframeRTWindow::create_objects()
 	BC_Title *title;
 	add_subwindow(title = new BC_Title(x, y, _("Scale by amount:")));
 	y += title->get_h() + plugin->get_theme()->widget_border;
-	scale = new ReframeRTScale(plugin, 
+	scale = new ReframeRTScale(plugin,
 		this,
-		x, 
+		x,
 		y);
 	scale->create_objects();
 	scale->set_increment(0.1);
 	y += 30;
-	add_subwindow(stretch = new ReframeRTStretch(plugin, 
+	add_subwindow(stretch = new ReframeRTStretch(plugin,
 		this,
-		x, 
+		x,
 		y));
 	y += 30;
-	add_subwindow(downsample = new ReframeRTDownsample(plugin, 
+	add_subwindow(downsample = new ReframeRTDownsample(plugin,
 		this,
-		x, 
+		x,
+		y));
+	y += 30;
+	add_subwindow(interpolate = new ReframeRTInterpolate(plugin,
+		this,
+		x,
 		y));
 	show_window();
 	flush();
@@ -221,16 +252,16 @@ void ReframeRTWindow::create_objects()
 
 
 
-ReframeRTScale::ReframeRTScale(ReframeRT *plugin, 
+ReframeRTScale::ReframeRTScale(ReframeRT *plugin,
 	ReframeRTWindow *gui,
-	int x, 
+	int x,
 	int y)
  : BC_TumbleTextBox(gui,
  	(float)plugin->config.scale,
 	(float)-1000,
 	(float)1000,
- 	x, 
-	y, 
+ 	x,
+	y,
 	100)
 {
 	this->plugin = plugin;
@@ -281,21 +312,32 @@ int ReframeRTDownsample::handle_event()
 	return 1;
 }
 
+ReframeRTInterpolate::ReframeRTInterpolate(ReframeRT *plugin,
+	ReframeRTWindow *gui,
+	int x,
+	int y)
+ : BC_CheckBox(x, y, 0, _("Interpolate"))
+{
+	this->plugin = plugin;
+	this->gui = gui;
+}
 
-
-
-
+int ReframeRTInterpolate::handle_event()
+{
+	plugin->config.interp = get_value();
+	gui->interpolate->update(get_value());
+	plugin->send_configure_change();
+	return 1;
+}
 
 ReframeRT::ReframeRT(PluginServer *server)
  : PluginVClient(server)
 {
-	
 }
-
 
 ReframeRT::~ReframeRT()
 {
-	
+
 }
 
 const char* ReframeRT::plugin_title() { return N_("ReframeRT"); }
@@ -303,10 +345,9 @@ int ReframeRT::is_realtime() { return 1; }
 int ReframeRT::is_synthesis() { return 1; }
 
 #include "picon_png.h"
+
 NEW_PICON_MACRO(ReframeRT)
-
 NEW_WINDOW_MACRO(ReframeRT, ReframeRTWindow)
-
 LOAD_CONFIGURATION_MACRO(ReframeRT, ReframeRTConfig)
 
 int ReframeRT::process_buffer(VFrame *frame,
@@ -314,6 +355,7 @@ int ReframeRT::process_buffer(VFrame *frame,
 		double frame_rate)
 {
 	int64_t input_frame = get_source_start();
+	ReframeRTConfig prev_config, next_config;
 	KeyFrame *tmp_keyframe, *next_keyframe = get_prev_keyframe(get_source_start());
 	int64_t tmp_position, next_position;
 	int64_t segment_len;
@@ -337,29 +379,35 @@ int ReframeRT::process_buffer(VFrame *frame,
 		tmp_position = edl_to_local(tmp_keyframe->position);
 		next_position = edl_to_local(next_keyframe->position);
 
-		read_data(tmp_keyframe);
-
 		is_current_keyframe =
 			next_position > start_position // the next keyframe is after the current position
 			|| next_keyframe->position == tmp_keyframe->position // there are no more keyframes
 			|| !next_keyframe->position; // there are no keyframes at all
 
 		if (is_current_keyframe)
-			next_position = start_position;
+			segment_len = start_position - tmp_position;
+		else
+			segment_len = next_position - tmp_position;
 
-		segment_len = next_position - tmp_position;
+		read_data(next_keyframe);
+		next_config.copy_from(config);
+		read_data(tmp_keyframe);
+		prev_config.copy_from(config);
+		config.interpolate(prev_config, next_config, tmp_position, next_position, tmp_position + segment_len);
 
-		input_frame += (int64_t)(segment_len * config.scale);
+		// the area under the curve is the number of frames to advance
+		// as long as interpolate() uses a linear slope we can use geometry to determine this
+		// if interpolate() changes to use a curve then this needs use (possibly) the definite integral
+		input_frame += (int64_t)(segment_len * ((prev_config.scale + config.scale) / 2));
 	} while (!is_current_keyframe);
 
 // Change rate
-// Don't think this is what you want for downsampling.
 	if (!config.stretch)
 		input_rate *= config.scale;
 
-// printf("ReframeRT::process_buffer %d %lld %f %lld %f\n", 
-// __LINE__, 
-// start_position, 
+// printf("ReframeRT::process_buffer %d %lld %f %lld %f\n",
+// __LINE__,
+// start_position,
 // frame_rate,
 // input_frame,
 // input_rate);
@@ -376,6 +424,32 @@ int ReframeRT::process_buffer(VFrame *frame,
 
 
 
+int ReframeRT::load_defaults()
+{
+	char directory[BCTEXTLEN];
+// set the default directory
+	sprintf(directory, "%sreframert.rc", BCASTDIR);
+
+// load the defaults
+	defaults = new BC_Hash(directory);
+	defaults->load();
+
+	config.scale = defaults->get("SCALE", config.scale);
+	config.stretch = defaults->get("STRETCH", config.stretch);
+	config.interp = defaults->get("INTERPOLATE", config.interp);
+	return 0;
+}
+
+int ReframeRT::save_defaults()
+{
+	defaults->update("SCALE", config.scale);
+	defaults->update("STRETCH", config.stretch);
+	defaults->update("INTERPOLATE", config.interp);
+	defaults->save();
+	return 0;
+}
+
+
 
 
 void ReframeRT::save_data(KeyFrame *keyframe)
@@ -387,6 +461,7 @@ void ReframeRT::save_data(KeyFrame *keyframe)
 	output.tag.set_title("REFRAMERT");
 	output.tag.set_property("SCALE", config.scale);
 	output.tag.set_property("STRETCH", config.stretch);
+	output.tag.set_property("INTERPOLATE", config.interp);
 	output.append_tag();
 	output.terminate_string();
 }
@@ -403,6 +478,7 @@ void ReframeRT::read_data(KeyFrame *keyframe)
 		{
 			config.scale = input.tag.get_property("SCALE", config.scale);
 			config.stretch = input.tag.get_property("STRETCH", config.stretch);
+			config.interp = input.tag.get_property("INTERPOLATE", config.interp);
 		}
 	}
 }
@@ -415,11 +491,13 @@ void ReframeRT::update_gui()
 
 		if(changed)
 		{
-			thread->window->lock_window("ReframeRT::update_gui");
-			((ReframeRTWindow*)thread->window)->scale->update((float)config.scale);
-			((ReframeRTWindow*)thread->window)->stretch->update(config.stretch);
-			((ReframeRTWindow*)thread->window)->downsample->update(!config.stretch);
-			thread->window->unlock_window();
+			ReframeRTWindow* window = (ReframeRTWindow*)thread->window;
+			window->lock_window("ReframeRT::update_gui");
+			window->scale->update((float)config.scale);
+			window->stretch->update(config.stretch);
+			window->downsample->update(!config.stretch);
+			window->interpolate->update(config.interp);
+			window->unlock_window();
 		}
 	}
 }

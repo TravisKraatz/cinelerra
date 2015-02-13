@@ -28,7 +28,7 @@
 AudioOutConfig::AudioOutConfig()
 {
 	fragment_size = 16384;
-	driver = AUDIO_OSS;
+	driver = AUDIO_ALSA;
 
 	audio_offset = 0.0;
 	map51_2 = 0;

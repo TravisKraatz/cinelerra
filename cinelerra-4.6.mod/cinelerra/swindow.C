@@ -695,7 +695,7 @@ ScriptEntry::ScriptEntry(SWindowGUI *gui, int x, int y, int w, int rows, char *t
 }
 
 ScriptEntry::ScriptEntry(SWindowGUI *gui, int x, int y, int w, int rows)
- : BC_ScrollTextBox(gui, x, y, w, rows, 0, BCTEXTLEN)
+ : BC_ScrollTextBox(gui, x, y, w, rows,(char*)0, BCTEXTLEN)
 {
 	this->sw_gui = gui;
 	this->ttext = 0;

@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcdisplayinfo.h"
@@ -74,7 +74,7 @@ class OverlayMode : public BC_PopupMenu
 {
 public:
 	OverlayMode(Overlay *plugin,
-		int x, 
+		int x,
 		int y);
 	void create_objects();
 	int handle_event();
@@ -85,7 +85,7 @@ class OverlayDirection : public BC_PopupMenu
 {
 public:
 	OverlayDirection(Overlay *plugin,
-		int x, 
+		int x,
 		int y);
 	void create_objects();
 	int handle_event();
@@ -96,7 +96,7 @@ class OverlayOutput : public BC_PopupMenu
 {
 public:
 	OverlayOutput(Overlay *plugin,
-		int x, 
+		int x,
 		int y);
 	void create_objects();
 	int handle_event();
@@ -243,11 +243,11 @@ const char* OverlayConfig::output_to_text(int output_layer)
 
 
 OverlayWindow::OverlayWindow(Overlay *plugin)
- : PluginClientWindow(plugin, 
-	300, 
-	160, 
-	300, 
-	160, 
+ : PluginClientWindow(plugin,
+	300,
+	160,
+	300,
+	160,
 	0)
 {
 	this->plugin = plugin;
@@ -263,22 +263,22 @@ void OverlayWindow::create_objects()
 
 	BC_Title *title;
 	add_subwindow(title = new BC_Title(x, y, _("Mode:")));
-	add_subwindow(mode = new OverlayMode(plugin, 
-		x + title->get_w() + 5, 
+	add_subwindow(mode = new OverlayMode(plugin,
+		x + title->get_w() + 5,
 		y));
 	mode->create_objects();
 
 	y += 30;
 	add_subwindow(title = new BC_Title(x, y, _("Layer order:")));
-	add_subwindow(direction = new OverlayDirection(plugin, 
-		x + title->get_w() + 5, 
+	add_subwindow(direction = new OverlayDirection(plugin,
+		x + title->get_w() + 5,
 		y));
 	direction->create_objects();
 
 	y += 30;
 	add_subwindow(title = new BC_Title(x, y, _("Output layer:")));
-	add_subwindow(output = new OverlayOutput(plugin, 
-		x + title->get_w() + 5, 
+	add_subwindow(output = new OverlayOutput(plugin,
+		x + title->get_w() + 5,
 		y));
 	output->create_objects();
 
@@ -293,7 +293,7 @@ void OverlayWindow::create_objects()
 
 
 OverlayMode::OverlayMode(Overlay *plugin,
-	int x, 
+	int x,
 	int y)
  : BC_PopupMenu(x,
  	y,
@@ -329,7 +329,7 @@ int OverlayMode::handle_event()
 
 
 OverlayDirection::OverlayDirection(Overlay *plugin,
-	int x, 
+	int x,
 	int y)
  : BC_PopupMenu(x,
  	y,
@@ -354,12 +354,12 @@ int OverlayDirection::handle_event()
 {
 	char *text = get_text();
 
-	if(!strcmp(text, 
+	if(!strcmp(text,
 		OverlayConfig::direction_to_text(
 			OverlayConfig::TOP_FIRST)))
 		plugin->config.direction = OverlayConfig::TOP_FIRST;
 	else
-	if(!strcmp(text, 
+	if(!strcmp(text,
 		OverlayConfig::direction_to_text(
 			OverlayConfig::BOTTOM_FIRST)))
 		plugin->config.direction = OverlayConfig::BOTTOM_FIRST;
@@ -370,7 +370,7 @@ int OverlayDirection::handle_event()
 
 
 OverlayOutput::OverlayOutput(Overlay *plugin,
-	int x, 
+	int x,
 	int y)
  : BC_PopupMenu(x,
  	y,
@@ -395,13 +395,13 @@ int OverlayOutput::handle_event()
 {
 	char *text = get_text();
 
-	if(!strcmp(text, 
-		OverlayConfig::direction_to_text(
+	if(!strcmp(text,
+		OverlayConfig::output_to_text(
 			OverlayConfig::TOP)))
 		plugin->config.output_layer = OverlayConfig::TOP;
 	else
-	if(!strcmp(text, 
-		OverlayConfig::direction_to_text(
+	if(!strcmp(text,
+		OverlayConfig::output_to_text(
 			OverlayConfig::BOTTOM)))
 		plugin->config.output_layer = OverlayConfig::BOTTOM;
 
@@ -438,7 +438,7 @@ REGISTER_PLUGIN(Overlay)
 Overlay::Overlay(PluginServer *server)
  : PluginVClient(server)
 {
-	
+
 	overlayer = 0;
 	temp = 0;
 }
@@ -446,7 +446,7 @@ Overlay::Overlay(PluginServer *server)
 
 Overlay::~Overlay()
 {
-	
+
 	if(overlayer) delete overlayer;
 	if(temp) delete temp;
 }
@@ -500,8 +500,8 @@ printf("Overlay::process_buffer mode=%d\n", config.mode);
 
 // Direct copy the first layer
 	output = frame[output_layer];
-	read_frame(output, 
-		input_layer1, 
+	read_frame(output,
+		input_layer1,
 		start_position,
 		frame_rate,
 		get_use_opengl());
@@ -511,19 +511,19 @@ printf("Overlay::process_buffer mode=%d\n", config.mode);
 
 
 	current_layer = input_layer1;
-	if(get_use_opengl()) 
+	if(get_use_opengl())
 		run_opengl();
 
 	for(int i = input_layer1 + step; i != input_layer2; i += step)
 	{
-		read_frame(temp, 
-			i, 
+		read_frame(temp,
+			i,
 			start_position,
 			frame_rate,
 			get_use_opengl());
 
 // Call the opengl handler once for each layer
-		if(get_use_opengl()) 
+		if(get_use_opengl())
 		{
 			current_layer = i;
 			run_opengl();
@@ -553,7 +553,7 @@ printf("Overlay::process_buffer mode=%d\n", config.mode);
 int Overlay::handle_opengl()
 {
 #ifdef HAVE_GL
-	static const char *get_pixels_frag = 
+	static const char *get_pixels_frag =
 		"uniform sampler2D src_tex;\n"
 		"uniform sampler2D dst_tex;\n"
 		"uniform vec2 dst_tex_dimensions;\n"
@@ -566,34 +566,34 @@ int Overlay::handle_opengl()
 		"	src_color.rgb -= chroma_offset;\n"
 		"	dst_color.rgb -= chroma_offset;\n";
 
-	static const char *put_pixels_frag = 
+	static const char *put_pixels_frag =
 		"	result_color.rgb += chroma_offset;\n"
 		"	result_color.rgb = mix(dst_color.rgb, result_color.rgb, src_color.a);\n"
 		"	result_color.a = max(src_color.a, dst_color.a);\n"
 		"	gl_FragColor = result_color;\n"
 		"}\n";
 
-	static const char *blend_add_frag = 
+	static const char *blend_add_frag =
 		"	result_color.rgb = dst_color.rgb + src_color.rgb;\n";
 
-	static const char *blend_max_frag = 
+	static const char *blend_max_frag =
 		"	result_color.r = max(abs(dst_color.r, src_color.r);\n"
 		"	result_color.g = max(abs(dst_color.g, src_color.g);\n"
 		"	result_color.b = max(abs(dst_color.b, src_color.b);\n";
 
-	static const char *blend_min_frag = 
+	static const char *blend_min_frag =
 		"	result_color.r = min(abs(dst_color.r, src_color.r);\n"
 		"	result_color.g = min(abs(dst_color.g, src_color.g);\n"
 		"	result_color.b = min(abs(dst_color.b, src_color.b);\n";
 
-	static const char *blend_subtract_frag = 
+	static const char *blend_subtract_frag =
 		"	result_color.rgb = dst_color.rgb - src_color.rgb;\n";
 
 
-	static const char *blend_multiply_frag = 
+	static const char *blend_multiply_frag =
 		"	result_color.rgb = dst_color.rgb * src_color.rgb;\n";
 
-	static const char *blend_divide_frag = 
+	static const char *blend_divide_frag =
 		"	result_color.rgb = dst_color.rgb / src_color.rgb;\n"
 		"	if(src_color.r == 0.0) result_color.r = 1.0;\n"
 		"	if(src_color.g == 0.0) result_color.g = 1.0;\n"
@@ -702,8 +702,8 @@ int Overlay::handle_opengl()
 			glUniform3f(glGetUniformLocation(shader_id, "chroma_offset"), 0.0, 0.5, 0.5);
 		else
 			glUniform3f(glGetUniformLocation(shader_id, "chroma_offset"), 0.0, 0.0, 0.0);
-		glUniform2f(glGetUniformLocation(shader_id, "dst_tex_dimensions"), 
-			(float)dst->get_texture_w(), 
+		glUniform2f(glGetUniformLocation(shader_id, "dst_tex_dimensions"),
+			(float)dst->get_texture_w(),
 			(float)dst->get_texture_h());
 
 		glDisable(GL_BLEND);
@@ -729,7 +729,7 @@ int Overlay::is_multichannel() { return 1; }
 int Overlay::is_synthesis() { return 1; }
 
 
-NEW_PICON_MACRO(Overlay) 
+NEW_PICON_MACRO(Overlay)
 
 NEW_WINDOW_MACRO(Overlay, OverlayWindow)
 
@@ -754,6 +754,8 @@ void Overlay::save_data(KeyFrame *keyframe)
 	output.tag.set_property("MODE", config.mode);
 	output.tag.set_property("DIRECTION", config.direction);
 	output.tag.set_property("OUTPUT_LAYER", config.output_layer);
+	output.append_tag();
+	output.tag.set_title("/OVERLAY");
 	output.append_tag();
 	output.terminate_string();
 }

@@ -293,6 +293,17 @@ public:
 	MotionWindow *gui;
 };
 
+class AddTrackedFrameOffset : public BC_CheckBox
+{
+public:
+	AddTrackedFrameOffset(MotionMain *plugin, 
+		MotionWindow *gui,
+		int x, 
+		int y);
+	int handle_event();
+	MotionWindow *gui;
+	MotionMain *plugin;
+};
 
 class MotionGlobal : public BC_CheckBox
 {
@@ -352,6 +363,7 @@ public:
 	MotionDrawVectors *vectors;
 	MotionGlobal *global;
 	MotionRotate *rotate;
+	AddTrackedFrameOffset *addtrackedframeoffset;
 	TrackSingleFrame *track_single;
 	TrackFrameNumber *track_frame_number;
 	TrackPreviousFrame *track_previous;

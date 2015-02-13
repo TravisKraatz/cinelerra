@@ -27,6 +27,7 @@
 #include "keyframe.h"
 #include "language.h"
 #include "mainprogress.h"
+#include "picon_png.h"
 #include "vframe.h"
 
 
@@ -175,8 +176,7 @@ int _720to480Direction::handle_event()
 
 
 
-
-
+NEW_PICON_MACRO(_720to480Main)
 
 _720to480Main::_720to480Main(PluginServer *server)
  : PluginVClient(server)

@@ -6,31 +6,37 @@ include ../global_config
 # motion must come before perspective
 
 DIRS = \
+	1080to480 \
 	1080to540 \
 	720to480 \
+	aging \
 	audioscope \
-	burn \
 	bandslide \
 	bandwipe \
+	blondtheme \
+	bluebanana \
+	bluedottheme \
 	blur \
 	brightness \
 	brighttheme \
-	parametric \
-	aging \
+	burn \
+	C41 \
 	cdripper \
 	chromakey \
 	chromakeyhsv \
-	colorbalance \
 	color3way \
+	colorbalance \
 	compressor \
 	crossfade \
 	dcoffset \
 	decimate \
 	deinterlace \
+	deinterlace-cv \
 	delayaudio \
 	delayvideo \
 	denoise \
 	denoisefft \
+	denoisemjpeg \
 	denoiseseltempavg \
 	denoisevideo \
 	despike \
@@ -41,6 +47,7 @@ DIRS = \
 	echo \
 	echocancel \
 	fieldframe \
+	findobject \
 	flash \
 	flip \
 	framefield \
@@ -62,6 +69,7 @@ DIRS = \
 	ivtc \
 	lens \
 	level \
+	libeffecttv \
 	linearblur \
 	liveaudio \
 	livevideo \
@@ -74,6 +82,7 @@ DIRS = \
 	oilpainting \
 	overlay \
 	overlayaudio \
+	parametric \
 	perspective \
 	photoscale \
 	pitch \
@@ -82,6 +91,7 @@ DIRS = \
 	reframe \
 	reframert \
 	removegaps \
+	reroute \
 	resample \
 	resamplert \
 	reverb \
@@ -97,6 +107,7 @@ DIRS = \
 	slide \
 	spectrogram \
 	suv \
+	svg \
 	swapchannels \
 	swapframes \
 	synthesizer \
@@ -116,9 +127,7 @@ DIRS = \
 	yuv \
 	yuvshift \
 	zoom \
-	zoomblur
-
-#	findobject \
+	zoomblur \
 
 # Make static table of all plugins
 ifeq ($(DO_STATIC), y)
@@ -159,9 +168,9 @@ install:
 	cp ../thirdparty/mjpegtools*/mpeg2enc/mpeg2enc ../bin/mpeg2enc.plugin
 
 # dependencies for parallel build
-aging:		burn
-dot:		burn
-holo:		burn
+aging:		libeffecttv
+dot:		libeffecttv
+holo:		libeffecttv
 motion2point:	downsample motion
 motion:		downsample
 timestretchrt:	timestretch

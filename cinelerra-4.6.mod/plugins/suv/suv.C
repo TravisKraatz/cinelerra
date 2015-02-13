@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 1997-2014 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcsignals.h"
@@ -122,6 +122,7 @@ void SUV::initialize()
 	resources->menu_title_text = 0xbfbfbf;
 	resources->popup_title_text = 0xbfbfbf;
 	resources->menu_item_text = 0xbfbfbf;
+	resources->menu_highlighted_fontcolor = WHITE;
 	resources->generic_button_margin = 30;
 	resources->pot_needle_color = resources->text_default;
 	resources->pot_offset = 1;
@@ -154,56 +155,56 @@ void SUV::initialize()
 	resources->directory_color = 0xa0a0ff;
 
 
-	new_toggle("loadmode_new.png", 
+	new_toggle("loadmode_new.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_new");
-	new_toggle("loadmode_none.png", 
+	new_toggle("loadmode_none.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_none");
-	new_toggle("loadmode_newcat.png", 
+	new_toggle("loadmode_newcat.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_newcat");
-	new_toggle("loadmode_cat.png", 
+	new_toggle("loadmode_cat.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_cat");
-	new_toggle("loadmode_newtracks.png", 
+	new_toggle("loadmode_newtracks.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_newtracks");
-	new_toggle("loadmode_paste.png", 
+	new_toggle("loadmode_paste.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_paste");
-	new_toggle("loadmode_resource.png", 
+	new_toggle("loadmode_resource.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_resource");
-	new_toggle("loadmode_nested.png", 
+	new_toggle("loadmode_nested.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
@@ -250,30 +251,30 @@ void SUV::initialize()
 
 
 	resources->filebox_descend_images = new_button("openfolder.png",
-		"filebox_bigbutton_up.png", 
-		"filebox_bigbutton_hi.png", 
+		"filebox_bigbutton_up.png",
+		"filebox_bigbutton_hi.png",
 		"filebox_bigbutton_dn.png");
 
-	resources->usethis_button_images = 
+	resources->usethis_button_images =
 		resources->ok_images = new_button("ok.png",
-		"filebox_bigbutton_up.png", 
-		"filebox_bigbutton_hi.png", 
+		"filebox_bigbutton_up.png",
+		"filebox_bigbutton_hi.png",
 		"filebox_bigbutton_dn.png");
 
 	new_button("ok.png",
-		"new_bigbutton_up.png", 
-		"new_bigbutton_hi.png", 
+		"new_bigbutton_up.png",
+		"new_bigbutton_hi.png",
 		"new_bigbutton_dn.png",
 		"new_ok_images");
 
 	resources->cancel_images = new_button("cancel.png",
-		"filebox_bigbutton_up.png", 
-		"filebox_bigbutton_hi.png", 
+		"filebox_bigbutton_up.png",
+		"filebox_bigbutton_hi.png",
 		"filebox_bigbutton_dn.png");
 
 	new_button("cancel.png",
-		"new_bigbutton_up.png", 
-		"new_bigbutton_hi.png", 
+		"new_bigbutton_up.png",
+		"new_bigbutton_hi.png",
 		"new_bigbutton_dn.png",
 		"new_cancel_images");
 
@@ -309,14 +310,14 @@ void SUV::initialize()
 		"menuitem_hi.png",
 		"menuitem_dn.png");
 	resources->menu_bar_bg = new_image("menubar_bg.png");
-	resources->menu_title_bg = new_image_set(3, 
+	resources->menu_title_bg = new_image_set(3,
 		"menubar_up.png",
 		"menubar_hi.png",
 		"menubar_dn.png");
 
 
 	resources->popupmenu_images = 0;
-// 		new_image_set(3, 
+// 		new_image_set(3,
 // 		"menupopup_up.png",
 // 		"menupopup_hi.png",
 // 		"menupopup_dn.png");
@@ -324,9 +325,9 @@ void SUV::initialize()
 	resources->toggle_highlight_bg = new_image("toggle_highlight_bg",
 		"text_highlight.png");
 
-	resources->generic_button_images = new_image_set(3, 
-			"generic_up.png", 
-			"generic_hi.png", 
+	resources->generic_button_images = new_image_set(3,
+			"generic_up.png",
+			"generic_hi.png",
 			"generic_dn.png");
 	resources->horizontal_slider_data = new_image_set(6,
 			"hslider_fg_up.png",
@@ -343,11 +344,11 @@ void SUV::initialize()
 		"tumble_hi.png",
 		"tumble_bottom.png",
 		"tumble_top.png");
-        resources->listbox_button = new_button4("listbox_button.png",
-                "editpanel_up.png",
-                "editpanel_hi.png",
-                "editpanel_dn.png",
-                "editpanel_hi.png");
+	resources->listbox_button = new_button4("listbox_button.png",
+		"editpanel_up.png",
+		"editpanel_hi.png",
+		"editpanel_dn.png",
+		"editpanel_hi.png");
 	resources->listbox_column = new_image_set(3,
 		"column_up.png",
 		"column_hi.png",
@@ -355,12 +356,12 @@ void SUV::initialize()
 	resources->listbox_up = new_image("listbox_up.png");
 	resources->listbox_dn = new_image("listbox_dn.png");
 	resources->pan_data = new_image_set(7,
-			"pan_up.png", 
-			"pan_hi.png", 
-			"pan_popup.png", 
-			"pan_channel.png", 
-			"pan_stick.png", 
-			"pan_channel_small.png", 
+			"pan_up.png",
+			"pan_hi.png",
+			"pan_popup.png",
+			"pan_channel.png",
+			"pan_stick.png",
+			"pan_channel_small.png",
 			"pan_stick_small.png");
 	resources->pan_text_color = WHITE;
 
@@ -383,7 +384,7 @@ void SUV::initialize()
 		"radial_dn.png",
 		"radial_checkedhi.png");
 
-	resources->xmeter_images = new_image_set(7, 
+	resources->xmeter_images = new_image_set(7,
 		"xmeter_normal.png",
 		"xmeter_green.png",
 		"xmeter_red.png",
@@ -391,7 +392,7 @@ void SUV::initialize()
 		"xmeter_white.png",
 		"xmeter_over.png",
 		"downmix51_2.png");
-	resources->ymeter_images = new_image_set(7, 
+	resources->ymeter_images = new_image_set(7,
 		"ymeter_normal.png",
 		"ymeter_green.png",
 		"ymeter_red.png",
@@ -450,8 +451,8 @@ void SUV::initialize()
 // MWindow
 	message_normal = resources->text_default;
 	audio_color = GREEN;
-	mtransport_margin = 20;
-	toggle_margin = 20;
+	mtransport_margin = 16;
+	toggle_margin = 16;
 
 	new_button("pane.png", "pane_up.png", "pane_hi.png", "pane_dn.png", "pane");
 	new_image_set("xpane", 3, "xpane_up.png", "xpane_hi.png", "xpane_dn.png");
@@ -520,7 +521,7 @@ void SUV::initialize()
 	browse_pad = 20;
 
 
-	new_toggle("playpatch.png", 
+	new_toggle("playpatch.png",
 		"patch_up.png",
 		"patch_hi.png",
 		"patch_checked.png",
@@ -528,7 +529,7 @@ void SUV::initialize()
 		"patch_checkedhi.png",
 		"playpatch_data");
 
-	new_toggle("recordpatch.png", 
+	new_toggle("recordpatch.png",
 		"patch_up.png",
 		"patch_hi.png",
 		"patch_checked.png",
@@ -536,7 +537,7 @@ void SUV::initialize()
 		"patch_checkedhi.png",
 		"recordpatch_data");
 
-	new_toggle("gangpatch.png", 
+	new_toggle("gangpatch.png",
 		"patch_up.png",
 		"patch_hi.png",
 		"patch_checked.png",
@@ -544,7 +545,7 @@ void SUV::initialize()
 		"patch_checkedhi.png",
 		"gangpatch_data");
 
-	new_toggle("drawpatch.png", 
+	new_toggle("drawpatch.png",
 		"patch_up.png",
 		"patch_hi.png",
 		"patch_checked.png",
@@ -553,7 +554,7 @@ void SUV::initialize()
 		"drawpatch_data");
 
 
-	new_image_set("mutepatch_data", 
+	new_image_set("mutepatch_data",
 		5,
 		"mutepatch_up.png",
 		"mutepatch_hi.png",
@@ -561,7 +562,7 @@ void SUV::initialize()
 		"mutepatch_dn.png",
 		"mutepatch_checkedhi.png");
 
-	new_image_set("expandpatch_data", 
+	new_image_set("expandpatch_data",
 		5,
 		"expandpatch_up.png",
 		"expandpatch_hi.png",
@@ -576,31 +577,31 @@ void SUV::initialize()
 
 
 	out_point = new_image_set(5,
-		"out_up.png", 
-		"out_hi.png", 
-		"out_checked.png", 
-		"out_dn.png", 
+		"out_up.png",
+		"out_hi.png",
+		"out_checked.png",
+		"out_dn.png",
 		"out_checkedhi.png");
 	in_point = new_image_set(5,
-		"in_up.png", 
-		"in_hi.png", 
-		"in_checked.png", 
-		"in_dn.png", 
+		"in_up.png",
+		"in_hi.png",
+		"in_checked.png",
+		"in_dn.png",
 		"in_checkedhi.png");
 
 	label_toggle = new_image_set(5,
-		"labeltoggle_up.png", 
-		"labeltoggle_uphi.png", 
-		"label_checked.png", 
-		"labeltoggle_dn.png", 
+		"labeltoggle_up.png",
+		"labeltoggle_uphi.png",
+		"label_checked.png",
+		"labeltoggle_dn.png",
 		"label_checkedhi.png");
 
 	new_image_set("histogram_carrot",
 		5,
-		"histogram_carrot_up.png", 
-		"histogram_carrot_hi.png", 
-		"histogram_carrot_checked.png", 
-		"histogram_carrot_dn.png", 
+		"histogram_carrot_up.png",
+		"histogram_carrot_hi.png",
+		"histogram_carrot_checked.png",
+		"histogram_carrot_dn.png",
 		"histogram_carrot_checkedhi.png");
 
 
@@ -621,40 +622,40 @@ void SUV::initialize()
 	new_button("center_justify.png", editpanel_up, editpanel_hi, editpanel_dn, "center_justify");
 	new_button("channel.png", editpanel_up, editpanel_hi, editpanel_dn, "channel");
 
-	new_toggle("histogram.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("histogram.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"histogram_toggle");
-	new_toggle("histogram_rgb.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("histogram_rgb.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"histogram_rgb_toggle");
-	new_toggle("waveform.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("waveform.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"waveform_toggle");
-	new_toggle("waveform_rgb.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("waveform_rgb.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"waveform_rgb_toggle");
-	new_toggle("scope.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("scope.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"scope_toggle");
 
 	new_button("picture.png", editpanel_up, editpanel_hi, editpanel_dn, "picture");
@@ -683,6 +684,7 @@ void SUV::initialize()
 	new_button("right_justify.png", editpanel_up, editpanel_hi, editpanel_dn, "right_justify");
 	splice_data = new_button("splice.png", editpanel_up, editpanel_hi, editpanel_dn);
 	new_button("toclip.png", editpanel_up, editpanel_hi, editpanel_dn, "toclip");
+	new_button("goto.png", editpanel_up, editpanel_hi, editpanel_dn, "goto");
 	new_button("top_justify.png", editpanel_up, editpanel_hi, editpanel_dn, "top_justify");
 	new_button("undo.png", editpanel_up, editpanel_hi, editpanel_dn, "undo");
 	new_button("wrench.png", editpanel_up, editpanel_hi, editpanel_dn, "wrench");
@@ -730,16 +732,23 @@ void SUV::initialize()
 
 
 
-	new_image_set("color3way_point", 
+	new_image_set("color3way_point",
 		3,
-		"color3way_up.png", 
-		"color3way_hi.png", 
+		"color3way_up.png",
+		"color3way_hi.png",
 		"color3way_dn.png");
 
 	new_toggle("arrow.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "arrow");
 	new_toggle("autokeyframe.png", transport_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "autokeyframe");
 	new_toggle("ibeam.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "ibeam");
 	new_toggle("show_meters.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "meters");
+	new_toggle("blank30x30.png",
+		   new_image("locklabels_locked.png"),
+		   new_image("locklabels_lockedhi.png"),
+		   new_image("locklabels_unlocked.png"),
+		   new_image("locklabels_dn.png"), // can't have seperate down for each!!??
+		   new_image("locklabels_unlockedhi.png"),
+		   "locklabels");
 
 	VFrame *cpanel_up = new_image("cpanel_up.png");
 	VFrame *cpanel_hi = new_image("cpanel_hi.png");
@@ -759,6 +768,9 @@ void SUV::initialize()
 	new_toggle("titlesafe.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "titlesafe");
 	new_toggle("toolwindow.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "tool");
 
+	// toggle for tangent mode (compositor/tool window)
+	new_toggle("tan_smooth.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "tan_smooth");
+	new_toggle("tan_linear.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "tan_linear");
 
 
 	flush_images();
@@ -770,6 +782,9 @@ void SUV::initialize()
 
 	channel_position_color = MEYELLOW;
 	resources->meter_title_w = 25;
+
+        // (asset) edit info text color
+        edit_font_color = YELLOW;
 }
 
 #define VWINDOW_METER_MARGIN 5
@@ -850,9 +865,9 @@ void SUV::draw_rmonitor_bg(RecordMonitorGUI *gui)
 // 	int x = rmonitor_meter_x - margin;
 // 	int w = mwindow->session->rmonitor_w - x;
 // 	if(w < rmonitor_meters->get_w()) w = rmonitor_meters->get_w();
-// 	gui->clear_box(0, 
-// 		0, 
-// 		mwindow->session->rmonitor_w, 
+// 	gui->clear_box(0,
+// 		0,
+// 		mwindow->session->rmonitor_w,
 // 		mwindow->session->rmonitor_h);
 // 	gui->draw_9segment(x,
 // 		0,
@@ -869,56 +884,67 @@ void SUV::draw_rmonitor_bg(RecordMonitorGUI *gui)
 void SUV::draw_mwindow_bg(MWindowGUI *gui)
 {
 // Button bar
-	gui->draw_3segmenth(mbuttons_x, 
-		mbuttons_y - 1, 
-		mwindow->session->mwindow_w, 
+	gui->draw_3segmenth(mbuttons_x,
+		mbuttons_y - 1,
+		mwindow->session->mwindow_w,
 		get_image("mbutton_bg"));
 
-	gui->draw_vframe(get_image("panel_divider"),
-		mbuttons_x + 228,
-		mbuttons_y - 1);
+	int pdw = get_image("panel_divider")->get_w();
+	int x = mbuttons_x;
+	x += 9 * get_image("play")->get_w();
+	x += mtransport_margin;                                       // the control buttons
 
 	gui->draw_vframe(get_image("panel_divider"),
-		mbuttons_x + 320,
+		x - toggle_margin / 2 - pdw / 2 + 2,
+		mbuttons_y - 1);
+	x += 2 * get_image("arrow")->get_w() + toggle_margin;           // the mode buttons
+
+	gui->draw_vframe(get_image("panel_divider"),
+		x - toggle_margin / 2 - pdw / 2 + 2,
+		mbuttons_y - 1);
+	x += 2 * get_image("autokeyframe")->get_w() + toggle_margin;    // the state toggle buttons
+
+	gui->draw_vframe(get_image("panel_divider"),
+		x - toggle_margin / 2 - pdw / 2 + 2,
 		mbuttons_y - 1);
 
 // Clock
-	gui->draw_3segmenth(0, 
+	gui->draw_3segmenth(0,
 		mbuttons_y - 1 + get_image("mbutton_bg")->get_h(),
-		get_image("patchbay_bg")->get_w(), 
+		get_image("patchbay_bg")->get_w(),
 		get_image("clock_bg"));
 
 // Patchbay
-//printf("SUV::draw_mwindow_bg %d %d %d\n", __LINE__, 
-//mclock_h, 
+//printf("SUV::draw_mwindow_bg %d %d %d\n", __LINE__,
+//mclock_h,
 //mtimebar_h);
-	gui->draw_3segmentv(patchbay_x, 
-		patchbay_y, 
-		patchbay_h, 
+	gui->draw_3segmentv(patchbay_x,
+		patchbay_y,
+		patchbay_h,
 		get_image("patchbay_bg"));
 
 // Track canvas
 	gui->set_color(BLACK);
-	gui->draw_box(mcanvas_x + get_image("patchbay_bg")->get_w(), 
-		mcanvas_y + mtimebar_h, 
-		mcanvas_w - BC_ScrollBar::get_span(SCROLL_VERT), 
+	gui->draw_box(mcanvas_x + get_image("patchbay_bg")->get_w(),
+		mcanvas_y + mtimebar_h,
+		mcanvas_w - BC_ScrollBar::get_span(SCROLL_VERT),
 		mcanvas_h - BC_ScrollBar::get_span(SCROLL_HORIZ) - mtimebar_h);
 
 // Timebar
-	gui->draw_3segmenth(mtimebar_x, 
-		mtimebar_y, 
-		mtimebar_w, 
+	gui->draw_3segmenth(mtimebar_x,
+		mtimebar_y,
+		mtimebar_w,
 		get_image("timebar_bg"));
 
 // Zoombar
 	gui->set_color(0x373737);
-	gui->draw_box(mzoom_x, 
+	gui->draw_box(mzoom_x,
 		mzoom_y,
 		mwindow->session->mwindow_w,
 		25);
 
 // Scrollbar filler
-//	gui->draw_vframe(get_image("mscroll_filler"), 
+//	gui->draw_vframe(get_image("mscroll_filler"),
 //		mcanvas_x + mcanvas_w - BC_ScrollBar::get_span(SCROLL_VERT),
 //		mcanvas_y + mcanvas_h - BC_ScrollBar::get_span(SCROLL_HORIZ));
 
@@ -939,54 +965,54 @@ void SUV::draw_cwindow_bg(CWindowGUI *gui)
 
 	if(mwindow->edl->session->cwindow_meter)
 	{
-		gui->draw_3segmenth(cstatus_x, 
-			ccomposite_h, 
-			cmeter_x - widget_border - cstatus_x, 
+		gui->draw_3segmenth(cstatus_x,
+			ccomposite_h,
+			cmeter_x - widget_border - cstatus_x,
 			get_image("cbuttons_right"));
-		gui->draw_9segment(cmeter_x - widget_border, 
-			0, 
-			mwindow->session->cwindow_w - cmeter_x + widget_border, 
-			mwindow->session->cwindow_h, 
+		gui->draw_9segment(cmeter_x - widget_border,
+			0,
+			mwindow->session->cwindow_w - cmeter_x + widget_border,
+			mwindow->session->cwindow_h,
 			get_image("cmeter_bg"));
 	}
 	else
 	{
-		gui->draw_3segmenth(cstatus_x, 
-			ccomposite_h, 
-			cmeter_x - widget_border - cstatus_x + 100, 
+		gui->draw_3segmenth(cstatus_x,
+			ccomposite_h,
+			cmeter_x - widget_border - cstatus_x + 100,
 			get_image("cbuttons_right"));
 	}
 }
 
 void SUV::draw_vwindow_bg(VWindowGUI *gui)
 {
-	gui->draw_3segmenth(0, 
-		vcanvas_h, 
-		vdivision_x, 
+	gui->draw_3segmenth(0,
+		vcanvas_h,
+		vdivision_x,
 		get_image("vbuttons_left"));
 	if(mwindow->edl->session->vwindow_meter)
 	{
-		gui->draw_3segmenth(vdivision_x, 
-			vcanvas_h, 
-			vmeter_x - widget_border - vdivision_x, 
+		gui->draw_3segmenth(vdivision_x,
+			vcanvas_h,
+			vmeter_x - widget_border - vdivision_x,
 			get_image("cbuttons_right"));
 		gui->draw_9segment(vmeter_x - widget_border,
 			0,
-			mwindow->session->vwindow_w - vmeter_x + widget_border, 
-			mwindow->session->vwindow_h, 
+			mwindow->session->vwindow_w - vmeter_x + widget_border,
+			mwindow->session->vwindow_h,
 			get_image("cmeter_bg"));
 	}
 	else
 	{
-		gui->draw_3segmenth(vdivision_x, 
-			vcanvas_h, 
-			vmeter_x - widget_border - vdivision_x + 100, 
+		gui->draw_3segmenth(vdivision_x,
+			vcanvas_h,
+			vmeter_x - widget_border - vdivision_x + 100,
 			get_image("cbuttons_right"));
 	}
 
 // Clock border
-	gui->draw_3segmenth(vtime_x - 20, 
-		vtime_y - 1, 
+	gui->draw_3segmenth(vtime_x - 20,
+		vtime_y - 1,
 		vtime_w + 40,
 		get_image("vclock"));
 }

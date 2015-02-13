@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef REVERB_H
@@ -41,10 +41,10 @@ public:
 
 	int equivalent(ReverbConfig &that);
 	void copy_from(ReverbConfig &that);
-	void interpolate(ReverbConfig &prev, 
-		ReverbConfig &next, 
-		int64_t prev_frame, 
-		int64_t next_frame, 
+	void interpolate(ReverbConfig &prev,
+		ReverbConfig &next,
+		int64_t prev_frame,
+		int64_t next_frame,
 		int64_t current_frame);
 	void dump();
 	void boundaries();
@@ -68,7 +68,7 @@ public:
 	int load_from_file(char *data);
 	int save_to_file(char *data);
 
-
+// data for reverb
 	char config_directory[1024];
 
 	double **main_in, **main_out;
@@ -81,13 +81,17 @@ public:
 	double **lowpass_in1, **lowpass_in2;
 	DB db;
 // required for all realtime/multichannel plugins
+
 	PLUGIN_CLASS_MEMBERS(ReverbConfig);
 	int process_realtime(int64_t size, Samples **input_ptr, Samples **output_ptr);
 	int is_realtime();
 	int is_synthesis();
 	int is_multichannel();
+	int show_gui();
+	int set_string();
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);
+	void raise_window();
 
 	ReverbEngine **engine;
 	int initialized;

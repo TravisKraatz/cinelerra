@@ -270,7 +270,7 @@ int SelTempAvgMethodRadial::handle_event()
 
 
 SelTempAvgParanoid::SelTempAvgParanoid(SelTempAvgMain *client, int x, int y)
- : BC_CheckBox(x, y, client->config.paranoid, "Reprocess frame again")
+ : BC_CheckBox(x, y, client->config.paranoid, _("Reprocess frame again"))
 {
 	this->client = client;
 }
@@ -284,7 +284,7 @@ int SelTempAvgParanoid::handle_event()
 
 
 SelTempAvgNoSubtract::SelTempAvgNoSubtract(SelTempAvgMain *client, int x, int y)
- : BC_CheckBox(x, y, client->config.nosubtract, "Disable subtraction")
+ : BC_CheckBox(x, y, client->config.nosubtract, _("Disable subtraction"))
 {
 	this->client = client;
 }
@@ -323,7 +323,7 @@ int SelTempAvgMask::handle_event()
 
 
 SelTempAvgStartKeyframe::SelTempAvgStartKeyframe(SelTempAvgMain *client, int x, int y)
- : BC_CheckBox(x, y, client->config.nosubtract, "This Frame is a start of a section")
+ : BC_CheckBox(x, y, client->config.nosubtract, _("This Frame is a start of a section"))
 {
 	this->client = client;
 }

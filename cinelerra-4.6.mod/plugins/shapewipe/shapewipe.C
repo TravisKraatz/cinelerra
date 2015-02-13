@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcdisplayinfo.h"
@@ -41,13 +41,13 @@
 
 REGISTER_PLUGIN(ShapeWipeMain)
 
-ShapeWipeW2B::ShapeWipeW2B(ShapeWipeMain *plugin, 
+ShapeWipeW2B::ShapeWipeW2B(ShapeWipeMain *plugin,
 	ShapeWipeWindow *window,
 	int x,
 	int y)
- : BC_Radial(x, 
-		y, 
-		plugin->direction == 0, 
+ : BC_Radial(x,
+		y,
+		plugin->direction == 0,
 		_("White to Black"))
 {
 	this->plugin = plugin;
@@ -63,13 +63,13 @@ int ShapeWipeW2B::handle_event()
 	return 0;
 }
 
-ShapeWipeB2W::ShapeWipeB2W(ShapeWipeMain *plugin, 
+ShapeWipeB2W::ShapeWipeB2W(ShapeWipeMain *plugin,
 	ShapeWipeWindow *window,
 	int x,
 	int y)
- : BC_Radial(x, 
-		y, 
-		plugin->direction == 1, 
+ : BC_Radial(x,
+		y,
+		plugin->direction == 1,
 		_("Black to White"))
 {
 	this->plugin = plugin;
@@ -124,9 +124,9 @@ int ShapeWipePreserveAspectRatio::handle_event()
 
 
 
-ShapeWipeTumble::ShapeWipeTumble(ShapeWipeMain *client, 
-	ShapeWipeWindow *window, 
-	int x, 
+ShapeWipeTumble::ShapeWipeTumble(ShapeWipeMain *client,
+	ShapeWipeWindow *window,
+	int x,
 	int y)
  : BC_Tumbler(x, y)
 {
@@ -152,10 +152,10 @@ int ShapeWipeTumble::handle_down_event()
 
 
 
-ShapeWipeShape::ShapeWipeShape(ShapeWipeMain *client, 
-	ShapeWipeWindow *window, 
-	int x, 
-	int y, 
+ShapeWipeShape::ShapeWipeShape(ShapeWipeMain *client,
+	ShapeWipeWindow *window,
+	int x,
+	int y,
 	int text_w,
 	int list_h)
  : BC_PopupTextBox(window,
@@ -185,9 +185,9 @@ int ShapeWipeShape::handle_event()
 
 
 ShapeWipeWindow::ShapeWipeWindow(ShapeWipeMain *plugin)
- : PluginClientWindow(plugin, 
-	450, 
-	125, 
+ : PluginClientWindow(plugin,
+	450,
+	125,
 	450,
 	125,
 	0)
@@ -215,15 +215,15 @@ void ShapeWipeWindow::create_objects()
 	{
 		shapes.append(new BC_ListBoxItem(plugin->shape_titles.get(i)));
 	}
-	
+
 	add_subwindow(title = new BC_Title(x, y, _("Direction:")));
 	x += title->get_w() + widget_border;
-	add_subwindow(left = new ShapeWipeW2B(plugin, 
+	add_subwindow(left = new ShapeWipeW2B(plugin,
 		this,
 		x,
 		y));
 	x += left->get_w() + widget_border;
-	add_subwindow(right = new ShapeWipeB2W(plugin, 
+	add_subwindow(right = new ShapeWipeB2W(plugin,
 		this,
 		x,
 		y));
@@ -234,45 +234,45 @@ void ShapeWipeWindow::create_objects()
 	add_subwindow(title = new BC_Title(x, y, _("Shape:")));
 	x += title->get_w() + widget_border;
 
-// 	add_subwindow(filename_widget = new 
-// 	ShapeWipeFilename(plugin, 
+// 	add_subwindow(filename_widget = new
+// 	ShapeWipeFilename(plugin,
 // 		this,
 // 		plugin->filename,
 // 		x,
 // 		y));
 // 	x += 200;
 // 	add_subwindow(new ShapeWipeBrowseButton(
-// 		plugin, 
+// 		plugin,
 // 		this,
 // 		filename_widget,
 // 		x,
 // 		y));
 
-	shape_text = new ShapeWipeShape(plugin, 
-		this, 
-		x, 
-		y, 
+	shape_text = new ShapeWipeShape(plugin,
+		this,
+		x,
+		y,
 		150,
 		200);
 	shape_text->create_objects();
 	x += shape_text->get_w() + widget_border;
-	add_subwindow(new ShapeWipeTumble(plugin, 
-		this, 
-		x, 
+	add_subwindow(new ShapeWipeTumble(plugin,
+		this,
+		x,
 		y));
 	x = window_border;
 	y += shape_text->get_h() + widget_border;
 
 	ShapeWipeAntiAlias *anti_alias;
 	add_subwindow(anti_alias = new ShapeWipeAntiAlias(
-		plugin, 
+		plugin,
 		this,
 		x,
 		y));
 	y += anti_alias->get_h() + widget_border;
 	ShapeWipePreserveAspectRatio *aspect_ratio;
 	add_subwindow(aspect_ratio = new ShapeWipePreserveAspectRatio(
-		plugin, 
+		plugin,
 		this,
 		x,
 		y));
@@ -327,7 +327,7 @@ ShapeWipeMain::ShapeWipeMain(PluginServer *server)
 	strcpy(shape_name, DEFAULT_SHAPE);
 	current_name[0] = 0;
 	pattern_image = NULL;
-	min_value = (unsigned char)256;
+	min_value = (unsigned char)255;
 	max_value = (unsigned char)0;
 	antialias = 0;
 	preserve_aspect = 0;
@@ -350,7 +350,6 @@ NEW_WINDOW_MACRO(ShapeWipeMain, ShapeWipeWindow);
 
 
 NEW_PICON_MACRO(ShapeWipeMain)
-
 
 void ShapeWipeMain::save_data(KeyFrame *keyframe)
 {
@@ -499,8 +498,8 @@ int ShapeWipeMain::read_pattern_image(int new_frame_width, int new_frame_height)
 	width  = png_get_image_width (png_ptr, info_ptr);
 	height = png_get_image_height(png_ptr, info_ptr);
 
-	/* Skip the alpha channel if present 
-	* stripping alpha currently doesn't work in conjunction with 
+	/* Skip the alpha channel if present
+	* stripping alpha currently doesn't work in conjunction with
 	* converting to grayscale in libpng */
 	if (color_type & PNG_COLOR_MASK_ALPHA)
 		pixel_width = 2;
@@ -514,7 +513,7 @@ int ShapeWipeMain::read_pattern_image(int new_frame_width, int new_frame_height)
 	if (bit_depth < 8) png_set_packing(png_ptr);
 
 	/* Convert to grayscale */
-	if (color_type == PNG_COLOR_TYPE_RGB || 
+	if (color_type == PNG_COLOR_TYPE_RGB ||
 		color_type == PNG_COLOR_TYPE_RGB_ALPHA)
 	png_set_rgb_to_gray_fixed(png_ptr, 1, -1, -1);
 
@@ -595,7 +594,7 @@ void ShapeWipeMain::reset_pattern_image()
 		}
 		free (pattern_image);
 		pattern_image = NULL;
-		min_value = (unsigned char)256;
+		min_value = (unsigned char)255;
 		max_value = (unsigned char)0;	// are recalc'd in read_pattern_image
 	}
 }
@@ -764,33 +763,38 @@ int ShapeWipeMain::process_realtime(VFrame *incoming, VFrame *outgoing)
 		reset_pattern_image();
 	}
 
-	if (!pattern_image) 
+	if (!pattern_image)
 	{
 		read_pattern_image(w, h);
 		strncpy(last_read_filename, filename, BCTEXTLEN);
-		strncpy(current_name, shape_name, BCTEXTLEN);
 		last_preserve_aspect = preserve_aspect;
-	}
 
-	if (!pattern_image)
-	{
-		fprintf(stderr, "Shape Wipe: cannot load shape %s\n", filename);
-		return 0;
+		if (pattern_image)
+		{
+			strncpy(last_read_filename, filename, BCTEXTLEN);
+			strncpy(current_name, shape_name, BCTEXTLEN);
+			last_preserve_aspect = preserve_aspect;
+		}
+		else {
+			fprintf(stderr, "Shape Wipe: cannot load shape %s\n", filename);
+			last_read_filename[0] = 0;
+			return 0;
+		}
 	}
 
 	if (direction)
 	{
 		threshold = (unsigned char)(
 				(float)PluginClient::get_source_position() /
-				(float)PluginClient::get_total_len() * 
+				(float)PluginClient::get_total_len() *
 				(float)(max_value - min_value))
 			+ min_value;
 	}
 	else
 	{
-		threshold = (unsigned char)((max_value - min_value) - ( 
+		threshold = (unsigned char)((max_value - min_value) - (
 				(float)PluginClient::get_source_position() /
-				(float)PluginClient::get_total_len() * 
+				(float)PluginClient::get_total_len() *
 				(float)(max_value - min_value)))
 			+ min_value;
 	}

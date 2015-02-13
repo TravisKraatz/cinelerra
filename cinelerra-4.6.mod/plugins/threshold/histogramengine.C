@@ -87,13 +87,13 @@ void HistogramUnit::process_package(LoadPackage *package)
 	VFrame *data = server->data;
 
 	int w = data->get_w();
-	//int h = data->get_h();
+	int h = data->get_h();
 	int64_t *accum_r = accum[HISTOGRAM_RED];
 	int64_t *accum_g = accum[HISTOGRAM_GREEN];
 	int64_t *accum_b = accum[HISTOGRAM_BLUE];
-	//int64_t *accum_a = accum[HISTOGRAM_ALPHA];
+	int64_t *accum_a = accum[HISTOGRAM_ALPHA];
 	int64_t *accum_v = accum[HISTOGRAM_VALUE];
-	int r, g, b, y, u, v;
+	int r, g, b, a, y, u, v;
 
 	switch(data->get_color_model())
 	{

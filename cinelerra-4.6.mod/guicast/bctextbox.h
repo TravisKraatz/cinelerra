@@ -43,7 +43,11 @@ class BC_TextBox : public BC_SubWindow
 public:
 	BC_TextBox(int x, int y, int w, int rows, int size, char *text,
 		int has_border=1, int font=MEDIUMFONT);
+	BC_TextBox(int x, int y, int w, int rows, int size, wchar_t *wtext,
+		int has_border=1, int font=MEDIUMFONT);
 	BC_TextBox(int x, int y, int w, int rows, const char *text,
+		int has_border=1, int font=MEDIUMFONT, int is_utf8=1);
+	BC_TextBox(int x, int y, int w, int rows, const wchar_t *wtext,
 		int has_border=1, int font=MEDIUMFONT, int is_utf8=1);
 	BC_TextBox(int x, int y, int w, int rows, int64_t text,
 		int has_border=1, int font=MEDIUMFONT);
@@ -63,7 +67,7 @@ public:
 	virtual int motion_event() { return 0; };
 	void set_selection(int char1, int char2, int ibeam);
 	int update(const char *text);
-	int update(const wchar_t *text);
+	int update(const wchar_t *wtext);
 	int update(int64_t value);
 	int update(float value);
 	void disable();
@@ -85,8 +89,8 @@ public:
 	int activate();
 	int deactivate();
 	const char* get_text();
-	const char* get_utf8text();
 	const wchar_t* get_wtext();
+	const char* get_utf8text();
 	void set_text(char *text, int isz);
 	int get_text_rows();
 // Set top left of text view
@@ -225,14 +229,19 @@ public:
 	BC_ScrollTextBox(BC_WindowBase *parent_window,
 		int x, int y, int w, int rows,
 		const char *default_text, int default_size=BCTEXTLEN);
+        BC_ScrollTextBox(BC_WindowBase *parent_window,
+                int x, int y, int w, int rows,
+                const wchar_t *default_wtext, int default_size=BCTEXTLEN);
 	virtual ~BC_ScrollTextBox();
 	void create_objects();
 	virtual int handle_event();
 
 	const char* get_text();
+	const wchar_t* get_wtext();
 	void set_text(char *text, int isz);
 	int set_text_row(int n);
 	void update(const char *text);
+	void update(const wchar_t *wtext);
 	void set_selection(int char1, int char2, int ibeam);
 	void reposition_window(int x, int y, int w, int rows);
 	int get_x();
@@ -250,6 +259,7 @@ private:
 	BC_ScrollTextBoxYScroll *yscroll;
 	BC_WindowBase *parent_window;
 	const char *default_text;
+	const wchar_t *default_wtext;
 	int default_size;
 	int x, y, w, rows;
 };
@@ -257,7 +267,8 @@ private:
 class BC_ScrollTextBoxText : public BC_TextBox
 {
 public:
-	BC_ScrollTextBoxText(BC_ScrollTextBox *gui);
+	BC_ScrollTextBoxText(BC_ScrollTextBox *gui, const char *text);
+	BC_ScrollTextBoxText(BC_ScrollTextBox *gui, const wchar_t *wtext);
 	virtual ~BC_ScrollTextBoxText();
 	int handle_event();
 	int motion_event();
@@ -284,16 +295,13 @@ class BC_PopupTextBox
 public:
 	BC_PopupTextBox(BC_WindowBase *parent_window,
 		ArrayList<BC_ListBoxItem*> *list_items,
-		const char *default_text,
-		int x,
-		int y,
-		int text_w,
-		int list_h,
-		int list_format = LISTBOX_TEXT);
+		const char *default_text, int x, int y,
+		int text_w, int list_h, int list_format = LISTBOX_TEXT);
 	virtual ~BC_PopupTextBox();
 	int create_objects();
 	virtual int handle_event();
 	const char* get_text();
+	const wchar_t* get_wtext();
 	int get_number();
 	int get_x();
 	int get_y();
@@ -310,6 +318,7 @@ private:
 	int x, y, text_w, list_h;
 	int list_format;
 	const char *default_text;
+	const wchar_t *default_wtext;
 	ArrayList<BC_ListBoxItem*> *list_items;
 	BC_PopupTextBoxText *textbox;
 	BC_PopupTextBoxList *listbox;
@@ -319,7 +328,8 @@ private:
 class BC_PopupTextBoxText : public BC_TextBox
 {
 public:
-	BC_PopupTextBoxText(BC_PopupTextBox *popup, int x, int y);
+	BC_PopupTextBoxText(BC_PopupTextBox *popup, int x, int y, const char *text);
+	BC_PopupTextBoxText(BC_PopupTextBox *popup, int x, int y, const wchar_t *wtext);
 	virtual ~BC_PopupTextBoxText();
 	int handle_event();
 	BC_PopupTextBox *popup;
@@ -367,6 +377,7 @@ public:
 	void reset();
 	virtual int handle_event();
 	const char* get_text();
+	const wchar_t* get_wtext();
 	BC_TextBox* get_textbox();
 	int update(const char *value);
 	int update(int64_t value);

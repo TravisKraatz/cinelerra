@@ -3358,7 +3358,13 @@ int MWindow::select_asset(Asset *asset, int vstream, int astream, int delete_tra
 		// must be multiple of 4 for opengl
 		width = (width+3) & ~3;  height = (height+3) & ~3;
 		int driver = session->playback_config->vconfig->driver;
-		session->color_model = file->get_best_colormodel(asset, driver);
+		int color_model = file->get_best_colormodel(asset, driver);
+		color_model = BC_CModels::is_yuv(color_model) ?
+				BC_CModels::has_alpha(color_model) ? BC_YUVA8888 : BC_YUV888 :
+			BC_CModels::is_float(color_model) ?
+				BC_CModels::has_alpha(color_model) ? BC_RGBA_FLOAT : BC_RGB_FLOAT :
+				BC_CModels::has_alpha(color_model) ? BC_RGBA8888 : BC_RGB888;
+		session->color_model = color_model;
 		session->output_w = width;
 		session->output_h = height;
 		session->frame_rate = framerate;

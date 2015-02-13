@@ -53,8 +53,22 @@ BC_TextBox::BC_TextBox(int x, int y, int w, int rows,
 	reset_parameters(rows, has_border, font, size);
 	if( size > 0 )
 		tstrcpy(text);
-	else
+	else	// text referenced directly
 		this->text = text;
+}
+
+BC_TextBox::BC_TextBox(int x, int y, int w, int rows,
+	int size, wchar_t *wtext, int has_border, int font)
+ : BC_SubWindow(x, y, w, 0, -1)
+{
+	is_utf8 = 1;
+	skip_cursor = 0;
+	if( size <= 0 ) size = 2*wcslen(wtext) + 1;
+	reset_parameters(rows, has_border, font, size);
+	wsize = size;
+	wtext = new wchar_t[wsize+1];
+	wcsncpy(this->wtext, wtext, wsize);
+	this->wtext[wsize] = 0;
 }
 
 BC_TextBox::BC_TextBox(int x, int y, int w, int rows,
@@ -65,6 +79,19 @@ BC_TextBox::BC_TextBox(int x, int y, int w, int rows,
 	skip_cursor = 0;
 	reset_parameters(rows, has_border, font, BCTEXTLEN);
 	tstrcpy(text);
+}
+
+BC_TextBox::BC_TextBox(int x, int y, int w, int rows,
+	const wchar_t *wtext, int has_border, int font, int is_utf8)
+ : BC_SubWindow(x, y, w, 0, -1)
+{
+	this->is_utf8 = is_utf8;
+	skip_cursor = 0;
+	reset_parameters(rows, has_border, font, BCTEXTLEN);
+	wsize = BCTEXTLEN;
+	wtext = new wchar_t[wsize+1];
+	wcsncpy(this->wtext, wtext, wsize);
+	this->wtext[wsize] = 0;
 }
 
 BC_TextBox::BC_TextBox(int x, int y, int w, int rows,
@@ -124,7 +151,7 @@ int BC_TextBox::reset_parameters(int rows, int has_border, int font, int size)
 	this->font = font;
 	this->size = size;
 	this->tsize = size >= 0 ? size : -size;
-	this->text = size > 0 ? new char[size] : 0;
+	this->text = size > 0 ? new char[size+1] : 0;
 	if( this->text ) this->text[0] = 0;
 	text_start = 0;
 	text_end = 0;
@@ -469,6 +496,19 @@ int BC_TextBox::update(const char *text)
 	return 0;
 }
 
+int BC_TextBox::update(const wchar_t *wtext)
+{
+	int wtext_len = wcslen(wtext);
+	if( wtext_len >= wsize ) wtext_len = wsize;
+	wcsncpy(this->wtext, wtext, wtext_len);
+	wlen = wtext_len;
+	if(highlight_letter1 > wtext_len) highlight_letter1 = wtext_len;
+	if(highlight_letter2 > wtext_len) highlight_letter2 = wtext_len;
+	if(ibeam_letter > wtext_len) ibeam_letter = wtext_len;
+	draw(1);
+	return 0;
+}
+
 int BC_TextBox::update(int64_t value)
 {
 	char string[BCTEXTLEN];
@@ -534,6 +574,12 @@ const char* BC_TextBox::get_text()
 	int wtext_len = wtext_update();
 	text_update(wtext,wtext_len, text,tsize);
 	return text;
+}
+
+const wchar_t* BC_TextBox::get_wtext()
+{
+	wtext_update();
+	return wtext;
 }
 
 void BC_TextBox::set_text(char *text, int isz)
@@ -2261,14 +2307,28 @@ BC_ScrollTextBox::BC_ScrollTextBox(BC_WindowBase *parent_window,
 	this->w = w;
 	this->rows = rows;
 	this->default_text = default_text;
+	this->default_wtext = 0;
+	this->default_size = default_size;
+}
+
+BC_ScrollTextBox::BC_ScrollTextBox(BC_WindowBase *parent_window,
+	int x, int y, int w, int rows,
+	const wchar_t *default_text, int default_size)
+{
+	this->parent_window = parent_window;
+	this->x = x;
+	this->y = y;
+	this->w = w;
+	this->rows = rows;
+	this->default_text = 0;
+	this->default_wtext = default_wtext;
 	this->default_size = default_size;
 }
 
 BC_ScrollTextBox::~BC_ScrollTextBox()
 {
 	delete yscroll;
-	if(text)
-	{
+	if(text) {
 		text->gui = 0;
 		delete text;
 	}
@@ -2277,7 +2337,9 @@ BC_ScrollTextBox::~BC_ScrollTextBox()
 void BC_ScrollTextBox::create_objects()
 {
 // Must be created first
-	parent_window->add_subwindow(text = new BC_ScrollTextBoxText(this));
+	parent_window->add_subwindow(text = default_wtext ?
+ 		new BC_ScrollTextBoxText(this, default_wtext) :
+		new BC_ScrollTextBoxText(this, default_text));
 	parent_window->add_subwindow(yscroll = new BC_ScrollTextBoxYScroll(this));
 	text->yscroll = yscroll;
 	yscroll->bound_to = text;
@@ -2320,6 +2382,11 @@ const char* BC_ScrollTextBox::get_text()
 	return text->get_text();
 }
 
+const wchar_t* BC_ScrollTextBox::get_wtext()
+{
+	return text->get_wtext();
+}
+
 void BC_ScrollTextBox::set_text(char *text, int isz)
 {
 	this->text->set_text(text, isz);
@@ -2339,6 +2406,15 @@ int BC_ScrollTextBox::set_text_row(int n)
 void BC_ScrollTextBox::update(const char *text)
 {
 	this->text->update(text);
+	yscroll->update_length(this->text->get_text_rows(),
+		this->text->get_text_row(),
+		yscroll->get_handlelength(),
+		1);
+}
+
+void BC_ScrollTextBox::update(const wchar_t *wtext)
+{
+	this->text->update(wtext);
 	yscroll->update_length(this->text->get_text_rows(),
 		this->text->get_text_row(),
 		yscroll->get_handlelength(),
@@ -2377,10 +2453,18 @@ void BC_ScrollTextBox::set_selection(int char1, int char2, int ibeam)
 
 
 
-BC_ScrollTextBoxText::BC_ScrollTextBoxText(BC_ScrollTextBox *gui)
+BC_ScrollTextBoxText::BC_ScrollTextBoxText(BC_ScrollTextBox *gui, const char *text)
  : BC_TextBox(gui->x, gui->y,
 	gui->w - get_resources()->vscroll_data[SCROLL_HANDLE_UP]->get_w(),
-	gui->rows, gui->default_size, (char*)gui->default_text, 1, MEDIUMFONT)
+	gui->rows, gui->default_size, (char*)text, 1, MEDIUMFONT)
+{
+	this->gui = gui;
+}
+
+BC_ScrollTextBoxText::BC_ScrollTextBoxText(BC_ScrollTextBox *gui, const wchar_t *wtext)
+ : BC_TextBox(gui->x, gui->y,
+	gui->w - get_resources()->vscroll_data[SCROLL_HANDLE_UP]->get_w(),
+	gui->rows, gui->default_size, (wchar_t*)wtext, 1, MEDIUMFONT)
 {
 	this->gui = gui;
 }
@@ -2447,16 +2531,21 @@ int BC_ScrollTextBoxYScroll::handle_event()
 
 
 
-BC_PopupTextBoxText::BC_PopupTextBoxText(BC_PopupTextBox *popup, int x, int y)
- : BC_TextBox(x, y, popup->text_w, 1, popup->default_text, BCTEXTLEN)
+BC_PopupTextBoxText::BC_PopupTextBoxText(BC_PopupTextBox *popup, int x, int y, const char *text)
+ : BC_TextBox(x, y, popup->text_w, 1, text, BCTEXTLEN)
+{
+	this->popup = popup;
+}
+
+BC_PopupTextBoxText::BC_PopupTextBoxText(BC_PopupTextBox *popup, int x, int y, const wchar_t *wtext)
+ : BC_TextBox(x, y, popup->text_w, 1, wtext, BCTEXTLEN)
 {
 	this->popup = popup;
 }
 
 BC_PopupTextBoxText::~BC_PopupTextBoxText()
 {
-	if(popup)
-	{
+	if(popup) {
 		popup->textbox = 0;
 		delete popup;
 		popup = 0;
@@ -2471,17 +2560,9 @@ int BC_PopupTextBoxText::handle_event()
 }
 
 BC_PopupTextBoxList::BC_PopupTextBoxList(BC_PopupTextBox *popup, int x, int y)
- : BC_ListBox(x,
- 	y,
+ : BC_ListBox(x, y,
 	popup->text_w + BC_WindowBase::get_resources()->listbox_button[0]->get_w(),
-	popup->list_h,
-	popup->list_format,
-	popup->list_items,
-	0,
-	0,
-	1,
-	0,
-	1)
+	popup->list_h, popup->list_format, popup->list_items, 0, 0, 1, 0, 1)
 {
 	this->popup = popup;
 }
@@ -2501,18 +2582,15 @@ int BC_PopupTextBoxList::handle_event()
 
 BC_PopupTextBox::BC_PopupTextBox(BC_WindowBase *parent_window,
 		ArrayList<BC_ListBoxItem*> *list_items,
-		const char *default_text,
-		int x,
-		int y,
-		int text_w,
-		int list_h,
-		int list_format)
+		const char *default_text, int x, int y,
+		int text_w, int list_h, int list_format)
 {
 	this->x = x;
 	this->y = y;
 	this->list_h = list_h;
 	this->list_format = list_format;
 	this->default_text = (char*)default_text;
+	this->default_wtext = 0;
 	this->text_w = text_w;
 	this->parent_window = parent_window;
 	this->list_items = list_items;
@@ -2531,7 +2609,9 @@ BC_PopupTextBox::~BC_PopupTextBox()
 int BC_PopupTextBox::create_objects()
 {
 	int x = this->x, y = this->y;
-	parent_window->add_subwindow(textbox = new BC_PopupTextBoxText(this, x, y));
+	parent_window->add_subwindow(textbox = default_wtext ?
+		 new BC_PopupTextBoxText(this, x, y, default_wtext) :
+		 new BC_PopupTextBoxText(this, x, y, default_text));
 	x += textbox->get_w();
 	parent_window->add_subwindow(listbox = new BC_PopupTextBoxList(this, x, y));
 	return 0;
@@ -2554,6 +2634,11 @@ void BC_PopupTextBox::update_list(ArrayList<BC_ListBoxItem*> *data)
 const char* BC_PopupTextBox::get_text()
 {
 	return textbox->get_text();
+}
+
+const wchar_t* BC_PopupTextBox::get_wtext()
+{
+	return textbox->get_wtext();
 }
 
 int BC_PopupTextBox::get_number()
@@ -2816,6 +2901,11 @@ int BC_TumbleTextBox::create_objects()
 const char* BC_TumbleTextBox::get_text()
 {
 	return textbox->get_text();
+}
+
+const wchar_t* BC_TumbleTextBox::get_wtext()
+{
+	return textbox->get_wtext();
 }
 
 BC_TextBox* BC_TumbleTextBox::get_textbox()

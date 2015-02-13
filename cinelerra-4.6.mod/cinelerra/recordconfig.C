@@ -32,7 +32,7 @@
 
 AudioInConfig::AudioInConfig()
 {
-	driver = AUDIO_OSS;
+	driver = AUDIO_ALSA;
 	for(int i = 0; i < MAXDEVICES; i++)
 	{
 		oss_enable[i] = (i == 0);

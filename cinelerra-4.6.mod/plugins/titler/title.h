@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 1997-2014 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef TITLE_H
@@ -52,6 +52,7 @@ class GlyphEngine;
 class TitleTranslate;
 
 #include "bchash.h"
+#include "bcfontentry.h"
 #include "loadbalance.h"
 #include "mutex.h"
 #include "overlayframe.h"
@@ -94,21 +95,23 @@ public:
 	TitleConfig();
 	~TitleConfig();
 
+	void to_wtext(const char *from_enc, const char *text, int tlen);
 // Only used to clear glyphs
 	int equivalent(TitleConfig &that);
 	void copy_from(TitleConfig &that);
-	void interpolate(TitleConfig &prev, 
-		TitleConfig &next, 
-		long prev_frame, 
-		long next_frame, 
-		long current_frame);
+	void interpolate(TitleConfig &prev,
+		TitleConfig &next,
+		int64_t prev_frame,
+		int64_t next_frame,
+		int64_t current_frame);
 	void limits();
 
 // Font information
 	char font[BCTEXTLEN];
-	long style;
+	int64_t style;
 	int size;
 	int color;
+	int color_stroke;
 	int outline_color;
 	int alpha;
 	int outline_alpha;
@@ -128,23 +131,22 @@ public:
 	int dropshadow;
 	int outline_size;
 // Calculated during every frame for motion strategy
-	long prev_keyframe_position;
-	long next_keyframe_position;
+	int64_t prev_keyframe_position;
+	int64_t next_keyframe_position;
 // Stamp timecode
 	int timecode;
-	int timecode_format;
 
-// temp utf8 text for non utf8 system
-	string textutf8;
 // Text to display
-	string text;
-// ?
-	FT_ULong *ucs4text;
-// Encoding to convert from 
-	char encoding[BCTEXTLEN];
-	int tlen;
+	wchar_t wtext[BCTEXTLEN];
+	int wlen;
 	void convert_text();
 
+// Encoding to convert from
+	char encoding[BCTEXTLEN];
+// Time Code Format
+	int timecode_format;
+// Width of the stroke
+	double stroke_width;
 // Size of window
 	int window_w, window_h;
 };
@@ -182,12 +184,11 @@ class TitleGlyph
 public:
 	TitleGlyph();
 	~TitleGlyph();
-// character
-	int c;
-// character in UCS-4
+
 	FT_ULong char_code;
 	int width, height, pitch, advance_w, left, top, freetype_index;
 	VFrame *data;
+	VFrame *data_stroke;
 };
 
 
@@ -199,7 +200,7 @@ public:
 
 
 // Draw a single character into the glyph cache
-// 
+//
 class GlyphPackage : public LoadPackage
 {
 public:
@@ -216,7 +217,7 @@ public:
 	void process_package(LoadPackage *package);
 
 	TitleMain *plugin;
-	FontEntry *current_font;       // Current font configured by freetype
+	BC_FontEntry *current_font;       // Current font configured by freetype
 	FT_Library freetype_library;      	// Freetype library
 	FT_Face freetype_face;
 };
@@ -242,7 +243,8 @@ class TitlePackage : public LoadPackage
 {
 public:
 	TitlePackage();
-	int x, y, c;
+	int x, y;
+	wchar_t char_code;
 };
 
 
@@ -389,29 +391,25 @@ public:
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);
 
-
-
 	void build_fonts();
 	void build_previews(TitleWindow *gui);
 	void draw_glyphs();
 	int draw_mask();
 	void overlay_mask();
-	FontEntry* get_font_entry(char *title,
-		int style,
-		int size);
-	FontEntry* get_font();
-	int get_char_advance(int current, int next);
+	TitleGlyph *get_glyph(FT_ULong char_code);
+	BC_FontEntry* get_font();
+	int get_char_advance(FT_ULong current, FT_ULong next);
 	int get_char_height();
 	int get_char_width(FT_ULong c);
 	void get_total_extents();
 	void clear_glyphs();
 	int check_char_code_path(FT_Library &freetype_library,
-		char *path_old, 
+		char *path_old,
 		FT_ULong &char_code,
 		char *path_new);
 	int load_freetype_face(FT_Library &freetype_library,
 		FT_Face &freetype_face,
-		char *path);
+		const char *path);
 	void get_color_components(int *r, int *g, int *b, int *a, int is_outline);
 
 
@@ -422,13 +420,14 @@ public:
 	static const char* motion_to_text(int motion);
 	static int text_to_motion(const char *text);
 
-	static ArrayList<FontEntry*> *fonts;
+        static ArrayList<FontEntry*> *fonts;
 
 	ArrayList<TitleGlyph*> glyphs;
 	Mutex glyph_lock;
 
 // Stage 1 parameters must be compared to redraw the text mask
 	VFrame *text_mask;
+	VFrame *text_mask_stroke;
 	VFrame *outline_mask;
 	GlyphEngine *glyph_engine;
 	TitleEngine *title_engine;
@@ -478,10 +477,12 @@ public:
 	int text_h;
 // Position of each character relative to total text extents
 	title_char_position_t *char_positions;
-
+// Positions of the bottom pixels of the rows
+	int rows_size, *rows_bottom;
 	VFrame *input, *output;
 
 	int need_reconfigure;
+
 };
 
 

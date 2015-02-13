@@ -7,7 +7,12 @@ OBJS := \
 	$(OBJDIR)/findobjectwindow.o \
 	$(OBJDIR)/surfscan.o \
 
+ifeq ($(STATIC_LIBRARIES), y)
 LFLAGS += $(OPENCV_DIR)/libopencv.a
+else
+LFLAGS += -lopencv_video
+LFLAGS += -lopencv_legacy
+endif
 
 CFLAGS += -I$(OPENCV_DIR)/modules/core/include/ \
 	-I$(OPENCV_DIR)/modules/features2d/include/ \
