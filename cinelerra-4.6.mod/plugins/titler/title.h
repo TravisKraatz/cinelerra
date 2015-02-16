@@ -150,7 +150,10 @@ public:
 	~TitleGlyph();
 
 	FT_ULong char_code;
-	int width, height, pitch, advance_w, left, top, freetype_index;
+	int width, height, pitch;
+	int advance_x;
+	int left, top, right, bottom;
+	int freetype_index;
 	VFrame *data;
 	VFrame *data_stroke;
 };
@@ -217,7 +220,7 @@ class TitleUnit : public LoadClient
 public:
 	TitleUnit(TitleMain *plugin, TitleEngine *server);
 	void process_package(LoadPackage *package);
-	void draw_glyph(VFrame *output, TitleGlyph *glyph, int x, int y);
+	void draw_glyph(VFrame *output, VFrame *data, TitleGlyph *glyph, int x, int y);
 	TitleMain *plugin;
 	TitleEngine *engine;
 };
@@ -356,7 +359,9 @@ public:
 	void read_data(KeyFrame *keyframe);
 
 	void build_previews(TitleWindow *gui);
-	void draw_glyphs();
+	void reset_render();
+	int init_freetype();
+	void load_glyphs();
 	int draw_mask();
 	void overlay_mask();
 	TitleGlyph *get_glyph(FT_ULong char_code);
@@ -402,21 +407,26 @@ public:
 // Visible area of all text present in the mask.
 // Horizontal characters aren't clipped because column positions are
 // proportional.
-	int visible_row1;
-	int visible_row2;
-	int visible_char1;
-	int visible_char2;
+	int visible_row1, visible_char1;
+	int visible_row2, visible_char2;
+	int extent_x0, extent_y0;
+	int extent_x1, extent_y1;
+	int extent_x2, extent_y2;
+
+	int text_rows;
 // relative position of all text to output
-	float text_y1;
-	float text_y2;
-	float text_x1;
+	int text_w, text_h;
+	float text_x1, text_y1, text_x2, text_y2;
+// Position of each character relative to total text extents
+	title_char_position_t *char_positions;
+// Positions of the top pixels of the rows
+	int row_geom_size;
+	struct RowGeom { int x0, y0, x1, y1, x2, y2; } *row_geom;
 // relative position of visible part of text to output
-	float mask_y1;
-	float mask_y2;
+	int mask_w, mask_h;
 
 // Fade value
 	int alpha;
-
 
 // Max dimensions for all characters.  Not equal to config.size
 // Must be calculated from rendering characters
@@ -431,19 +441,10 @@ public:
 
 
 
-// Text is always row aligned to mask boundaries.
-	int text_len;
-	int text_rows;
-	int text_w;
-	int text_h;
-// Position of each character relative to total text extents
-	title_char_position_t *char_positions;
-// Positions of the bottom pixels of the rows
-	int rows_size, *rows_bottom;
 	VFrame *input, *output;
 
 	int need_reconfigure;
-
+	int cpus;
 };
 
 

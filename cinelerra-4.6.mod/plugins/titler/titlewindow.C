@@ -21,6 +21,7 @@
 
 #include "bcdisplayinfo.h"
 #include "bcsignals.h"
+#include "cstrdup.h"
 #include "language.h"
 #include "theme.h"
 #include "titlewindow.h"
@@ -71,7 +72,6 @@ TitleWindow::TitleWindow(TitleMain *client)
 	speed = 0;
 	center = 0;
 	italic = 0;
-	format_title = 0;
 	text_title = 0;
 	motion_title = 0;
 	fadeout_title = 0;
@@ -329,8 +329,6 @@ void TitleWindow::create_objects()
 	add_tool(timecode = new TitleTimecode(client, x, y));
 	x += timecode->get_w() + margin;
 
-	add_tool(format_title = new BC_Title(x, y + 3, _("Format:")));
-	x += format_title->get_w() + margin;
 	add_tool(timecode_format = new TitleTimecodeFormat(client, x, y,
 		Units::print_time_format(client->config.timecode_format, string)));
 	timecode_format->create_objects();
@@ -341,7 +339,7 @@ void TitleWindow::create_objects()
 	y += text_title->get_h() + margin;
 	text = new TitleText(client, this, x, y, get_w() - x - 10, get_h() - y - 50);
 	text->create_objects();
-	update_color();
+	update();
 
 	show_window(1);
 }
@@ -387,7 +385,6 @@ int TitleWindow::resize_event(int w, int h)
 	fade_in->reposition_window(fade_in->get_x(), fade_in->get_y());
 	fadeout_title->reposition_window(fadeout_title->get_x(), fadeout_title->get_y());
 	fade_out->reposition_window(fade_out->get_x(), fade_out->get_y());
-	format_title->reposition_window(format_title->get_x(), format_title->get_y());
 	text_title->reposition_window(text_title->get_x(), text_title->get_y());
 #ifdef USE_OUTLINE
 	stroke_width->reposition_window(stroke_width->get_x(), stroke_width->get_y());
@@ -509,7 +506,7 @@ void TitleWindow::update()
 	timecode_format->update(client->config.timecode_format);
 
 	char string[BCTEXTLEN];
-	for(int i = 0; i < sizeof(timeunit_formats) / sizeof(int); i++) {
+	for(int i = 0; i < lengthof(timeunit_formats); i++) {
 		if(timeunit_formats[i] == client->config.timecode_format)
 		{
 			timecode_format->set_text(
@@ -742,7 +739,7 @@ int TitleTimecodeFormat::handle_event()
 void TitleTimecodeFormat::create_objects()
 {
 	char string[BCTEXTLEN];
-	for(int i = 0; i < sizeof(timeunit_formats) / sizeof(int); i++) {
+	for(int i = 0; i < lengthof(timeunit_formats); i++) {
 		add_item(new BC_MenuItem(
 			Units::print_time_format(timeunit_formats[i], string)));
 	}
@@ -752,7 +749,7 @@ void TitleTimecodeFormat::create_objects()
 int TitleTimecodeFormat::update(int timecode_format)
 {
 	char string[BCTEXTLEN];
-	for(int i = 0; i < sizeof(timeunit_formats) / sizeof(int); i++) {
+	for(int i = 0; i < lengthof(timeunit_formats); i++) {
 		if(timeunit_formats[i] == timecode_format)
 		{
 			set_text(Units::print_time_format(timeunit_formats[i], string));

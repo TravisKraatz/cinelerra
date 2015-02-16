@@ -6,6 +6,7 @@ OBJS = $(OBJDIR)/title.o  \
 
 
 OUTPUT = $(PLUGIN_DIR)/titler.plugin
+CFLAGS += -Wall
 #CFLAGS += -I$(FREETYPE_DIR)/include -I../../thirdparty/
 #LFLAGS += $(FREETYPE_DIR)/$(OBJDIR)/libfreetype.a
 ifneq ($(STATIC_LIBRARIES), y)

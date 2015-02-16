@@ -329,6 +329,7 @@ public:
 	static const char *medium_font_xft2;
 	static const char *large_font_xft2;
 	static const char *big_font_xft2;
+	void init_font_defs(double scale);
 
 	VFrame **medium_7segment;
 

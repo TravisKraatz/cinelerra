@@ -813,7 +813,8 @@ void BC_ListBox::calculate_item_coords_recursive(
 
 // Set up a text row
 		int next_text_x = 0;
-		row_height = row_ascent = row_descent = 0;
+		row_ascent = row_descent = 0;
+// row_height still holds icon max height
 		for(int j = 0; j < columns; j++)
 		{
 			BC_ListBoxItem *item = data[j].get(i);

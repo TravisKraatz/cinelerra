@@ -62,46 +62,88 @@ ArrayList<BC_FontEntry*> *BC_Resources::fontlist = 0;
 const char *BC_Resources::fc_properties[] = { FC_SLANT, FC_WEIGHT, FC_WIDTH };
 #define LEN_FCPROP (sizeof(BC_Resources::fc_properties) / sizeof(const char*))
 
-const char* BC_Resources::small_font = N_("-*-helvetica-medium-r-normal-*-10-*");
-const char* BC_Resources::small_font2 = N_("-*-helvetica-medium-r-normal-*-11-*");
-const char* BC_Resources::medium_font = N_("-*-helvetica-bold-r-normal-*-14-*");
-const char* BC_Resources::medium_font2 = N_("-*-helvetica-bold-r-normal-*-14-*");
-const char* BC_Resources::large_font = N_("-*-helvetica-bold-r-normal-*-18-*");
-const char* BC_Resources::large_font2 = N_("-*-helvetica-bold-r-normal-*-20-*");
-const char* BC_Resources::big_font =
-  N_("-*-bitstream charter-bold-r-normal-*-*-0-160-160-p-0-iso8859-1");
-const char* BC_Resources::big_font2 =
-  N_("-*-nimbus sans l-bold-r-normal-*-*-0-160-160-p-0-iso8859-1");
+static const char *def_small_font = "-*-helvetica-medium-r-normal-*-%d-*";  // 10
+static const char *def_small_font2 = "-*-helvetica-medium-r-normal-*-%d-*"; // 11
+static const char *def_medium_font = "-*-helvetica-bold-r-normal-*-%d-*";   // 14
+static const char *def_medium_font2 = "-*-helvetica-bold-r-normal-*-%d-*";  // 14
+static const char *def_large_font = "-*-helvetica-bold-r-normal-*-%d-*";    // 18
+static const char *def_large_font2 = "-*-helvetica-bold-r-normal-*-%d-*";   // 20
+static const char *def_big_font =
+  "-*-bitstream charter-bold-r-normal-*-*-0-%d-%d-p-0-iso8859-1"; // 160
+static const char *def_big_font2 =
+  "-*-nimbus sans l-bold-r-normal-*-*-0-%d-%d-p-0-iso8859-1";     // 160
+static const char *def_small_fontset =  "-*-helvetica-medium-r-normal-*-%d-*";// 10
+static const char *def_medium_fontset = "-*-helvetica-bold-r-normal-*-%d-*";  // 14
+static const char *def_large_fontset =  "-*-helvetica-bold-r-normal-*-%d-*";  // 18
+static const char *def_big_fontset =    "-*-helvetica-bold-r-normal-*-%d-*";  // 24
+static const char *def_small_font_xft = "Sans:pixelsize=%.4f";           // 10.6667
+static const char *def_small_b_font_xft = "Sans:bold:pixelsize=%.4f";    // 10.6667
+static const char *def_medium_font_xft = "Sans:pixelsize=%.4f";          // 13.3333
+static const char *def_medium_b_font_xft = "Sans:bold:pixelsize=%.4f";   // 13.3333
+static const char *def_large_font_xft = "Sans:pixelsize=%.4f";           // 21.3333
+static const char *def_large_b_font_xft = "Sans:bold:pixelsize=%.4f";    // 21.3333
+static const char *def_big_font_xft = "Sans:pixelsize=37.3333";          // 37.3333
+static const char *def_big_b_font_xft = "Sans:bold:pixelsize=37.33333";  // 37.3333
 
-const char* BC_Resources::small_fontset = "-*-helvetica-medium-r-normal-*-10-*";
-const char* BC_Resources::medium_fontset = "-*-helvetica-bold-r-normal-*-14-*";
-const char* BC_Resources::large_fontset = "-*-helvetica-bold-r-normal-*-18-*";
-const char* BC_Resources::big_fontset = "-*-helvetica-bold-r-normal-*-24-*";
+#define default_font_xft2 "-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*"
 
-//const char* BC_Resources::small_font_xft = N_("Sans-8");
-//const char* BC_Resources::small_font_xft = N_("-*-luxi sans-bold-r-*-*-8-*-*-*-*-*-*-*");
-const char* BC_Resources::small_font_xft = N_("Sans:pixelsize=10.6667");
-const char* BC_Resources::small_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-const char* BC_Resources::small_b_font_xft = N_("Sans:bold:pixelsize=10.6667");
+const char* BC_Resources::small_font = 0;
+const char* BC_Resources::small_font2 = 0;
+const char* BC_Resources::medium_font = 0;
+const char* BC_Resources::medium_font2 = 0;
+const char* BC_Resources::large_font = 0;
+const char* BC_Resources::large_font2 = 0;
+const char* BC_Resources::big_font = 0;
+const char* BC_Resources::big_font2 = 0;
+const char* BC_Resources::small_fontset = 0;
+const char* BC_Resources::medium_fontset = 0;
+const char* BC_Resources::large_fontset = 0;
+const char* BC_Resources::big_fontset = 0;
+const char* BC_Resources::small_font_xft = 0;
+const char* BC_Resources::small_font_xft2 = 0;
+const char* BC_Resources::small_b_font_xft = 0;
+const char* BC_Resources::medium_font_xft = 0;
+const char* BC_Resources::medium_font_xft2 = 0;
+const char* BC_Resources::medium_b_font_xft = 0;
+const char* BC_Resources::large_font_xft = 0;
+const char* BC_Resources::large_font_xft2 = 0;
+const char* BC_Resources::large_b_font_xft = 0;
+const char* BC_Resources::big_font_xft = 0;
+const char* BC_Resources::big_font_xft2 = 0;
+const char* BC_Resources::big_b_font_xft = 0;
 
-//const char* BC_Resources::medium_font_xft = N_("Sans-10");
-//const char* BC_Resources::medium_font_xft = N_("-*-luxi sans-medium-r-*-*-12-*-*-*-*-*-*-*");
-const char* BC_Resources::medium_font_xft = N_("Sans:pixelsize=13.3333");
-const char* BC_Resources::medium_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-const char* BC_Resources::medium_b_font_xft = N_("Sans:bold:pixelsize=13.33333");
+#define def_font(v, s...) do { sprintf(string,def_##v,s); v = cstrdup(string); } while(0)
+#define set_font(v, s) do { sprintf(string, "%s", s); v = cstrdup(string); } while(0)
+#define iround(v) ((int)(v+0.5))
+void BC_Resources::init_font_defs(double scale)
+{
+	char string[BCTEXTLEN];
+	def_font(small_font,       iround(scale*11));
+	def_font(small_font2,      iround(scale*11));
+	def_font(medium_font,      iround(scale*14));
+	def_font(medium_font2,     iround(scale*14));
+	def_font(large_font,       iround(scale*18));
+	def_font(large_font2,      iround(scale*20));
+	def_font(big_font,         iround(scale*160), iround(scale*160));
+	def_font(big_font2,        iround(scale*160), iround(scale*160));
+	def_font(small_fontset,    iround(scale*10));
+	def_font(medium_fontset,   iround(scale*14));
+	def_font(large_fontset,    iround(scale*18));
+	def_font(big_fontset,      iround(scale*24));
+	def_font(small_font_xft,   (scale*10.6667));
+	def_font(small_b_font_xft, (scale*10.6667));
+	def_font(medium_font_xft,  (scale*13.3333));
+	def_font(medium_b_font_xft,(scale*13.3333));
+	def_font(large_font_xft,   (scale*21.3333));
+	def_font(large_b_font_xft, (scale*21.3333));
+	def_font(big_font_xft,     (scale*37.3333));
+	def_font(big_b_font_xft,   (scale*37.3333));
 
-//const char* BC_Resources::large_font_xft = N_("Sans-18");
-//const char* BC_Resources::large_font_xft = N_("-*-luxi sans-medium-r-*-*-18-*-*-*-*-*-*-*");
-const char* BC_Resources::large_font_xft = N_("Sans:pixelsize=21.3333");
-const char* BC_Resources::large_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-const char* BC_Resources::large_b_font_xft = N_("Sans:bold:pixelsize=21.33333");
-
-//const char* BC_Resources::big_font_xft = N_("Sans-34");
-//const char* BC_Resources::big_font_xft = N_("-*-luxi sans-bold-r-*-*-34-*-*-*-*-*-*-*");
-const char* BC_Resources::big_font_xft = N_("Sans:pixelsize=37.3333");
-const char* BC_Resources::big_font_xft2 = N_("-microsoft-verdana-*-*-*-*-*-*-*-*-*-*-*-*");
-const char* BC_Resources::big_b_font_xft = N_("Sans:bold:pixelsize=37.33333");
-
+	set_font(small_font_xft2,  default_font_xft2);
+	set_font(medium_font_xft2, default_font_xft2);
+	set_font(large_font_xft2,  default_font_xft2);
+	set_font(big_font_xft2,    default_font_xft2);
+}
 
 suffix_to_type_t BC_Resources::suffix_to_type[] =
 {
@@ -147,6 +189,19 @@ BC_Resources::BC_Resources()
 	synchronous = 0;
 	vframe_shm = 0;
 	display_info = new BC_DisplayInfo("", 0);
+	double scale = 1;
+	char *font_scale = getenv("BC_FONT_SCALE");
+	if( !font_scale ) {
+		int display_w = display_info->get_root_w();
+		int display_h = display_info->get_root_h();
+		int display_size = display_h < display_w ? display_h : display_w;
+		scale = display_size / 1000.;
+	}
+	else {
+		double env_scale = atof(font_scale);
+		if( env_scale > 0 ) scale = env_scale;
+	}
+	init_font_defs(scale);
 	id_lock = new Mutex("BC_Resources::id_lock");
 	create_window_lock = new Mutex("BC_Resources::create_window_lock", 1);
 	id = 0;
@@ -899,10 +954,10 @@ int BC_Resources::init_fontconfig(const char *search_path)
 	int force_style = 0;
 	int limit_to_trutype = 0; // if you want limit search to TrueType put 1
 	FcConfig *config;
-	FcBool resultfc;
 	int i;
 	char tmpstring[BCTEXTLEN];
-	resultfc = FcInit();
+	if(!FcInit())
+		return 1;
 	config = FcConfigGetCurrent();
 	FcConfigSetRescanInterval(config, 0);
 
@@ -1099,9 +1154,6 @@ int BC_Resources::init_fontconfig(const char *search_path)
 		FT_Done_FreeType(freetype_library);
 // for(int i = 0; i < fonts->total; i++)
 //	fonts->values[i]->dump();
-
-	if(!FcInit())
-		return 1;
 
 	FcConfigAppFontAddDir(0, (const FcChar8*)search_path);
 	FcConfigSetRescanInterval(0, 0);
