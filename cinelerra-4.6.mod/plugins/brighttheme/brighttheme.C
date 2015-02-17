@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 1997-2014 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "bcsignals.h"
@@ -156,56 +156,56 @@ void BrightTheme::initialize()
 
 	resources->scroll_minhandle = 24;
 
-	new_toggle("loadmode_new.png", 
+	new_toggle("loadmode_new.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_new");
-	new_toggle("loadmode_none.png", 
+	new_toggle("loadmode_none.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_none");
-	new_toggle("loadmode_newcat.png", 
+	new_toggle("loadmode_newcat.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_newcat");
-	new_toggle("loadmode_cat.png", 
+	new_toggle("loadmode_cat.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_cat");
-	new_toggle("loadmode_newtracks.png", 
+	new_toggle("loadmode_newtracks.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_newtracks");
-	new_toggle("loadmode_paste.png", 
+	new_toggle("loadmode_paste.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_paste");
-	new_toggle("loadmode_resource.png", 
+	new_toggle("loadmode_resource.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
 		"loadmode_dn.png",
 		"loadmode_checkedhi.png",
 		"loadmode_resource");
-	new_toggle("loadmode_nested.png", 
+	new_toggle("loadmode_nested.png",
 		"loadmode_up.png",
 		"loadmode_hi.png",
 		"loadmode_checked.png",
@@ -256,7 +256,7 @@ void BrightTheme::initialize()
 		"bigbutton_hi.png", 
 		"bigbutton_dn.png");
 
-	resources->usethis_button_images = 
+	resources->usethis_button_images =
 		resources->ok_images = new_button("ok.png",
 		"bigbutton_up.png", 
 		"bigbutton_hi.png", 
@@ -279,6 +279,28 @@ void BrightTheme::initialize()
 		"bigbutton_dn.png",
 		"new_cancel_images");
 
+	resources->medium_7segment = new_image_set(TOTAL_7SEGMENT,
+		"0.png",
+		"1.png",
+		"2.png",
+		"3.png",
+		"4.png",
+		"5.png",
+		"6.png",
+		"7.png",
+		"8.png",
+		"9.png",
+		"colon.png",
+		"period.png",
+		"a.png",
+		"b.png",
+		"c.png",
+		"d.png",
+		"e.png",
+		"f.png",
+		"space.png",
+		"dash.png");
+
 	resources->bar_data = new_image("bar", "bar.png");
 
 
@@ -289,7 +311,7 @@ void BrightTheme::initialize()
 		"menuitem_hi.png",
 		"menuitem_dn.png");
 	resources->menu_bar_bg = new_image("menubar_bg.png");
-	resources->menu_title_bg = new_image_set(3, 
+	resources->menu_title_bg = new_image_set(3,
 		"menubar_up.png",
 		"menubar_hi.png",
 		"menubar_dn.png");
@@ -300,9 +322,9 @@ void BrightTheme::initialize()
 	resources->toggle_highlight_bg = new_image("toggle_highlight_bg",
 		"generic_up.png");
 
-	resources->generic_button_images = new_image_set(3, 
-			"generic_up.png", 
-			"generic_hi.png", 
+	resources->generic_button_images = new_image_set(3,
+			"generic_up.png",
+			"generic_hi.png",
 			"generic_dn.png");
 	resources->horizontal_slider_data = new_image_set(6,
 			"hslider_fg_up.png",
@@ -331,12 +353,12 @@ void BrightTheme::initialize()
 	resources->listbox_up = new_image("listbox_up.png");
 	resources->listbox_dn = new_image("listbox_dn.png");
 	resources->pan_data = new_image_set(7,
-			"pan_up.png", 
-			"pan_hi.png", 
-			"pan_popup.png", 
-			"pan_channel.png", 
-			"pan_stick.png", 
-			"pan_channel_small.png", 
+			"pan_up.png",
+			"pan_hi.png",
+			"pan_popup.png",
+			"pan_channel.png",
+			"pan_stick.png",
+			"pan_channel_small.png",
 			"pan_stick_small.png");
 	resources->pan_text_color = BLACK;
 
@@ -359,6 +381,22 @@ void BrightTheme::initialize()
 		"radial_dn.png",
 		"radial_checkedhi.png");
 
+	resources->xmeter_images = new_image_set(7,
+		"xmeter_normal.png",
+		"xmeter_green.png",
+		"xmeter_red.png",
+		"xmeter_yellow.png",
+		"xmeter_white.png",
+		"xmeter_over.png",
+		"downmix51_2.png");
+	resources->ymeter_images = new_image_set(7,
+		"ymeter_normal.png",
+		"ymeter_green.png",
+		"ymeter_red.png",
+		"ymeter_yellow.png",
+		"ymeter_white.png",
+		"ymeter_over.png",
+		"downmix51_2.png");
 
 	resources->hscroll_data = new_image_set(10,
 			"bright_hscroll_handle_up.png",
@@ -482,7 +520,7 @@ void BrightTheme::initialize()
 	browse_pad = 20;
 
 
-	new_toggle("playpatch.png", 
+	new_toggle("playpatch.png",
 		"patch_up.png",
 		"patch_hi.png",
 		"patch_checked.png",
@@ -490,7 +528,7 @@ void BrightTheme::initialize()
 		"patch_checkedhi.png",
 		"playpatch_data");
 
-	new_toggle("recordpatch.png", 
+	new_toggle("recordpatch.png",
 		"patch_up.png",
 		"patch_hi.png",
 		"patch_checked.png",
@@ -498,7 +536,7 @@ void BrightTheme::initialize()
 		"patch_checkedhi.png",
 		"recordpatch_data");
 
-	new_toggle("gangpatch.png", 
+	new_toggle("gangpatch.png",
 		"patch_up.png",
 		"patch_hi.png",
 		"patch_checked.png",
@@ -506,7 +544,7 @@ void BrightTheme::initialize()
 		"patch_checkedhi.png",
 		"gangpatch_data");
 
-	new_toggle("drawpatch.png", 
+	new_toggle("drawpatch.png",
 		"patch_up.png",
 		"patch_hi.png",
 		"patch_checked.png",
@@ -515,7 +553,7 @@ void BrightTheme::initialize()
 		"drawpatch_data");
 
 
-	new_image_set("mutepatch_data", 
+	new_image_set("mutepatch_data",
 		5,
 		"mutepatch_up.png",
 		"mutepatch_hi.png",
@@ -523,7 +561,7 @@ void BrightTheme::initialize()
 		"mutepatch_dn.png",
 		"mutepatch_checkedhi.png");
 
-	new_image_set("expandpatch_data", 
+	new_image_set("expandpatch_data",
 		5,
 		"expandpatch_up.png",
 		"expandpatch_hi.png",
@@ -538,31 +576,31 @@ void BrightTheme::initialize()
 
 
 	out_point = new_image_set(5,
-		"out_up.png", 
-		"out_hi.png", 
-		"out_checked.png", 
-		"out_dn.png", 
+		"out_up.png",
+		"out_hi.png",
+		"out_checked.png",
+		"out_dn.png",
 		"out_checkedhi.png");
 	in_point = new_image_set(5,
-		"in_up.png", 
-		"in_hi.png", 
-		"in_checked.png", 
-		"in_dn.png", 
+		"in_up.png",
+		"in_hi.png",
+		"in_checked.png",
+		"in_dn.png",
 		"in_checkedhi.png");
 
 	label_toggle = new_image_set(5,
-		"labeltoggle_up.png", 
-		"labeltoggle_uphi.png", 
-		"label_checked.png", 
-		"labeltoggle_dn.png", 
+		"labeltoggle_up.png",
+		"labeltoggle_uphi.png",
+		"label_checked.png",
+		"labeltoggle_dn.png",
 		"label_checkedhi.png");
 
 	new_image_set("histogram_carrot",
 		5,
-		"histogram_carrot_up.png", 
-		"histogram_carrot_hi.png", 
-		"histogram_carrot_checked.png", 
-		"histogram_carrot_dn.png", 
+		"histogram_carrot_up.png",
+		"histogram_carrot_hi.png",
+		"histogram_carrot_checked.png",
+		"histogram_carrot_dn.png",
 		"histogram_carrot_checkedhi.png");
 
 
@@ -583,46 +621,47 @@ void BrightTheme::initialize()
 	new_button("center_justify.png", editpanel_up, editpanel_hi, editpanel_dn, "center_justify");
 	new_button("channel.png", editpanel_up, editpanel_hi, editpanel_dn, "channel");
 
-	new_toggle("histogram.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("histogram.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"histogram_toggle");
-	new_toggle("histogram_rgb.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("histogram_rgb.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"histogram_rgb_toggle");
-	new_toggle("waveform.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("waveform.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"waveform_toggle");
-	new_toggle("waveform_rgb.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("waveform_rgb.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"waveform_rgb_toggle");
-	new_toggle("scope.png", 
-		editpanel_up, 
-		editpanel_hi, 
-		editpanel_checked, 
-		editpanel_dn, 
-		editpanel_checkedhi, 
+	new_toggle("scope.png",
+		editpanel_up,
+		editpanel_hi,
+		editpanel_checked,
+		editpanel_dn,
+		editpanel_checkedhi,
 		"scope_toggle");
 
 	new_button("picture.png", editpanel_up, editpanel_hi, editpanel_dn, "picture");
 	new_button("histogram.png", editpanel_up, editpanel_hi, editpanel_dn, "histogram");
 
 	new_button("copy.png", editpanel_up, editpanel_hi, editpanel_dn, "copy");
+	new_button("commercial.png", editpanel_up, editpanel_hi, editpanel_dn, "commercial");
 	new_button("cut.png", editpanel_up, editpanel_hi, editpanel_dn, "cut");
 	new_button("fit.png", editpanel_up, editpanel_hi, editpanel_dn, "fit");
 	new_button("fitautos.png", editpanel_up, editpanel_hi, editpanel_dn, "fitautos");
@@ -688,10 +727,10 @@ void BrightTheme::initialize()
 
 
 
-	new_image_set("color3way_point", 
+	new_image_set("color3way_point",
 		3,
-		"color3way_up.png", 
-		"color3way_hi.png", 
+		"color3way_up.png",
+		"color3way_hi.png",
 		"color3way_dn.png");
 
 
@@ -701,6 +740,13 @@ void BrightTheme::initialize()
 	new_toggle("autokeyframe.png", transport_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "autokeyframe");
 	new_toggle("ibeam.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "ibeam");
 	new_toggle("show_meters.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "meters");
+	new_toggle("blank30x30.png",
+		   new_image("locklabels_locked.png"),
+		   new_image("locklabels_lockedhi.png"),
+		   new_image("locklabels_unlocked.png"),
+		   new_image("locklabels_dn.png"), // can't have seperate down for each!!??
+		   new_image("locklabels_unlockedhi.png"),
+		   "locklabels");
 
 	VFrame *cpanel_up = new_image("cpanel_up.png");
 	VFrame *cpanel_hi = new_image("cpanel_hi.png");
@@ -720,6 +766,9 @@ void BrightTheme::initialize()
 	new_toggle("titlesafe.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "titlesafe");
 	new_toggle("toolwindow.png", cpanel_up, cpanel_hi, cpanel_checked, cpanel_dn, cpanel_checkedhi, "tool");
 
+	// toggle for tangent mode (compositor/tool window)
+	new_toggle("tan_smooth.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "tan_smooth");
+	new_toggle("tan_linear.png", editpanel_up, editpanel_hi, editpanel_checked, editpanel_dn, editpanel_checkedhi, "tan_linear");
 
 
 	flush_images();
@@ -801,9 +850,9 @@ void BrightTheme::draw_rmonitor_bg(RecordMonitorGUI *gui)
 // 	int x = rmonitor_meter_x - margin;
 // 	int w = mwindow->session->rmonitor_w - x;
 // 	if(w < rmonitor_meters->get_w()) w = rmonitor_meters->get_w();
-// 	gui->clear_box(0, 
-// 		0, 
-// 		mwindow->session->rmonitor_w, 
+// 	gui->clear_box(0,
+// 		0,
+// 		mwindow->session->rmonitor_w,
 // 		mwindow->session->rmonitor_h);
 // 	gui->draw_9segment(x,
 // 		0,
@@ -820,9 +869,9 @@ void BrightTheme::draw_rmonitor_bg(RecordMonitorGUI *gui)
 void BrightTheme::draw_mwindow_bg(MWindowGUI *gui)
 {
 // Button bar
-	gui->draw_3segmenth(mbuttons_x, 
-		mbuttons_y - 1, 
-		mwindow->session->mwindow_w, 
+	gui->draw_3segmenth(mbuttons_x,
+		mbuttons_y - 1,
+		mwindow->session->mwindow_w,
 		get_image("mbutton_bg"));
 
 	gui->draw_vframe(get_image("panel_divider"),
@@ -834,28 +883,28 @@ void BrightTheme::draw_mwindow_bg(MWindowGUI *gui)
 		mbuttons_y - 1);
 
 // Clock
-	gui->draw_3segmenth(0, 
+	gui->draw_3segmenth(0,
 		mbuttons_y - 1 + get_image("mbutton_bg")->get_h(),
-		get_image("patchbay_bg")->get_w(), 
+		get_image("patchbay_bg")->get_w(),
 		get_image("clock_bg"));
 
 // Patchbay
-	gui->draw_3segmentv(patchbay_x, 
-		patchbay_y, 
-		patchbay_h, 
+	gui->draw_3segmentv(patchbay_x,
+		patchbay_y,
+		patchbay_h,
 		get_image("patchbay_bg"));
 
 // Track canvas
 	int patchbay_w = get_image("patchbay_bg")->get_w();
 	gui->clear_box(mcanvas_x + patchbay_w, 
-		mcanvas_y + mtimebar_h, 
+		mcanvas_y + mtimebar_h,
 		mcanvas_w - BC_ScrollBar::get_span(SCROLL_VERT) - patchbay_w, 
 		patchbay_h - BC_ScrollBar::get_span(SCROLL_HORIZ) - mtimebar_h);
 
 // Timebar
-	gui->draw_3segmenth(mtimebar_x, 
-		mtimebar_y, 
-		mtimebar_w, 
+	gui->draw_3segmenth(mtimebar_x,
+		mtimebar_y,
+		mtimebar_w,
 		get_image("timebar_bg"));
 
 // Zoombar
@@ -866,7 +915,7 @@ void BrightTheme::draw_mwindow_bg(MWindowGUI *gui)
 // 		25);
 
 // Scrollbar filler
-//	gui->draw_vframe(get_image("mscroll_filler"), 
+//	gui->draw_vframe(get_image("mscroll_filler"),
 //		mhscroll_x + mhscroll_w,
 //		mvscroll_y + mvscroll_h);
 
@@ -882,7 +931,7 @@ void BrightTheme::draw_mwindow_bg(MWindowGUI *gui)
 void BrightTheme::draw_cwindow_bg(CWindowGUI *gui)
 {
 	BC_Resources *resources = BC_WindowBase::get_resources();
-	
+
 	gui->set_color(WHITE);
 	gui->draw_box(ccanvas_x + ccanvas_w - resources->vscroll_data[0]->get_w(),
 		ccanvas_y + ccanvas_h - resources->hscroll_data[0]->get_h(),
@@ -892,56 +941,56 @@ void BrightTheme::draw_cwindow_bg(CWindowGUI *gui)
 	gui->draw_3segmenth(0, ccomposite_h, cstatus_x, get_image("cbuttons_left"));
 	if(mwindow->edl->session->cwindow_meter)
 	{
-		gui->draw_3segmenth(cstatus_x, 
-			ccomposite_h, 
-			cmeter_x - widget_border - cstatus_x, 
+		gui->draw_3segmenth(cstatus_x,
+			ccomposite_h,
+			cmeter_x - widget_border - cstatus_x,
 			get_image("cbuttons_right"));
-		gui->draw_9segment(cmeter_x - widget_border, 
-			0, 
-			mwindow->session->cwindow_w - cmeter_x + widget_border, 
-			mwindow->session->cwindow_h, 
+		gui->draw_9segment(cmeter_x - widget_border,
+			0,
+			mwindow->session->cwindow_w - cmeter_x + widget_border,
+			mwindow->session->cwindow_h,
 			get_image("cmeter_bg"));
 	}
 	else
 	{
-		gui->draw_3segmenth(cstatus_x, 
-			ccomposite_h, 
-			cmeter_x - widget_border - cstatus_x + 100, 
+		gui->draw_3segmenth(cstatus_x,
+			ccomposite_h,
+			cmeter_x - widget_border - cstatus_x + 100,
 			get_image("cbuttons_right"));
 	}
 }
 
 void BrightTheme::draw_vwindow_bg(VWindowGUI *gui)
 {
-	gui->draw_3segmenth(0, 
-		vcanvas_h, 
-		vdivision_x, 
+	gui->draw_3segmenth(0,
+		vcanvas_h,
+		vdivision_x,
 		get_image("vbuttons_left"));
 
 
 	if(mwindow->edl->session->vwindow_meter)
 	{
-		gui->draw_3segmenth(vdivision_x, 
-			vcanvas_h, 
-			vmeter_x - widget_border - vdivision_x, 
+		gui->draw_3segmenth(vdivision_x,
+			vcanvas_h,
+			vmeter_x - widget_border - vdivision_x,
 			get_image("cbuttons_right"));
 		gui->draw_9segment(vmeter_x - widget_border,
 			0,
-			mwindow->session->vwindow_w - vmeter_x + widget_border, 
-			mwindow->session->vwindow_h, 
+			mwindow->session->vwindow_w - vmeter_x + widget_border,
+			mwindow->session->vwindow_h,
 			get_image("cmeter_bg"));
 	}
 	else
 	{
-		gui->draw_3segmenth(vdivision_x, 
-			vcanvas_h, 
-			vmeter_x - widget_border - vdivision_x + 100, 
+		gui->draw_3segmenth(vdivision_x,
+			vcanvas_h,
+			vmeter_x - widget_border - vdivision_x + 100,
 			get_image("cbuttons_right"));
 	}
 
 // Clock border
-	gui->draw_3segmenth(vtime_x - 20, 
-		vtime_y - 1, 
+	gui->draw_3segmenth(vtime_x - 20,
+		vtime_y - 1,
 		vtime_w + 40,
 		get_image("vclock"));
 }

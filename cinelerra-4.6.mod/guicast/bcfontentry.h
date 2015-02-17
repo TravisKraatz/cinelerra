@@ -23,7 +23,7 @@
 #define BCFONTENTRY_H
 
 #include "bcfontentry.inc"
-#include "vframe.inc"
+#include "vframe.h"
 
 class BC_FontEntry
 {

@@ -62,10 +62,14 @@
 #  xorg-x11-fonts-Type1
 #  xorg-x11-fonts-ISO8859-1-100dpi
 #  xorg-x11-fonts-ISO8859-1-75dpi
+#  fontconfig-devel
+#  freetype-devel
+#  opencv-devel
 #  libpng-devel
 #  bzip2-devel
 #  zlib-devel
 #  kernel-headers
+#  git
 # * for cinelerra STATIC_LIBRARIES=0
 #  OpenEXR-devel
 #  libavc1394

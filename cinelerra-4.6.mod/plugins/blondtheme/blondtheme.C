@@ -785,9 +785,9 @@ void BlondTheme::get_mwindow_sizes(MWindowGUI *gui, int w, int h)
 	patchbay_y = mtimebar_y + mtimebar_h;
 	patchbay_w = get_image("patchbay_bg")->get_w();
 	patchbay_h = mzoom_y - patchbay_y;
-	mcanvas_x = patchbay_x + patchbay_w;
+	mcanvas_x = 0;
 	mcanvas_y = mtimebar_y + mtimebar_h;
-	mcanvas_w = w - patchbay_w - BC_ScrollBar::get_span(SCROLL_VERT);
+	mcanvas_w = w;
 	mcanvas_h = patchbay_h;
 	mhscroll_x = 0;
 	mhscroll_y = mcanvas_y + mcanvas_h;

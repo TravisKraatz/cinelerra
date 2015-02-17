@@ -841,9 +841,9 @@ void BlueDotTheme::get_mwindow_sizes(MWindowGUI *gui, int w, int h)
 	patchbay_h = mzoom_y - patchbay_y - BC_ScrollBar::get_span(SCROLL_HORIZ);
 
 //Canvas where audio and video tracks are
-	mcanvas_x = patchbay_x + patchbay_w;
+	mcanvas_x = 0;
 	mcanvas_y = mtimebar_y + mtimebar_h;
-	mcanvas_w = w - patchbay_w - BC_ScrollBar::get_span(SCROLL_VERT);
+	mcanvas_w = w;
 	mcanvas_h = patchbay_h;
 //COPIED START
 	mhscroll_x = 0;
