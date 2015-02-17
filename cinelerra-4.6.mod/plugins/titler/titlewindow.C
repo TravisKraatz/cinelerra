@@ -222,22 +222,29 @@ void TitleWindow::create_objects()
 	add_tool(font_title = new BC_Title(x, y, _("Font:")));
 	font = new TitleFont(client, this, x, y + font_title->get_h());
 	font->create_objects();
-	x += font->get_w() + margin;
-	add_subwindow(font_tumbler = new TitleFontTumble(client, this, x, y + 20));
+	x += font->get_w();
+	add_subwindow(font_tumbler = new TitleFontTumble(client, this, x, y+10));
 	x += font_tumbler->get_w() + margin;
-	add_tool(size_title = new BC_Title(x, y, _("Size:")));
+
+	int x1 = x, y1 = y;
+	add_tool(size_title = new BC_Title(x1, y1+10, _("Size:")));
 	sprintf(string, "%d", client->config.size);
-	size = new TitleSize(client, this, x, y + 20, string);
+	x1 += size_title->get_w() + margin;
+	size = new TitleSize(client, this, x1, y1+10, string);
 	size->create_objects();
-	x += size->get_w() + margin;
-	add_subwindow(size_tumbler = new TitleSizeTumble(client, this, x, y + 20));
-	x += size_tumbler->get_w() + margin;
+	int x2 = x1 + size->get_w(), y2 = y1 + size->get_h() + margin;
+	add_subwindow(size_tumbler = new TitleSizeTumble(client, this, x2, y1+10));
+
+	add_tool(pitch_title = new BC_Title(x-5, y2+10, _("Pitch:")));
+	pitch = new TitlePitch(client, this, x1, y2+10, &client->config.line_pitch);
+	pitch->create_objects();
+	x = x2 + size_tumbler->get_w() + margin;
 
 	add_tool(style_title = new BC_Title(x, y, _("Style:")));
 	add_tool(italic = new TitleItalic(client, this, x, y + 20));
 	add_tool(bold = new TitleBold(client, this, x, y + 50));
 #ifdef USE_OUTLINE
-	add_tool(stroke = new TitleStroke(client, this, x, y + 80));
+	add_tool(stroke = new TitleStroke(client, this, x, y + 110));
 #endif
 	x += 90;
 	add_tool(justify_title = new BC_Title(x, y, _("Justify:")));
@@ -270,7 +277,6 @@ void TitleWindow::create_objects()
 	x += 150;
 
 	add_tool(loop = new TitleLoop(client, x, y + 20));
-	x += 100;
 
 	x = 10;
 	y += 50;
@@ -365,7 +371,9 @@ int TitleWindow::resize_event(int w, int h)
 #endif
 	size_title->reposition_window(size_title->get_x(), size_title->get_y());
 	size->reposition_window(size->get_x(), size->get_y());
-
+	size_tumbler->reposition_window(size_title->get_x(), size_title->get_y());
+	pitch_title->reposition_window(pitch_title->get_x(), pitch_title->get_y());
+	pitch->reposition_window(size->get_x(), size->get_y());
 
 #ifndef X_HAVE_UTF8_STRING
 	encoding->reposition_window(encoding->get_x(), encoding->get_y());
@@ -635,7 +643,7 @@ TitleSize::TitleSize(TitleMain *client, TitleWindow *window, int x, int y, char 
 		text,
 		x,
 		y,
-		100,
+		64,
 		300)
 {
 	this->client = client;
@@ -656,6 +664,28 @@ void TitleSize::update(int size)
 	char string[BCTEXTLEN];
 	sprintf(string, "%d", size);
 	BC_PopupTextBox::update(string);
+}
+
+TitlePitch::
+TitlePitch(TitleMain *client, TitleWindow *window, int x, int y, int *value)
+ : BC_TumbleTextBox(window, *value, 0, INT_MAX, x, y, 64)
+
+{
+	this->client = client;
+	this->window = window;
+	this->value = value;
+}
+
+TitlePitch::
+~TitlePitch()
+{
+}
+
+int TitlePitch::handle_event()
+{
+	*value = atof(get_text());
+	client->send_configure_change();
+	return 1;
 }
 
 TitleColorButton::TitleColorButton(TitleMain *client,
@@ -710,7 +740,6 @@ int TitleLoop::handle_event()
 	client->send_configure_change();
 	return 1;
 }
-
 TitleTimecode::TitleTimecode(TitleMain *client, int x, int y)
  : BC_CheckBox(x, y, client->config.timecode, _("Stamp timecode"))
 {

@@ -501,6 +501,7 @@ void MWindow::init_plugin_path(MWindow *mwindow, Preferences *preferences,
 	else
 	{
 		index_fd = fopen(index_path, "w");
+		if( !index_fd ) return;
 
 // Version of the index file
 		fprintf(index_fd, "%d\n", PLUGIN_FILE_VERSION);

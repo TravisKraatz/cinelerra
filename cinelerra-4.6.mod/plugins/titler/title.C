@@ -80,6 +80,7 @@ TitleConfig::TitleConfig()
 	size = 24;
 	motion_strategy = NO_MOTION;
 	loop = 0;
+	line_pitch = 0;
 	hjustification = JUSTIFY_CENTER;
 	vjustification = JUSTIFY_MID;
 	fade_in = 0.0;
@@ -122,6 +123,7 @@ int TitleConfig::equivalent(TitleConfig &that)
 		outline_alpha == that.outline_alpha &&
 		timecode == that.timecode &&
 		timecode_format == that.timecode_format &&
+		line_pitch == that.line_pitch &&
 		outline_size == that.outline_size &&
 		hjustification == that.hjustification &&
 		vjustification == that.vjustification &&
@@ -146,6 +148,7 @@ void TitleConfig::copy_from(TitleConfig &that)
 	pixels_per_second = that.pixels_per_second;
 	motion_strategy = that.motion_strategy;
 	loop = that.loop;
+	line_pitch = that.line_pitch;
 	hjustification = that.hjustification;
 	vjustification = that.vjustification;
 	fade_in = that.fade_in;
@@ -183,6 +186,7 @@ void TitleConfig::interpolate(TitleConfig &prev,
 	outline_alpha = prev.outline_alpha;
 	motion_strategy = prev.motion_strategy;
 	loop = prev.loop;
+	line_pitch = prev.line_pitch;
 	hjustification = prev.hjustification;
 	vjustification = prev.vjustification;
 	fade_in = prev.fade_in;
@@ -193,12 +197,12 @@ void TitleConfig::interpolate(TitleConfig &prev,
 	wlen = prev.wlen;
 	wtext[wlen] = 0;
 
-//	double next_scale = (double)(current_frame - prev_frame) / (next_frame - prev_frame);
-//	double prev_scale = (double)(next_frame - current_frame) / (next_frame - prev_frame);
-//	this->x = prev.x * prev_scale + next.x * next_scale;
-//	this->y = prev.y * prev_scale + next.y * next_scale;
-	this->x = prev.x;
-	this->y = prev.y;
+	double next_scale = (double)(current_frame - prev_frame) / (next_frame - prev_frame);
+	double prev_scale = (double)(next_frame - current_frame) / (next_frame - prev_frame);
+	this->x = prev.x * prev_scale + next.x * next_scale;
+	this->y = prev.y * prev_scale + next.y * next_scale;
+//	this->x = prev.x;
+//	this->y = prev.y;
 	timecode = prev.timecode;
 	timecode_format = prev.timecode_format;
 //	this->dropshadow = (int)(prev.dropshadow * prev_scale + next.dropshadow * next_scale);
@@ -606,13 +610,13 @@ TitleEngine::TitleEngine(TitleMain *plugin, int cpus)
 void TitleEngine::init_packages()
 {
 	int current_package = 0;
-	int dx = plugin->config.outline_size - plugin->extent_x0 - plugin->extent_x1;
-	int dy = plugin->config.outline_size - plugin->extent_y0 - plugin->extent_y1;
+	int dx = plugin->config.outline_size - plugin->extent.x1;
+	int dy = plugin->config.outline_size - plugin->extent.y1;
 	for(int i = plugin->visible_char1; i < plugin->visible_char2; i++) {
-		title_char_position_t *char_position = plugin->char_positions + i;
 		TitlePackage *pkg = (TitlePackage*)get_package(current_package);
-		pkg->x = char_position->x + dx;
-		pkg->y = char_position->y + dy;
+		char_pos_t *pos = plugin->char_pos + i;
+		pkg->x = pos->x + dx;
+		pkg->y = pos->y + dy;
 		pkg->char_code = plugin->config.wtext[i];
 //printf("draw '%c' at %d,%d\n",(int)pkg->char_code, pkg->x, pkg->y);
 		current_package++;
@@ -720,8 +724,10 @@ void TitleOutlineEngine::init_packages()
 	int i = 0, pkgs = get_total_packages();
 	TitleOutlinePackage *pkg = (TitleOutlinePackage*)get_package(i++);
 	while( (y2 = mask_h * i / pkgs) < mask_h ) {
-		pkg->y1 = y1;  pkg->y2 = y2;  y1 = y2;
+		pkg->y1 = y1;  pkg->y2 = y2;
+		if( y1 == y2 ) continue;
 		pkg = (TitleOutlinePackage*)get_package(i++);
+		y1 = y2;
 	}
 	pkg->y1 = y1;  pkg->y2 = mask_h;
 }
@@ -756,6 +762,22 @@ TitleTranslateUnit::TitleTranslateUnit(TitleMain *plugin, TitleTranslate *server
  : LoadClient(server)
 {
 	this->plugin = plugin;
+}
+
+void TitleTranslate::run_packages()
+{
+	output_w = plugin->output->get_w();
+	output_h = plugin->output->get_h();
+
+	float x1 = plugin->text_x1 + plugin->extent.x1;
+	float x2 = plugin->text_x1 + plugin->extent.x2;
+	if (x2 <= 0 || x1 >= x2 || x1 >= output_w) return;
+
+	float y1 = plugin->text_y1 + plugin->extent.y1;
+	float y2 = plugin->text_y1 + plugin->extent.y2;
+	if (y2 <= 0 || y1 >= y2 || y1 >= output_h) return;
+
+	process_packages();
 }
 
 
@@ -952,19 +974,15 @@ void TitleTranslate::init_packages()
 
 	output_w = plugin->output->get_w();
 	output_h = plugin->output->get_h();
-// rebias unkerned text coords to kerned box
-	int x0 = plugin->text_x1 + plugin->extent_x0;
-	float x1 = x0 + plugin->extent_x1;
-	float x2 = x0 + plugin->extent_x2;
-	if( x2 <= 0 || x1 >= x2 || x1 >= output_w ) return;
-	int y0 = plugin->text_y1 + plugin->extent_y0;
-	float y1 = y0 + plugin->extent_y1;
-	float y2 = y0 + plugin->extent_y2;
-	if( y2 <= 0 || y1 >= y2 || y1 >= output_h ) return;
 
+	float x1 = plugin->text_x1 + plugin->extent.x1;
+	float x2 = plugin->text_x1 + plugin->extent.x2;
 	TranslateUnit::translation_array_f(x_table, x1, x2, 0,
 		plugin->mask_w, plugin->mask_w,
 		output_w, out_x1_int, out_x2_int);
+
+	float y1 = plugin->text_y1 + plugin->extent.y1;
+	float y2 = plugin->text_y1 + plugin->extent.y2;
 	TranslateUnit::translation_array_f(y_table, y1, y2, 0,
 		plugin->mask_h, plugin->mask_h,
 		output_h, out_y1_int, out_y2_int);
@@ -979,8 +997,10 @@ void TitleTranslate::init_packages()
 		int i = 0, pkgs = get_total_packages();
 		TitleTranslatePackage *pkg = (TitleTranslatePackage*)get_package(i++);
 		while( (y2 = slice * i / pkgs) < slice ) {
-			pkg->y1 = y1;  pkg->y2 = y2;  y1 = y2;
+			pkg->y1 = y1;  pkg->y2 = y2;
+			if( y1 == y2 ) continue;
 			pkg = (TitleTranslatePackage*)get_package(i++);
+			y1 = y2;
 		}
 		pkg->y1 = y1;  pkg->y2 = slice;
 	}
@@ -1009,7 +1029,7 @@ TitleMain::TitleMain(PluginServer *server)
 	title_engine = 0;
 	freetype_face = 0;
 	freetype_library = 0;
-	char_positions = 0;
+	char_pos = 0;
 	row_geom = 0;
 	row_geom_size = 0;
 	translate = 0;
@@ -1021,7 +1041,8 @@ TitleMain::TitleMain(PluginServer *server)
 	text_rows = 0;
 	text_w = 0; text_h = 0;
 	input = 0;  output = 0;
-	cpus = 2;// PluginClient::smp + 1
+	cpus = PluginClient::smp + 1;
+	if( cpus > 8 ) cpus = 8;
 	need_reconfigure = 1;
 }
 
@@ -1030,7 +1051,7 @@ TitleMain::~TitleMain()
 	delete text_mask;
 	delete outline_mask;
 	delete text_mask_stroke;
-	delete [] char_positions;
+	delete [] char_pos;
 	delete [] row_geom;
 	clear_glyphs();
 	delete glyph_engine;
@@ -1396,9 +1417,10 @@ void TitleMain::get_total_extents()
 {
 // Determine extents of total text
 	int wlen = config.wlen;
-	char_positions = new title_char_position_t[wlen+1];
+	char_pos = new char_pos_t[wlen+1];
 
-	int font_h = (freetype_face->height + 63) >> 6;
+	int pitch = config.line_pitch;
+	int font_h = get_char_height();
 	int row = 0;
 	int row_w = 0, row_h = 0;
 	int max_char_w = 0, max_char_h = 0;
@@ -1406,40 +1428,38 @@ void TitleMain::get_total_extents()
 
 	// unjustified positions, initial bbox
 	for(int i = 0; i < wlen; i++) {
-		char_positions[i].x = row_w;
-		char_positions[i].y = text_h;
+		char_pos[i].x = row_w;
+		char_pos[i].y = text_h;
+		char_pos[i].row = row;
 		wchar_t wchar = config.wtext[i];
 		if( wchar == '\n' ) {
-			if( font_h > row_h ) row_h = font_h;
-			if( config.size > row_h ) row_h = config.size;
-			text_h += row_h;
+			text_h += pitch ? pitch : row_h > font_h ? row_h : font_h;
 			if(row_w > text_w) text_w = row_w;
-			row_w = row_h = 0;
-			++row;
+			row_w = row_h = 0;  ++row;
 			continue;
 		}
 		TitleGlyph *glyph = get_glyph(wchar);
 		int char_w = i+1>=wlen ? glyph->width :
 			get_char_advance(wchar, config.wtext[i+1]);
-		char_positions[i].w = char_w;
+		char_pos[i].w = char_w;
 		row_w += char_w;
 		if( char_w > max_char_w ) max_char_w = char_w;
-		int char_h = glyph->height;
+		int char_h = glyph->top - glyph->bottom;
 		if( char_h > max_char_h ) max_char_h = char_h;
-		if(glyph->height > row_h ) row_h = glyph->height;
+		if( char_h > row_h ) row_h = char_h;
 //printf("charcode '%c'  %d,%d  glyph bbox %d,%d %d,%d\n",
-//  (int)wchar, char_positions[i].x, char_positions[i].y,
+//  (int)wchar, char_pos[i].x, char_pos[i].y,
 //  glyph->left, glyph->top, glyph->right, glyph->bottom);
 	}
 	if( wlen > 0 && config.wtext[wlen-1] != '\n' ) {
-		if( font_h > row_h ) row_h = font_h;
-		if( config.size > row_h ) row_h = config.size;
-		text_h += row_h;
+		text_h += pitch ? pitch : row_h > font_h ? row_h : font_h;
 		if(row_w > text_w) text_w = row_w;
 		++row;
 	}
-	char_positions[wlen].x = row_w;
-	char_positions[wlen].y = text_h;
+	char_pos[wlen].x = row_w;
+	char_pos[wlen].y = text_h;
+	char_pos[wlen].row = row;
+	char_pos[wlen].w = 0;
 	text_rows = row;
 
 	// justify positions
@@ -1448,20 +1468,20 @@ void TitleMain::get_total_extents()
 	case JUSTIFY_MID:
 		while( row_start < wlen ) {
 			while( pos<wlen && config.wtext[pos]!='\n' ) ++pos;
-			int ofs = (text_w - char_positions[pos].x) / 2;
+			int ofs = (text_w - char_pos[pos].x) / 2;
 //printf("justify_mid ofs=%d\n", ofs);
 			while( row_start < pos )
-				char_positions[row_start++].x += ofs;
+				char_pos[row_start++].x += ofs;
 			++pos;
 		}
 		break;
 	case JUSTIFY_RIGHT:
 		while( row_start < wlen ) {
 			while( pos<wlen && config.wtext[pos]!='\n' ) ++pos;
-			int ofs = text_w - char_positions[pos].x;
+			int ofs = text_w - char_pos[pos].x;
 //printf("justify_right ofs=%d\n", ofs);
 			while( row_start < pos )
-				char_positions[row_start++].x += ofs;
+				char_pos[row_start++].x += ofs;
 			++pos;
 		}
 		break;
@@ -1488,8 +1508,8 @@ void TitleMain::get_total_extents()
 	// x0,y0 row origin in without kern
 	// x1,y1 - x2,y2 left baseline relative bbox with kerns
 	for(int i = 0; i < wlen; i++) {
-		int x = char_positions[i].x;
-		int y = char_positions[i].y;
+		int x = char_pos[i].x;
+		int y = char_pos[i].y;
 		wchar_t wchar = config.wtext[i];
 		if( wchar == '\n' ) {
 			glyph = 0;  ++geom;
@@ -1502,8 +1522,9 @@ void TitleMain::get_total_extents()
 		if( !gp ) continue;
 		if( !glyph ) {
 			geom->x0 = x;          geom->y0 = y;
-			geom->x1 = gp->left;   geom->y1 = gp->top;
-			geom->x2 = gp->right;  geom->y2 = gp->bottom;
+			int dx = x-geom->x0, dy = y-geom->y0 + config.size;
+			geom->x1 = dx + gp->left;   geom->y1 = dy - gp->top;
+			geom->x2 = dx + gp->right;  geom->y2 = dy - gp->bottom;
 		}
 		glyph = gp;
 		int dx = x-geom->x0, dy = y-geom->y0 + config.size;
@@ -1531,7 +1552,6 @@ int TitleMain::draw_mask()
 {
 	int old_visible_row1 = visible_row1;
 	int old_visible_row2 = visible_row2;
-
 
 // Determine y of visible text
 	if(config.motion_strategy == BOTTOM_TO_TOP) {
@@ -1608,58 +1628,65 @@ int TitleMain::draw_mask()
 
 	// bottom of this row is visible
 	visible_row1 = 0;
+	RowGeom *geom = 0;
 	while( visible_row1 < text_rows ) {
-		RowGeom *geom = &row_geom[visible_row1];
-		int y0 = text_y1 + geom->y0+geom->y2;
+		geom = &row_geom[visible_row1];
+		int y0 = text_y1 + geom->bottom();
 		if( y0 > 0 ) break;
 		++visible_row1;
 	}
 
 	// top of next row is not visible
 	visible_row2 = visible_row1;
-	while( visible_row2 <= text_rows ) {
-		RowGeom *geom = &row_geom[visible_row2];
-		int y0 = text_y1 + geom->y0+geom->y1;
+	while( visible_row2 < text_rows ) {
+		geom = &row_geom[visible_row2];
+		int y0 = text_y1 + geom->top();
 		if( y0 >= input->get_h() ) break;
 		++visible_row2;
 	}
+
+	if( visible_row1 == visible_row2 ) return 1;
+
 //printf("visible rows %d to %d\n", visible_row1, visible_row2);
-	// text origin, no kerning
-	extent_x0 = row_geom[visible_row1].x0;
-	extent_y0 = row_geom[visible_row1].y0;
 	// Only use visible rows, get bbox including kerns
-	extent_x1 = extent_y1 = 0;
-	extent_x2 = extent_y2 = 0;
+	// text origin, no kerning
+	geom = &row_geom[visible_row1];
+	extent.x0 = geom->x0;       extent.y0 = geom->y0;
+	extent.x1 = geom->left();   extent.y1 = geom->top();
+	extent.x2 = geom->right();  extent.y2 = geom->bottom();
+
 	for( int i=visible_row1; i<visible_row2; ++i ) {
-		RowGeom *geom = &row_geom[i];
-		int x1 = geom->x0 + geom->x1, y1 = geom->y0 + geom->y1;
-		int x2 = geom->x0 + geom->x2, y2 = geom->y0 + geom->y2;
-		if( x1 < extent_x1 ) extent_x1 = x1;
-		if( y1 < extent_y1 ) extent_y1 = y1;
-		if( x2 > extent_x2 ) extent_x2 = x2;
-		if( y2 > extent_y2 ) extent_y2 = y2;
+		geom = &row_geom[i];  int v;
+		if( (v=geom->left())   < extent.x1 ) extent.x1 = v;
+		if( (v=geom->top())    < extent.y1 ) extent.y1 = v;
+		if( (v=geom->right())  > extent.x2 ) extent.x2 = v;
+		if( (v=geom->bottom()) > extent.y2 ) extent.y2 = v;
 	}
 
 //printf("exts x0,y0=%d,%d  x1,y1=%d,%d  x2,y2=%d,%d text %f,%f %dx%d\n",
-// extent_x0,extent_y0, extent_x1,extent_y1, extent_x2,extent_y2,
+// extent.x0,extent.y0, extent.x1,extent.y1, extent.x2,extent.y2,
 // text_x1,text_y1, text_w,text_h);
 	// Only draw visible chars
 	visible_char1 = visible_char2 = -1;
 	int wlen = config.wlen;
-	int y1 = extent_y0 + extent_y1, y2 = extent_y0 + extent_y2;
 	for(int i = 0; i < wlen; i++) {
-		title_char_position_t *char_position = char_positions + i;
-		if( char_position->y < y1 ) continue;
-		if( char_position->y >= y2 ) break;
+		char_pos_t *pos = char_pos + i;
+		if( pos->row < visible_row1 ) continue;
+		if( pos->row >= visible_row2 ) continue;
 		if(visible_char1 < 0) visible_char1 = i;
 		visible_char2 = i;
 	}
 	visible_char2++;
 
+	extent.x1 -= config.outline_size*2;
+	extent.y1 -= config.outline_size*2;
+	extent.x2 += config.dropshadow + config.outline_size*2;
+	extent.y2 += config.dropshadow + config.outline_size*2;
+
 	// Determine mask geometry
-	mask_w = extent_x2 - extent_x1;
+	mask_w = extent.x2 - extent.x1;
 	if( mask_w <= 0 ) return 1;
-	mask_h = extent_y2 - extent_y1;
+	mask_h = extent.y2 - extent.y1;
 	if( mask_h <= 0 ) return 1;
 
 //printf("TitleMain::draw_mask %d-%d frame %dx%d\n",
@@ -1691,16 +1718,18 @@ int TitleMain::draw_mask()
 	if( need_redraw ||
  	    old_visible_row1 != visible_row1 ||
 	    old_visible_row2 != visible_row2 ) {
-		extent_x1 -= config.outline_size*2;
-		extent_y1 -= config.outline_size*2;
-		extent_x2 += config.dropshadow + config.outline_size*2;
-		extent_y2 += config.dropshadow + config.outline_size*2;
 //printf("redraw %d to %d   %d,%d  %d,%d - %d,%d\n", visible_char1,visible_char2,
-//  extent_x0, extent_y0, extent_x1,extent_y1, extent_x2,extent_y2);
+//  extent.x0, extent.y0, extent.x1,extent.y1, extent.x2,extent.y2);
 
 		text_mask->clear_frame();
 		text_mask_stroke->clear_frame();
-
+#if 0
+		unsigned char *data = text_mask->get_data(); // draw bbox on text_mask
+		for( int x=0; x<mask_w; ++x ) data[4*x+3] = 0xff;
+		for( int x=0; x<mask_w; ++x ) data[4*((mask_h-1)*mask_w+x)+3] = 0xff;
+		for( int y=0; y<mask_h; ++y ) data[4*mask_w*y+3] = 0xff;
+		for( int y=0; y<mask_h; ++y ) data[4*(mask_w*y + mask_w-1)+3] = 0xff;
+#endif
 		if(!title_engine)
 			title_engine = new TitleEngine(this, cpus);
 
@@ -1778,7 +1807,7 @@ void TitleMain::overlay_mask()
 // Do 2 passes if dropshadow.
 			int temp_color = config.color;
 			config.color = 0x0;
-			translate->process_packages();
+			translate->run_packages();
 			config.color = temp_color;
 		}
 		text_x1 -= config.dropshadow;
@@ -1786,14 +1815,14 @@ void TitleMain::overlay_mask()
 //printf("TitleMain::overlay_mask 1\n");
 
 	if(text_x1 < input->get_w() && text_x1 + text_w > 0) {
-		translate->process_packages();
+		translate->run_packages();
 		if (config.stroke_width >= ZERO && (config.style & BC_FONT_OUTLINE)) {
 			int temp_color = config.color;
 			VFrame *tmp_text_mask = this->text_mask;
 			config.color = config.color_stroke;
 			this->text_mask = this->text_mask_stroke;
 
-			translate->process_packages();
+			translate->run_packages();
 			config.color = temp_color;
 			this->text_mask = tmp_text_mask;
 		}
@@ -1867,7 +1896,7 @@ void TitleMain::reset_render()
 {
 	delete text_mask;          text_mask = 0;
 	delete glyph_engine;       glyph_engine = 0;
-	delete [] char_positions;  char_positions = 0;
+	delete [] char_pos;        char_pos = 0;
 	delete text_mask_stroke;   text_mask_stroke = 0;
 	delete [] row_geom;        row_geom = 0;
 	row_geom_size = 0;
@@ -2041,6 +2070,7 @@ void TitleMain::save_data(KeyFrame *keyframe)
         output.tag.set_property("OUTLINE_ALPHA", config.outline_alpha);
 	output.tag.set_property("MOTION_STRATEGY", config.motion_strategy);
 	output.tag.set_property("LOOP", config.loop);
+	output.tag.set_property("LINE_PITCH", config.line_pitch);
 	output.tag.set_property("PIXELS_PER_SECOND", config.pixels_per_second);
 	output.tag.set_property("HJUSTIFICATION", config.hjustification);
 	output.tag.set_property("VJUSTIFICATION", config.vjustification);
@@ -2097,6 +2127,7 @@ void TitleMain::read_data(KeyFrame *keyframe)
 			config.outline_alpha = input.tag.get_property("OUTLINE_ALPHA", config.outline_alpha);
 			config.motion_strategy = input.tag.get_property("MOTION_STRATEGY", config.motion_strategy);
 			config.loop = input.tag.get_property("LOOP", config.loop);
+			config.line_pitch = input.tag.get_property("LINE_PITCH", config.line_pitch);
 			config.pixels_per_second = input.tag.get_property("PIXELS_PER_SECOND", config.pixels_per_second);
 			config.hjustification = input.tag.get_property("HJUSTIFICATION", config.hjustification);
 			config.vjustification = input.tag.get_property("VJUSTIFICATION", config.vjustification);

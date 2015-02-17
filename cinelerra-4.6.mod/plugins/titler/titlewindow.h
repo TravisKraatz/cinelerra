@@ -42,11 +42,13 @@ class TitleSizeTumble;
 class TitleItalic;
 class TitleBold;
 class TitleSize;
+class TitlePitch;
 class TitleEncoding;
 class TitleColorButton;
 class TitleDropShadow;
 class TitleMotion;
 class TitleLoop;
+class TitleLinePitch;
 class TitleFade;
 class TitleFont;
 class TitleText;
@@ -82,7 +84,6 @@ public:
 	BC_Title *font_title;
 	TitleFont *font;
 	TitleFontTumble *font_tumbler;
-	TitleSizeTumble *size_tumbler;
 	BC_Title *x_title;
 	TitleX *title_x;
 	BC_Title *y_title;
@@ -100,6 +101,9 @@ public:
 	int outline_color_x, outline_color_y;
 	BC_Title *size_title;
 	TitleSize *size;
+	TitleSizeTumble *size_tumbler;
+	BC_Title *pitch_title;
+	TitlePitch *pitch;
 	BC_Title *encoding_title;
 	TitleEncoding *encoding;
 	TitleColorButton *color_button;
@@ -108,6 +112,7 @@ public:
 	TitleColorThread *outline_color_thread;
 	BC_Title *motion_title;
 	TitleMotion *motion;
+	TitleLinePitch *line_pitch;
 	TitleLoop *loop;
 	BC_Title *fadein_title;
 	TitleFade *fade_in;
@@ -191,6 +196,18 @@ public:
 	TitleWindow *window;
 };
 
+class TitlePitch : public BC_TumbleTextBox
+{
+public:
+	TitlePitch(TitleMain *client, TitleWindow *window, int x, int y, int *value);
+	~TitlePitch();
+	int handle_event();
+
+	int *value;
+	TitleMain *client;
+	TitleWindow *window;
+};
+
 class TitleEncoding : public BC_PopupTextBox
 {
 public:
@@ -227,6 +244,14 @@ class TitleLoop : public BC_CheckBox
 {
 public:
 	TitleLoop(TitleMain *client, int x, int y);
+	int handle_event();
+	TitleMain *client;
+	TitleWindow *window;
+};
+class TitleLinePitch : public BC_CheckBox
+{
+public:
+	TitleLinePitch(TitleMain *client, int x, int y);
 	int handle_event();
 	TitleMain *client;
 	TitleWindow *window;

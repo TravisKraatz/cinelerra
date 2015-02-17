@@ -24,7 +24,6 @@
 
 
 
-
 // Theory:
 
 // Stage 1:
@@ -107,12 +106,10 @@ public:
 	int outline_color;
 	int alpha;
 	int outline_alpha;
-// Motion of title across frame
-	int motion_strategy;
-// Loop motion path
-	int loop;
-// Speed of motion
-	float pixels_per_second;
+	int motion_strategy;     // Motion of title across frame
+	int line_pitch;
+	int loop;                // Loop motion path
+	float pixels_per_second; // Speed of motion
 	int hjustification;
 	int vjustification;
 // Number of seconds the fade in and fade out of the title take
@@ -303,6 +300,7 @@ public:
 	TitleTranslate(TitleMain *plugin, int cpus);
 	~TitleTranslate();
 	void init_packages();
+	void run_packages();
 	LoadClient* new_client();
 	LoadPackage* new_package();
 	TitleMain *plugin;
@@ -338,8 +336,8 @@ public:
 // Position of each character relative to total text extents
 typedef struct
 {
-	int x, y, w;
-} title_char_position_t;
+	int x, y, w, row;
+} char_pos_t;
 
 
 
@@ -409,19 +407,26 @@ public:
 // proportional.
 	int visible_row1, visible_char1;
 	int visible_row2, visible_char2;
-	int extent_x0, extent_y0;
-	int extent_x1, extent_y1;
-	int extent_x2, extent_y2;
+// Positions of the top pixels of the rows
+	class Geom {
+	public: // x1,y1 x2,y2 are abs
+		int x0, y0, x1, y1, x2, y2;
+	} extent;
+	class RowGeom : public Geom {
+	public: // x1,x2 y1,y2 are rel x0,y0
+		int left()   { return x0+x1; }
+		int top()    { return y0+y1; }
+		int right()  { return x0+x2; }
+		int bottom() { return y0+y2; }
+	} *row_geom;
+	int row_geom_size;
 
 	int text_rows;
 // relative position of all text to output
 	int text_w, text_h;
 	float text_x1, text_y1, text_x2, text_y2;
 // Position of each character relative to total text extents
-	title_char_position_t *char_positions;
-// Positions of the top pixels of the rows
-	int row_geom_size;
-	struct RowGeom { int x0, y0, x1, y1, x2, y2; } *row_geom;
+	char_pos_t *char_pos;
 // relative position of visible part of text to output
 	int mask_w, mask_h;
 
