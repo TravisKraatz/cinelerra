@@ -1257,8 +1257,7 @@ int BC_TextBox::keypress_event()
 // Single character
 				if(!ctrl_down())
 				{
-					int s = utf8seek(ibeam_letter, 1);
-					ibeam_letter -= (1 + s);
+					ibeam_letter--;
 				}
 				else
 // Word
@@ -1310,8 +1309,7 @@ int BC_TextBox::keypress_event()
 // Single character
 				if(!ctrl_down())
 				{
-					int s = utf8seek(ibeam_letter, 1);
-					ibeam_letter += (1 + s);
+					ibeam_letter++;
 				}
 				else
 // Word
@@ -1656,9 +1654,8 @@ int BC_TextBox::keypress_event()
 			{
 				if(ibeam_letter > 0)
 				{
-					int s = utf8seek(ibeam_letter, 1);
-					delete_selection(ibeam_letter - (1 + s), ibeam_letter, wtext_len);
-					ibeam_letter -= (1 + s);
+					delete_selection(ibeam_letter - 1, ibeam_letter, wtext_len);
+					ibeam_letter--;
 				}
 			}
 			else
@@ -1679,8 +1676,7 @@ int BC_TextBox::keypress_event()
 			{
 				if(ibeam_letter < wtext_len)
 				{
-					int s = utf8seek(ibeam_letter, 1);
-					delete_selection(ibeam_letter, ibeam_letter + (1 + s), wtext_len);
+					delete_selection(ibeam_letter, ibeam_letter + 1, wtext_len);
 				}
 			}
 			else
@@ -1753,37 +1749,6 @@ int BC_TextBox::uses_text()
 	return 1;
 }
 
-int BC_TextBox::utf8seek(int i, int reverse)
-{
-	int utf8pos = 0;
-#ifdef X_HAVE_UTF8_STRING
-	uint8_t z = (uint8_t)text[reverse ? i-1 : i];
-	if( z < 0x80 ) return 0;
-	if( reverse ) {
-		for (int x = 1; x < 6; x++) {
-			z = (uint8_t)text[i-x];
-			if ((z >= 0xfc)) return 5;
-	 		if ((z >= 0xf8)) return 4;
-			if ((z >= 0xf0)) return 3;
-	 		if ((z >= 0xe0)) return 2;
-			if ((z >= 0xc0)) return 1;
-		}
-        }
-	else {
-		for (int x = 0; x < 5; x++) {
-			z = (uint8_t)text[i+x];
-			if (!(z & 0x20)) return 1;
- 			if (!(z & 0x10)) return 2;
-			if (!(z & 0x08)) return 3;
-			if (!(z & 0x04)) return 4;
-			if (!(z & 0x02)) return 5;
-               	}
-	}
-#endif // X_HAVE_UTF8_STRING
-	return utf8pos;
-
-}
-
 
 void BC_TextBox::delete_selection(int letter1, int letter2, int wtext_len)
 {
@@ -1805,9 +1770,9 @@ void BC_TextBox::insert_text(const wchar_t *wcp, int len)
 	{
 		delete_selection(highlight_letter1, highlight_letter2, wtext_len);
 		highlight_letter2 = ibeam_letter = highlight_letter1;
+		wtext_len = wtext_update();
 	}
 
-	wtext_len = wtext_update();
 
 	int i, j;
 	for(i=wtext_len-1, j=wtext_len+len-1; i>=ibeam_letter; i--, j--) {
