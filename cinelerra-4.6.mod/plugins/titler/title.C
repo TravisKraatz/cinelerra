@@ -576,13 +576,14 @@ void TitleUnit::draw_glyph(VFrame *output, VFrame *data, TitleGlyph *glyph, int 
 		unsigned char *in_row = in_rows[y_in];
 		unsigned char *out_row = out_rows[y_out];
 		for( int xin=x_in,xout=x_out*4+0; xin<glyph_w; ++xin,xout+=4 ) {
-			int in_a = in_row[xin], out_a = out_row[x_out * 4 + 3];
-			int opacity = (a * in_a) / 0xff;
-			int transparency = ((0xff-opacity) * out_a) / 0xff;
-			out_row[xout+0] = (r*opacity + out_row[xout+0]*transparency) / 0xff;
-			out_row[xout+1] = (g*opacity + out_row[xout+1]*transparency) / 0xff;
-			out_row[xout+2] = (b*opacity + out_row[xout+2]*transparency) / 0xff;
-			out_row[xout+3] = MAX(opacity, out_row[xout+3]);
+			int in_a = in_row[xin] * a / 0xff;
+			int out_a = out_row[xout+3];
+			int tot_a = in_a + out_a;
+			if( !tot_a ) continue;  // alpha blundering
+			out_row[xout+0] = (in_a * r + out_a * out_row[xout+0]) / tot_a;
+			out_row[xout+1] = (in_a * g + out_a * out_row[xout+1]) / tot_a;
+			out_row[xout+2] = (in_a * b + out_a * out_row[xout+2]) / tot_a;
+			out_row[xout+3] = in_a + out_a - in_a * out_a / 0xff;
 		}
 		++y_in;  ++y_out;
 	}
@@ -702,9 +703,7 @@ void TitleOutlineUnit::process_package(LoadPackage *package)
 				out[0] = (out[0] * out_a + inp[0] * transparency) / 0xff;
 				out[1] = (out[1] * out_a + inp[1] * transparency) / 0xff;
 				out[2] = (out[2] * out_a + inp[2] * transparency) / 0xff;
-				int temp = in_a - out_a;
-				if(temp < 0) temp = 0;
-				out[3] = temp + out_a * title_a / 0xff;
+				out[3] = out_a + transparency;
 			}
 		}
 	}
@@ -1037,7 +1036,7 @@ TitleMain::TitleMain(PluginServer *server)
 	visible_row1 = 0;       visible_row2 = 0;
 	visible_char1 = 0;      visible_char2 = 0;
 	text_y1 = text_y2 = text_x1 = 0;
-	alpha = 0xff;
+	alpha = 0x100;
 	text_rows = 0;
 	text_w = 0; text_h = 0;
 	input = 0;  output = 0;
