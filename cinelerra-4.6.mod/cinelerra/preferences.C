@@ -219,12 +219,7 @@ void Preferences::copy_from(Preferences *that)
 // 
 
 // Redo with the proper value of force_uniprocessor
-	if(force_uniprocessor && processors > 1)
-	{
-		processors = calculate_processors(0);
-	}
-
-
+	processors = calculate_processors(0);
 	boundaries();
 }
 
@@ -372,9 +367,7 @@ int Preferences::load_defaults(BC_Hash *defaults)
 
 // Redo with the proper value of force_uniprocessor
 	processors = calculate_processors(0);
-
 	boundaries();
-
 	return 0;
 }
 
@@ -685,56 +678,7 @@ int Preferences::get_asset_file_path(Asset *asset, char *path)
 
 int Preferences::calculate_processors(int interactive)
 {
-/* Get processor count */
-	int result = 1;
-
-
-
 	if(force_uniprocessor && !interactive) return 1;
-
-	FILE *proc = fopen("/proc/cpuinfo", "r");
-	if( proc )
-	{
-		char string[BCTEXTLEN];
-		while(!feof(proc))
-		{
-			(void)fgets(string, BCTEXTLEN, proc);
-			if(!strncasecmp(string, "processor", 9))
-			{
-				char *ptr = strchr(string, ':');
-				if(ptr)
-				{
-					ptr++;
-					result = atol(ptr) + 1;
-				}
-			}
-			else
-			if(!strncasecmp(string, "cpus detected", 13))
-			{
-				char *ptr = strchr(string, ':');
-				if(ptr)
-				{
-					ptr++;
-					result = atol(ptr);
-				}
-			}
-		}
-		fclose(proc);
-	}
-
-	return result;
+	return BC_WindowBase::get_resources()->machine_cpus;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 

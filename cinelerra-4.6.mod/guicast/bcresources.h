@@ -360,6 +360,8 @@ public:
 	int vframe_shm;
 	int use_vframe_shm() { return use_shm && vframe_shm ? 1 : 0; }
 
+	static int get_machine_cpus();
+	static int machine_cpus;
 // Available display extensions
 	int use_shm;
 	int shm_reply;

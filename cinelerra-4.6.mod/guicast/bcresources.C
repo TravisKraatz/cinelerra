@@ -182,7 +182,28 @@ int BC_Resources::x_error_handler(Display *display, XErrorEvent *event)
 	return 0;
 }
 
+int BC_Resources::machine_cpus = 1;
 
+int BC_Resources::get_machine_cpus()
+{
+	int cpus = 1;
+	FILE *proc = fopen("/proc/cpuinfo", "r");
+	if( proc ) {
+		char string[BCTEXTLEN], *cp;
+		while(!feof(proc) && fgets(string, sizeof(string), proc) ) {
+			if( !strncasecmp(string, "processor", 9) &&
+			    (cp = strchr(string, ':')) != 0 ) {
+				int n = atol(cp+1) + 1;
+				if( n > cpus ) cpus = n;
+			}
+			else if( !strncasecmp(string, "cpus detected", 13) &&
+			    (cp = strchr(string, ':')) != 0 )
+				cpus = atol(cp+1);
+		}
+		fclose(proc);
+	}
+	return cpus;
+}
 
 BC_Resources::BC_Resources()
 {
@@ -205,6 +226,7 @@ BC_Resources::BC_Resources()
 	id_lock = new Mutex("BC_Resources::id_lock");
 	create_window_lock = new Mutex("BC_Resources::create_window_lock", 1);
 	id = 0;
+	machine_cpus = get_machine_cpus();
 
 	for(int i = 0; i < FILEBOX_HISTORY_SIZE; i++)
 		filebox_history[i].path[0] = 0;

@@ -1806,7 +1806,7 @@ void MWindow::init_shm()
 		sprintf(string, "MWindow::init_shm: /proc/sys/kernel/shmmax is 0x" _LX ".\n"
 			"you probably need to be root, or:\n"
 			"as root, run: echo 0x7fffffff > /proc/sys/kernel/shmmax\n"
-			"before trying to start cinelerra.\n");
+			"before trying to start cinelerra.\n"
 			"It should be at least 0x7fffffff for Cinelerra.\n", result);
 		MainError::show_error(string);
 	}

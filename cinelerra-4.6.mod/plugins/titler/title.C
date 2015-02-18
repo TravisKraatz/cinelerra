@@ -576,14 +576,13 @@ void TitleUnit::draw_glyph(VFrame *output, VFrame *data, TitleGlyph *glyph, int 
 		unsigned char *in_row = in_rows[y_in];
 		unsigned char *out_row = out_rows[y_out];
 		for( int xin=x_in,xout=x_out*4+0; xin<glyph_w; ++xin,xout+=4 ) {
-			int in_a = in_row[xin] * a / 0xff;
-			int out_a = out_row[xout+3];
-			int tot_a = in_a + out_a;
-			if( !tot_a ) continue;  // alpha blundering
-			out_row[xout+0] = (in_a * r + out_a * out_row[xout+0]) / tot_a;
-			out_row[xout+1] = (in_a * g + out_a * out_row[xout+1]) / tot_a;
-			out_row[xout+2] = (in_a * b + out_a * out_row[xout+2]) / tot_a;
-			out_row[xout+3] = in_a + out_a - in_a * out_a / 0xff;
+			int in_a = in_row[xin], out_a = out_row[xout+3];
+			if( in_a + out_a == 0 ) continue;  // alpha blundering
+			int opacity = in_a * a, transp = out_a * (0xff - opacity/0xff);
+			out_row[xout+0] = (opacity * r + transp * out_row[xout+0]) / (0xff*0xff);
+			out_row[xout+1] = (opacity * g + transp * out_row[xout+1]) / (0xff*0xff);
+			out_row[xout+2] = (opacity * b + transp * out_row[xout+2]) / (0xff*0xff);
+			out_row[xout+3] = (opacity + transp) / 0xff;
 		}
 		++y_in;  ++y_out;
 	}
@@ -947,7 +946,7 @@ void TitleTranslateUnit::process_package(LoadPackage *package)
 
 
 TitleTranslate::TitleTranslate(TitleMain *plugin, int cpus)
- : LoadServer(1, 1)
+ : LoadServer(cpus, cpus)
 {
 	this->plugin = plugin;
 	x_table = 0;

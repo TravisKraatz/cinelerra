@@ -29,6 +29,7 @@
 #include "bcsignals.h"
 #include "colors.h"
 #include "fonts.h"
+#include "keys.h"
 #include <string.h>
 #include <unistd.h>
 #include "vframe.h"
@@ -177,6 +178,11 @@ int BC_MenuBar::resize_event(int w, int h)
 int BC_MenuBar::keypress_event()
 {
 	int result = 0;
+	switch( get_keypress() ) {
+	case ESC:
+		deactivate();
+		return 1;
+	}
 	if(!top_level->active_subwindow || !top_level->active_subwindow->uses_text())
 	{
 		for(int i = 0; i < menu_titles.total && !result; i++)

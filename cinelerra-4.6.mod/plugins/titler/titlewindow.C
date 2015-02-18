@@ -831,7 +831,7 @@ TitleText::TitleText(TitleMain *client,
 	TitleWindow *window, int x, int y, int w, int h)
  : BC_ScrollTextBox(window, x, y, w,
 		BC_TextBox::pixels_to_rows(window, MEDIUMFONT, h),
-		client->config.wtext)
+		client->config.wtext, 8192)
 {
 	this->client = client;
 	this->window = window;

@@ -934,7 +934,6 @@ void PluginServer::raise_window()
 void PluginServer::show_gui()
 {
 	if(!plugin_open) return;
-	client->smp = preferences->processors - 1;
 	if(plugin) client->total_len = plugin->length;
 	if(plugin) client->source_start = plugin->startproject;
 	if(video)

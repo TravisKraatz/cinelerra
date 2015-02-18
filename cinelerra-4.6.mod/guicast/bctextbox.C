@@ -221,22 +221,23 @@ int BC_TextBox::wtext_update()
 	if( dirty ) {
 		const char *src_enc = is_utf8 ? "UTF8" : BC_Resources::encoding;
 		const char *dst_enc = BC_Resources::wide_encoding;
-		int nsize = tsize > 0 ? tsize : strlen(text);
+		int nsize = tsize > 0 ? tsize : strlen(text) + BCTEXTLEN;
 		if( nsize > wsize || !wtext ) {
-			delete [] wtext;
-			wtext = new wchar_t[nsize+1];
-			wsize = nsize;
+			wchar_t *ntext = new wchar_t[nsize+1];
+			memcpy(ntext, wtext, wsize*sizeof(wtext[0]));
+			delete [] wtext;  wtext = ntext;  wsize = nsize;
+			int *npositions = new int[nsize+1];
+			if( plen > 0 )
+				memcpy(npositions, positions, (plen+1)*sizeof(positions[0]));
+			else
+				npositions[0] = 0;
+			delete [] positions;  positions = npositions;  plen = nsize;
 		}
 		wlen = BC_Resources::encode(src_enc, dst_enc, text, strlen(text),
 			(char*)wtext, wsize*sizeof(wchar_t)) / sizeof(wchar_t);
-		if( wlen > plen || !positions ) {
-			plen = wlen + BCSTRLEN;
-			delete [] positions;
-			positions = new int[plen+2];
-		}
-		positions[0] = 0;
 		dirty = 0;
 	}
+	wtext[wlen] = 0;
 	return wlen;
 }
 
@@ -247,6 +248,7 @@ int BC_TextBox::text_update(const wchar_t *wcp, int wsz, char *tcp, int tsz)
 	if( wsz < 0 ) wsz = wcslen(wcp);
 	int len = BC_Resources::encode(src_enc, dst_enc,
 		(char*)wcp, wsz*sizeof(wchar_t), tcp, tsz);
+	tcp[len] = 0;
 	return len;
 }
 
@@ -922,6 +924,7 @@ int BC_TextBox::button_press_event()
 				yscroll->get_handlelength(),
 				1);
 		}
+		handle_event();
 		return 1;
 	}
 	else
