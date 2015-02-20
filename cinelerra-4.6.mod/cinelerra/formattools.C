@@ -648,12 +648,7 @@ void FormatAThread::start()
 
 void FormatAThread::run()
 {
-	file->get_options(format->window, 
-		format->plugindb, 
-		format->asset, 
-		1, 
-		0,
-		0);
+	file->get_options(format, 1, 0);
 }
 
 
@@ -683,12 +678,7 @@ void FormatVThread::start()
 
 void FormatVThread::run()
 {
-	file->get_options(format->window, 
-		format->plugindb, 
-		format->asset, 
-		0, 
-		1, 
-		format->locked_compressor);
+	file->get_options(format, 0, 1);
 }
 
 

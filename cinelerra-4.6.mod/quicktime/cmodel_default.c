@@ -1935,7 +1935,7 @@ static inline void transfer_UYVA8888_to_YUVA16161616(uint16_t *(*output), unsign
 					break; \
 				case BC_RGBA8888: \
 					TRANSFER_FRAME_HEAD \
-					transfer_RGBA16161616_to_RGBA8888((output), (input)); \
+					transfer_RGBA16161616_to_RGBA8888((output),(uint16_t*)(input)); \
 					TRANSFER_FRAME_TAIL \
 					break; \
 				case BC_RGB_FLOAT: \

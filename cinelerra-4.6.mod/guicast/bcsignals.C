@@ -794,6 +794,8 @@ static void handle_dump(int n, siginfo_t * info, void *sc)
 	BC_Signals::dump_locks(fp);
 	BC_Signals::dump_buffers(fp);
 	if( fp != stdout ) fclose(fp);
+// must be root
+	if( getuid() != 0 ) return;
 	char cmd[1024], *cp = cmd;
 	cp += sprintf(cp, "exec gdb /proc/%d/exe -p %d --batch --quiet "
 		"-ex \"thread apply all info registers\" "

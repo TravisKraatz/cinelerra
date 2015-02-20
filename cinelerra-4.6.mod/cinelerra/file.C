@@ -29,13 +29,14 @@
 #include "fileavi.h"
 #include "filebase.h"
 #include "filecr2.h"
+#include "filedb.h"
+#include "filedv.h"
 #include "fileexr.h"
 #include "fileffmpeg.h"
 #include "fileflac.h"
 #include "filefork.h"
-#include "file.h"
 #include "filegif.h"
-#include "filedb.h"
+#include "file.h"
 #include "filejpeg.h"
 #include "filemov.h"
 #include "filempeg.h"
@@ -48,14 +49,17 @@
 #include "filetga.h"
 #include "filethread.h"
 #include "filetiff.h"
-#include "format.inc"
 #include "filevorbis.h"
 #include "filexml.h"
+#include "fileyuv.h"
+#include "format.inc"
 #include "formatwindow.h"
+#include "formattools.h"
 #include "framecache.h"
 #include "language.h"
 #include "mutex.h"
 #include "mwindow.h"
+#include "packagingengine.h"
 #include "pluginserver.h"
 #include "preferences.h"
 #include "samples.h"
@@ -120,7 +124,6 @@ void File::reset_parameters()
 	current_program = 0;
 	current_layer = 0;
 	normalized_sample = 0;
-//	normalized_sample_rate = 0;
 	use_cache = 0;
 	preferences = 0;
 	playback_subtitle = -1;
@@ -156,19 +159,27 @@ void File::close_window()
 	}
 }
 
-int File::get_options(BC_WindowBase *parent_window, 
-	ArrayList<PluginServer*> *plugindb, 
-	Asset *asset, 
-	int audio_options, 
-	int video_options,
-	char *locked_compressor)
+int File::get_options(FormatTools *format,
+	int audio_options, int video_options)
 {
+	BC_WindowBase *parent_window = format->window;
+	ArrayList<PluginServer*> *plugindb = format->plugindb;
+	Asset *asset = format->asset;
+	const char *locked_compressor = format->locked_compressor;
+
 	getting_options = 1;
 	format_completion->lock("File::get_options");
 	switch(asset->format)
 	{
 		case FILE_AC3:
 			FileAC3::get_parameters(parent_window,
+				asset,
+				format_window,
+				audio_options,
+				video_options);
+			break;
+		case FILE_RAWDV:
+			FileDV::get_parameters(parent_window,
 				asset,
 				format_window,
 				audio_options,
@@ -235,6 +246,13 @@ int File::get_options(BC_WindowBase *parent_window,
 				format_window, 
 				audio_options, 
 				video_options);
+			break;
+	        case FILE_YUV:
+			FileYUV::get_parameters(parent_window,
+				asset,
+				format_window,
+				video_options,
+				format);
 			break;
 		case FILE_FLAC:
 			FileFLAC::get_parameters(parent_window, 
@@ -550,7 +568,13 @@ int File::open_file(Preferences *preferences,
 				file = new FileScene(this->asset, this);
 			}
 			else
-			if(FileSndFile::check_sig(this->asset))
+			if(FileDV::check_sig(this->asset))
+			{
+// libdv
+				fclose(stream);
+				file = new FileDV(this->asset, this);
+			}
+			else if(FileSndFile::check_sig(this->asset))
 			{
 // libsndfile
 				fclose(stream);
@@ -585,6 +609,13 @@ int File::open_file(Preferences *preferences,
 				file = new FileEXR(this->asset, this);
 			}
 			else
+			if(FileYUV::check_sig(this->asset))
+			{
+// YUV file
+				fclose(stream);
+				file = new FileYUV(this->asset, this);
+			}
+			else
 			if(FileFLAC::check_sig(this->asset, test))
 			{
 // FLAC file
@@ -611,6 +642,13 @@ int File::open_file(Preferences *preferences,
 // TIFF file
 				fclose(stream);
 				file = new FileTIFF(this->asset, this);
+			}
+			else
+			if(FileOGG::check_sig(this->asset))
+			{
+// OGG file
+				fclose(stream);
+				file = new FileOGG(this->asset, this);
 			}
 			else
 			if(FileVorbis::check_sig(this->asset))
@@ -731,6 +769,10 @@ int File::open_file(Preferences *preferences,
 			file = new FileDB(this->asset, this);
 			break;
 
+		case FILE_YUV:
+			file = new FileYUV(this->asset, this);
+			break;
+
 		case FILE_MOV:
 			file = new FileMOV(this->asset, this);
 			break;
@@ -758,6 +800,10 @@ int File::open_file(Preferences *preferences,
 		case FILE_AVI_ARNE1:
 		case FILE_AVI_AVIFILE:
 			file = new FileAVI(this->asset, this);
+			break;
+
+		case FILE_RAWDV:
+			file = new FileDV(this->asset, this);
 			break;
 
 // try plugins
@@ -916,7 +962,6 @@ int File::close_file(int ignore_thread)
 
 	reset_parameters();
 	if(debug) printf("File::close_file file=%p %d\n", file, __LINE__);
-
 	return 0;
 }
 
@@ -1430,9 +1475,6 @@ int64_t File::get_audio_position()
 
 
 
-// The base samplerate must be nonzero if the base samplerate in the calling
-// function is expected to change as this forces the resampler to reset.
-
 int File::set_audio_position(int64_t position) 
 {
 #ifdef USE_FILEFORK
@@ -1455,46 +1497,7 @@ int File::set_audio_position(int64_t position)
 	(labs((x) - (y)) > 1)
 
 	float base_samplerate = asset->sample_rate;
-// this code is messed up
-#if 0
-	if((base_samplerate && REPOSITION(normalized_sample, position)) ||
-		(!base_samplerate && REPOSITION(current_sample, position)))
-	{
-// Can't reset resampler since one seek operation is done 
-// for every channel to be read at the same position.
-
-// Use a conditional reset for just the case of different base_samplerates
-// 		if(base_samplerate > 0)
-// 		{
-// 			if(normalized_sample_rate &&
-// 				normalized_sample_rate != base_samplerate && 
-// 				resample)
-// 				resample->reset(-1);
-// 
-// 			normalized_sample = position;
-// 			normalized_sample_rate = (int64_t)((base_samplerate > 0) ? 
-// 				base_samplerate : 
-// 				asset->sample_rate);
-// 
-// // Convert position to file's rate
-// 			if(base_samplerate > 0)
-// 				current_sample = Units::round((double)position / 
-// 					base_samplerate * 
-// 					asset->sample_rate);
-// 		}
-// 		else
-		{
-// Resampling is now done in AModule
-			normalized_sample = current_sample = position;
-// 			normalized_sample = Units::round((double)position / 
-// 					asset->sample_rate * 
-// 					normalized_sample_rate);
-// Can not set the normalized sample rate since this would reset the resampler.
-		}
-#else
 		current_sample = normalized_sample = position;
-#endif
-
 
 // printf("File::set_audio_position %d normalized_sample=%ld\n", 
 // __LINE__, 
@@ -1863,7 +1866,11 @@ VFrame*** File::get_video_buffer()
 
 int File::read_samples(Samples *samples, int64_t len)
 {
-	if(len < 0) return 0;
+// Never try to read more samples than exist in the file
+	if (current_sample + len > asset->audio_length) {
+		len = asset->audio_length - current_sample;
+	}
+	if(len <= 0) return 0;
 
 	int result = 0;
 	const int debug = 0;
@@ -1906,36 +1913,11 @@ int File::read_samples(Samples *samples, int64_t len)
 // Resample recursively calls this with the asset sample rate
 		if(base_samplerate == 0) base_samplerate = asset->sample_rate;
 
-//printf("File::read_samples %d %lld %lld\n", __LINE__, current_sample, len);
-// Load with resampling	
-// 		if(base_samplerate != asset->sample_rate)
-// 		{
-// //printf("File::read_samples 3\n");
-// 			if(!resample)
-// 			{
-// //printf("File::read_samples 4\n");
-// 				resample = new Resample(this, asset->channels);
-// 			}
-// 
-// //printf("File::read_samples 5\n");
-// 			current_sample += resample->resample(buffer, 
-// 				len, 
-// 				asset->sample_rate, 
-// 				base_samplerate,
-// 				current_channel,
-// 				current_sample,
-// 				normalized_sample);
-// //printf("File::read_samples 6\n");
-// 		}
-// 		else
-// // Load directly
-		{
-			if(debug) PRINT_TRACE
-			result = file->read_samples(buffer, len);
+		if(debug) PRINT_TRACE
+		result = file->read_samples(buffer, len);
 
-			if(debug) PRINT_TRACE
-			current_sample += len;
-		}
+		if(debug) PRINT_TRACE
+		current_sample += len;
 
 		normalized_sample += len;
 	}
@@ -1943,56 +1925,6 @@ int File::read_samples(Samples *samples, int64_t len)
 
 	return result;
 }
-
-// int File::read_compressed_frame(VFrame *buffer)
-// {
-// #ifdef USE_FILEFORK
-// 	if(file_fork)
-// 	{
-//		FileForker this_is(*forked);
-// 		unsigned char fork_buffer[buffer->filefork_size()];
-// 		buffer->to_filefork(fork_buffer);
-// 		file_fork->send_command(FileFork::READ_COMPRESSED_FRAME, 
-// 			fork_buffer, 
-// 			buffer->filefork_size());
-// // TODO: need to read back new frame parameters & reallocate
-// 		int result = file_fork->read_result();
-// 		return result;
-// 	}
-// #endif
-// 
-// 
-// 
-// 
-// 	int result = 1;
-// 	if(file)
-// 		result = file->read_compressed_frame(buffer);
-// 	current_frame++;
-// 	return result;
-// }
-
-// int64_t File::compressed_frame_size()
-// {
-// #ifdef USE_FILEFORK
-// 	if(file_fork)
-// 	{
-//		FileForker this_is(*forked);
-// 		file_fork->send_command(FileFork::COMPRESSED_FRAME_SIZE, 
-// 			0, 
-// 			0);
-// 		int64_t result = file_fork->read_result();
-// 		return result;
-// 	}
-// #endif
-// 
-// 
-// 	if(file)
-// 		return file->compressed_frame_size();
-// 	else 
-// 		return 0;
-// }
-
-
 
 
 int File::read_frame(VFrame *frame, int is_thread)
@@ -2252,6 +2184,8 @@ int File::strtoformat(ArrayList<PluginServer*> *plugindb, char *format)
 	else
 	if(!strcasecmp(format, _(EXR_LIST_NAME))) return FILE_EXR_LIST;
 	else
+	if(!strcasecmp(format, _(YUV_NAME))) return FILE_YUV;
+	else
 	if(!strcasecmp(format, _(FLAC_NAME))) return FILE_FLAC;
 	else
 	if(!strcasecmp(format, _(CR2_NAME))) return FILE_CR2;
@@ -2284,12 +2218,15 @@ int File::strtoformat(ArrayList<PluginServer*> *plugindb, char *format)
 	else
 	if(!strcasecmp(format, _(VORBIS_NAME))) return FILE_VORBIS;
 	else
+	if(!strcasecmp(format, _(RAWDV_NAME))) return FILE_RAWDV;
+	else
 	if(!strcasecmp(format, _(FFMPEG_NAME))) return FILE_FFMPEG;
 	else
 	if(!strcasecmp(format, _(DBASE_NAME))) return FILE_DB;
 
 	return 0;
 }
+
 
 const char* File::formattostr(int format)
 {
@@ -2300,109 +2237,40 @@ const char* File::formattostr(ArrayList<PluginServer*> *plugindb, int format)
 {
 	switch(format)
 	{
-		case FILE_SCENE:
-			return _(SCENE_NAME);
-			break;
-		case FILE_AC3:
-			return _(AC3_NAME);
-			break;
-		case FILE_WAV:
-			return _(WAV_NAME);
-			break;
-		case FILE_PCM:
-			return _(PCM_NAME);
-			break;
-		case FILE_AU:
-			return _(AU_NAME);
-			break;
-		case FILE_AIFF:
-			return _(AIFF_NAME);
-			break;
-		case FILE_SND:
-			return _(SND_NAME);
-			break;
-		case FILE_PNG:
-			return _(PNG_NAME);
-			break;
-		case FILE_PNG_LIST:
-			return _(PNG_LIST_NAME);
-			break;
-		case FILE_JPEG:
-			return _(JPEG_NAME);
-			break;
-		case FILE_JPEG_LIST:
-			return _(JPEG_LIST_NAME);
-			break;
-		case FILE_CR2:
-			return _(CR2_NAME);
-			break;
-		case FILE_CR2_LIST:
-			return _(CR2_LIST_NAME);
-			break;
-		case FILE_EXR:
-			return _(EXR_NAME);
-			break;
-		case FILE_FLAC:
-			return _(FLAC_NAME);
-			break;
-		case FILE_EXR_LIST:
-			return _(EXR_LIST_NAME);
-			break;
-		case FILE_MPEG:
-			return _(MPEG_NAME);
-			break;
-		case FILE_AMPEG:
-			return _(AMPEG_NAME);
-			break;
-		case FILE_VMPEG:
-			return _(VMPEG_NAME);
-			break;
-		case FILE_TGA:
-			return _(TGA_NAME);
-			break;
-		case FILE_TGA_LIST:
-			return _(TGA_LIST_NAME);
-			break;
-		case FILE_TIFF:
-			return _(TIFF_NAME);
-			break;
-		case FILE_TIFF_LIST:
-			return _(TIFF_LIST_NAME);
-			break;
-		case FILE_MOV:
-			return _(MOV_NAME);
-			break;
-		case FILE_AVI_LAVTOOLS:
-			return _(AVI_LAVTOOLS_NAME);
-			break;
-		case FILE_AVI:
-			return _(AVI_NAME);
-			break;
-		case FILE_AVI_ARNE2:
-			return _(AVI_ARNE2_NAME);
-			break;
-		case FILE_AVI_ARNE1:
-			return _(AVI_ARNE1_NAME);
-			break;
-		case FILE_AVI_AVIFILE:
-			return _(AVI_AVIFILE_NAME);
-			break;
-		case FILE_OGG:
-			return _(OGG_NAME);
-			break;
-		case FILE_VORBIS:
-			return _(VORBIS_NAME);
-			break;
-		case FILE_FFMPEG:
-			return _(FFMPEG_NAME);
-			break;
-		case FILE_DB:
-			return _(DBASE_NAME);
-			break;
-
-		default:
-			return _("Unknown");
-			break;
+		case FILE_SCENE:	return _(SCENE_NAME);
+		case FILE_AC3:		return _(AC3_NAME);
+		case FILE_WAV:		return _(WAV_NAME);
+		case FILE_PCM:		return _(PCM_NAME);
+		case FILE_AU:		return _(AU_NAME);
+		case FILE_AIFF:		return _(AIFF_NAME);
+		case FILE_SND:		return _(SND_NAME);
+		case FILE_PNG:		return _(PNG_NAME);
+		case FILE_PNG_LIST:	return _(PNG_LIST_NAME);
+		case FILE_JPEG:		return _(JPEG_NAME);
+		case FILE_JPEG_LIST:	return _(JPEG_LIST_NAME);
+		case FILE_CR2:		return _(CR2_NAME);
+		case FILE_CR2_LIST:	return _(CR2_LIST_NAME);
+		case FILE_FLAC:		return _(FLAC_NAME);
+		case FILE_EXR_LIST:	return _(EXR_LIST_NAME);
+		case FILE_YUV:		return _(YUV_NAME);
+		case FILE_MPEG:		return _(MPEG_NAME);
+		case FILE_AMPEG:	return _(AMPEG_NAME);
+		case FILE_VMPEG:	return _(VMPEG_NAME);
+		case FILE_TGA:		return _(TGA_NAME);
+		case FILE_TGA_LIST:	return _(TGA_LIST_NAME);
+		case FILE_TIFF:		return _(TIFF_NAME);
+		case FILE_TIFF_LIST:	return _(TIFF_LIST_NAME);
+		case FILE_MOV:		return _(MOV_NAME);
+		case FILE_AVI_LAVTOOLS:	return _(AVI_LAVTOOLS_NAME);
+		case FILE_AVI:		return _(AVI_NAME);
+		case FILE_AVI_ARNE2:	return _(AVI_ARNE2_NAME);
+		case FILE_AVI_ARNE1:	return _(AVI_ARNE1_NAME);
+		case FILE_AVI_AVIFILE:	return _(AVI_AVIFILE_NAME);
+		case FILE_OGG:		return _(OGG_NAME);
+		case FILE_VORBIS:	return _(VORBIS_NAME);
+		case FILE_RAWDV:	return _(RAWDV_NAME);
+		case FILE_FFMPEG:	return _(FFMPEG_NAME);
+		case FILE_DB:		return _(DBASE_NAME);
 	}
 	return "Unknown";
 }
@@ -2425,30 +2293,14 @@ const char* File::bitstostr(int bits)
 //printf("File::bitstostr\n");
 	switch(bits)
 	{
-		case BITSLINEAR8:
-			return (NAME_8BIT);
-			break;
-		case BITSLINEAR16:
-			return (NAME_16BIT);
-			break;
-		case BITSLINEAR24:
-			return (NAME_24BIT);
-			break;
-		case BITSLINEAR32:
-			return (NAME_32BIT);
-			break;
-		case BITSULAW:
-			return (NAME_ULAW);
-			break;
-		case BITS_ADPCM:
-			return (NAME_ADPCM);
-			break;
-		case BITSFLOAT:
-			return (NAME_FLOAT);
-			break;
-		case BITSIMA4:
-			return (NAME_IMA4);
-			break;
+		case BITSLINEAR8:	return (NAME_8BIT);
+		case BITSLINEAR16:	return (NAME_16BIT);
+		case BITSLINEAR24:	return (NAME_24BIT);
+		case BITSLINEAR32:	return (NAME_32BIT);
+		case BITSULAW:		return (NAME_ULAW);
+		case BITS_ADPCM:	return (NAME_ADPCM);
+		case BITSFLOAT:		return (NAME_FLOAT);
+		case BITSIMA4:		return (NAME_IMA4);
 	}
 	return "Unknown";
 }
@@ -2471,24 +2323,12 @@ int File::bytes_per_sample(int bits)
 {
 	switch(bits)
 	{
-		case BITSLINEAR8:
-			return 1;
-			break;
-		case BITSLINEAR16:
-			return 2;
-			break;
-		case BITSLINEAR24:
-			return 3;
-			break;
-		case BITSLINEAR32:
-			return 4;
-			break;
-		case BITSULAW:
-			return 1;
-			break;
-		case BITSIMA4:
-			return 1;
-			break;
+		case BITSLINEAR8:	return 1;
+		case BITSLINEAR16:	return 2;
+		case BITSLINEAR24:	return 3;
+		case BITSLINEAR32:	return 4;
+		case BITSULAW:		return 1;
+		case BITSIMA4:		return 1;
 	}
 	return 1;
 }
@@ -2506,45 +2346,22 @@ int File::get_best_colormodel(Asset *asset, int driver)
 {
 	switch(asset->format)
 	{
-		case FILE_MOV:
-			return FileMOV::get_best_colormodel(asset, driver);
-			break;
-		
-		case FILE_AVI:
-			return FileMOV::get_best_colormodel(asset, driver);
-			break;
-
-		case FILE_MPEG:
-			return FileMPEG::get_best_colormodel(asset, driver);
-			break;
-		
+		case FILE_RAWDV:	return FileDV::get_best_colormodel(asset, driver);
+		case FILE_MOV:		return FileMOV::get_best_colormodel(asset, driver);
+		case FILE_AVI:		return FileMOV::get_best_colormodel(asset, driver);
+		case FILE_MPEG:		return FileMPEG::get_best_colormodel(asset, driver);
 		case FILE_JPEG:
-		case FILE_JPEG_LIST:
-			return FileJPEG::get_best_colormodel(asset, driver);
-			break;
-
+		case FILE_JPEG_LIST:	return FileJPEG::get_best_colormodel(asset, driver);
 		case FILE_EXR:
-		case FILE_EXR_LIST:
-			return FileEXR::get_best_colormodel(asset, driver);
-			break;
-		
+		case FILE_EXR_LIST:	return FileEXR::get_best_colormodel(asset, driver);
+		case FILE_YUV:		return FileYUV::get_best_colormodel(asset, driver);
 		case FILE_PNG:
-		case FILE_PNG_LIST:
-			return FilePNG::get_best_colormodel(asset, driver);
-			break;
-		
+		case FILE_PNG_LIST:	return FilePNG::get_best_colormodel(asset, driver);
 		case FILE_TGA:
-		case FILE_TGA_LIST:
-			return FileTGA::get_best_colormodel(asset, driver);
-			break;
-		
+		case FILE_TGA_LIST:	return FileTGA::get_best_colormodel(asset, driver);
 		case FILE_CR2:
-		case FILE_CR2_LIST:
-			return FileCR2::get_best_colormodel(asset, driver);
-			break;
-		case FILE_DB:
-			return FileDB::get_best_colormodel(asset, driver);
-			break;
+		case FILE_CR2_LIST:	return FileCR2::get_best_colormodel(asset, driver);
+		case FILE_DB:		return FileDB::get_best_colormodel(asset, driver);
 	}
 
 	return BC_RGB888;
@@ -2647,14 +2464,12 @@ int File::supports_video(int format)
 		case FILE_AVI:
 		case FILE_AVI_ARNE1:
 		case FILE_AVI_AVIFILE:
+	        case FILE_YUV:
 		case FILE_DB:
+		case FILE_RAWDV:
 			return 1;
-			break;
-
-		default:
-			return 0;
-			break;
 	}
+	return 0;
 }
 
 int File::supports_audio(int format)
@@ -2678,11 +2493,8 @@ int File::supports_audio(int format)
 		case FILE_AVI_ARNE1:
 		case FILE_AVI_AVIFILE:
 			return 1;
-		
-		default:
-			return 0;
-			break;
 	}
+	return 0;
 }
 
 const char* File::get_tag(int format)
@@ -2694,6 +2506,7 @@ const char* File::get_tag(int format)
 		case FILE_AMPEG:        return "mp3";
 		case FILE_AU:           return "au";
 		case FILE_AVI:          return "avi";
+		case FILE_RAWDV:        return "dv";
 		case FILE_DB:           return "db";
 		case FILE_EXR:          return "exr";
 		case FILE_EXR_LIST:     return "exr";
@@ -2712,19 +2525,76 @@ const char* File::get_tag(int format)
 		case FILE_VMPEG:        return "m2v";
 		case FILE_VORBIS:       return "ogg";
 		case FILE_WAV:          return "wav";
+		case FILE_YUV:          return "m2v";
 	}
 	return 0;
 }
+
+const char* File::get_prefix(int format)
+{
+	switch(format) {
+	case FILE_PCM:		return "PCM";
+	case FILE_WAV:		return "WAV";
+	case FILE_MOV:		return "MOV";
+	case FILE_PNG:		return "PNG";
+	case FILE_JPEG:		return "JPEG";
+	case FILE_TIFF:		return "TIFF";
+	case FILE_GIF:		return "GIF";
+	case FILE_JPEG_LIST:	return "JPEG_LIST";
+	case FILE_AU:		return "AU";
+	case FILE_AIFF:		return "AIFF";
+	case FILE_SND:		return "SND";
+	case FILE_AVI_LAVTOOLS:	return "AVI_LAVTOOLS";
+	case FILE_TGA_LIST:	return "TGA_LIST";
+	case FILE_TGA:		return "TGA";
+	case FILE_MPEG:		return "MPEG";
+	case FILE_AMPEG:	return "AMPEG";
+	case FILE_VMPEG:	return "VMPEG";
+	case FILE_RAWDV:	return "RAWDV";
+	case FILE_AVI_ARNE2:	return "AVI_ARNE2";
+	case FILE_AVI_ARNE1:	return "AVI_ARNE1";
+	case FILE_AVI_AVIFILE:	return "AVI_AVIFILE";
+	case FILE_TIFF_LIST:	return "TIFF_LIST";
+	case FILE_PNG_LIST:	return "PNG_LIST";
+	case FILE_AVI:		return "AVI";
+	case FILE_AC3:		return "AC3";
+	case FILE_EXR:		return "EXR";
+	case FILE_EXR_LIST:	return "EXR_LIST";
+	case FILE_CR2:		return "CR2";
+	case FILE_YUV:		return "YUV";
+	case FILE_OGG:		return "OGG";
+	case FILE_VORBIS:	return "VORBIS";
+	case FILE_FLAC:		return "FLAC";
+	case FILE_FFMPEG:	return "FFMPEG";
+	case FILE_SCENE:	return "SCENE";
+	case FILE_CR2_LIST:	return "CR2_LIST";
+	case FILE_GIF_LIST:	return "GIF_LIST";
+	case FILE_DB:		return "DB";
+	}
+	return "UNKNOWN";
+}
+
+
+PackagingEngine *File::new_packaging_engine(Asset *asset)
+{
+	PackagingEngine *result;
+	switch (asset->format)
+	{
+		case FILE_OGG:
+			result = (PackagingEngine*)new PackagingEngineOGG();
+			break;
+		default:
+			result = (PackagingEngine*) new PackagingEngineDefault();
+			break;
+	}
+
+	return result;
+}
+
 
 int File::record_fd()
 {
 	return file ? file->record_fd() : -1;
 }
-
-
-
-
-
-
 
 

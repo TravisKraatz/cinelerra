@@ -97,6 +97,8 @@ public:
 	void reset_audio();
 	void reset_video();
 	void reset_index();  // When the index file is wrong, reset the asset values
+	int reset_timecode();
+
 // Output path is the path of the output file if name truncation is desired.
 // It is a "" if; complete names should be used.
 	int write(FileXML *file, 
@@ -143,19 +145,14 @@ public:
 // String or FourCC describing compression
 	char acodec[BCTEXTLEN];
 
-
 	int64_t audio_length;
 
-
-
-
-
-
-
-
-
-
-
+// Timecode information. User setable, in case of errors in source
+	char reel_name[BCTEXTLEN];
+	int reel_number;
+	int64_t tcstart;
+	int64_t tcend;
+	int tcformat;
 
 // contains video data
 	int video_data;       
@@ -168,8 +165,6 @@ public:
 
 // Length in frames
 	int64_t video_length;
-
-
 
 
 
@@ -204,8 +199,10 @@ public:
 // Set by package render during file creation. -1 means square pixels.
 	double aspect_ratio;
 
-
-
+// for the interlace mode 
+	int interlace_autofixoption;
+	int interlace_mode;
+	int interlace_fixmethod;
 
 // for jpeg compression
 	int jpeg_quality;     
@@ -277,7 +274,8 @@ public:
 
 	int ac3_bitrate;
 
-
+	char pipe[BCTEXTLEN];
+	int use_pipe;
 
 // Image file sequences.  Background rendering doesn't want to write a 
 // sequence header but instead wants to start the sequence numbering at a certain

@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 1997-2011 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef PACKAGERENDERER_H
@@ -62,6 +62,8 @@ public:
 	int64_t video_end;
 	int done;
 	int use_brender;
+	int video_do;
+	int audio_do;
 };
 
 
@@ -76,20 +78,20 @@ public:
 
 // Initialize stuff which is reused between packages
 	int initialize(MWindow *mwindow,
-		EDL *edl, 
-		Preferences *preferences, 
+		EDL *edl,
+		Preferences *preferences,
 		Asset *default_asset);
 
 // Aborts and returns 1 if an error is encountered.
 	int render_package(RenderPackage *package);
 
 	int direct_copy_possible(EDL *edl,
-		int64_t current_position, 
+		int64_t current_position,
 		Track* &playable_track,  // The one track which is playable
 		Edit* &playable_edit, // The edit which is playing
 		File *file);   // Output file
-	int direct_frame_copy(EDL *edl, 
-		int64_t &video_position, 
+	int direct_frame_copy(EDL *edl,
+		int64_t &video_position,
 		File *file,
 		int &result);
 
@@ -100,7 +102,7 @@ public:
 	virtual void set_result(int value);
 	virtual void set_progress(int64_t total_samples);
 // Used by background rendering to mark a frame as finished.
-// If the GUI is locked for a long time this may abort, 
+// If the GUI is locked for a long time this may abort,
 // assuming the server crashed.
 	virtual int set_video_map(int64_t position, int value);
 	virtual int progress_cancelled();

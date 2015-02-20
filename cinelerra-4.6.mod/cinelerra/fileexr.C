@@ -24,6 +24,7 @@
 #include "clip.h"
 #include "fileexr.h"
 #include "filesystem.h"
+#include "interlacemodes.h"
 #include "ImathBox.h"
 #include "ImfChannelList.h"
 #include "ImfChromaticities.h"
@@ -304,6 +305,7 @@ int FileEXR::read_frame_header(char *path)
 	
 	asset->width = dw.max.x - dw.min.x + 1;
 	asset->height = dw.max.y - dw.min.y + 1;
+	asset->interlace_mode = BC_ILACE_MODE_NOTINTERLACED;
 
 	const Imf::ChannelList &channels = file.header().channels();
 
@@ -478,14 +480,14 @@ int FileEXR::write_frame(VFrame *frame, VFrame *data, FrameWriterUnit *unit)
 			frame->get_u(),
 			frame->get_v(),
 			0,        /* Dimensions to capture from input frame */
-			0, 
-			asset->width, 
+			0,
+			asset->width,
 			asset->height,
 			0,       /* Dimensions to project on output frame */
-			0, 
-			asset->width, 
+			0,
+			asset->width,
 			asset->height,
-			frame->get_color_model(), 
+			frame->get_color_model(),
 			native_cmodel,
 			0,         /* When transfering BC_RGBA8888 to non-alpha this is the background color in 0xRRGGBB hex */
 			asset->width,       /* For planar use the luma rowspan */
@@ -624,9 +626,9 @@ int EXRUseAlpha::handle_event()
 
 
 EXRCompression::EXRCompression(EXRConfigVideo *gui, int x, int y, int w)
- : BC_PopupMenu(x, 
- 	y, 
-	w, 
+ : BC_PopupMenu(x,
+ 	y,
+	w,
 	FileEXR::compression_to_str(gui->asset->exr_compression))
 {
 	this->gui = gui;

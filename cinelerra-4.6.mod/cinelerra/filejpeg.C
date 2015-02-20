@@ -24,6 +24,7 @@
 #include "edit.h"
 #include "file.h"
 #include "filejpeg.h"
+#include "interlacemodes.h"
 #include "jpegwrapper.h"
 #include "language.h"
 #include "libmjpeg.h"
@@ -31,7 +32,7 @@
 #include "quicktime.h"
 #include "vframe.h"
 #include "videodevice.inc"
-
+#include "mainerror.h"
 
 #include <errno.h>
 #include <string.h>
@@ -209,18 +210,21 @@ int FileJPEG::read_frame_header(char *path)
 
 	if(!(stream = fopen(path, "rb")))
 	{
-		printf("FileJPEG::read_frame_header %d %s: %s\n", __LINE__, path, strerror(errno));
+		eprintf("FileJPEG::read_frame_header %s: %m\n", path);
 		return 1;
 	}
 	
 
 	unsigned char test[2];
 	(void)fread(test, 2, 1, stream);
-	fseek(stream, 0, SEEK_SET);
-	if(test[0] != 0xff ||
-		test[1] != 0xd8)
+	if(test[0] != 0xff || test[1] != 0xd8)
+	{
+		eprintf("FileJPEG::read_frame_header %d %s bad header %02x%02x\n",
+			path, test[0], test[1]);
+		fclose(stream);
 		return 1;
-	
+	}
+	fseek(stream, 0, SEEK_SET);
 
 	struct jpeg_decompress_struct jpeg_decompress;
 	struct jpeg_error_mgr jpeg_error;
@@ -233,6 +237,8 @@ int FileJPEG::read_frame_header(char *path)
 
 	asset->width = jpeg_decompress.image_width;
 	asset->height = jpeg_decompress.image_height;
+
+	asset->interlace_mode = BC_ILACE_MODE_NOTINTERLACED;
 
 	jpeg_destroy((j_common_ptr)&jpeg_decompress);
 	fclose(stream);
@@ -326,7 +332,7 @@ void JPEGConfigVideo::create_objects()
 	int x = 10, y = 10;
 	lock_window("JPEGConfigVideo::create_objects");
 	add_subwindow(new BC_Title(x, y, _("Quality:")));
-	add_subwindow(new BC_ISlider(x + 80, 
+	add_subwindow(new BC_ISlider(x + 80,
 		y,
 		0,
 		200,

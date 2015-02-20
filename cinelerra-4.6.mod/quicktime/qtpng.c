@@ -1,6 +1,7 @@
 #include "colormodels.h"
 #include "funcprotos.h"
 #include <png.h>
+#include <string.h>
 #include "quicktime.h"
 #include "qtpng.h"
 

@@ -30,6 +30,7 @@
 #include "filexml.h"
 #include "format.inc"
 #include "indexstate.h"
+#include "interlacemodes.h"
 #include "quicktime.h"
 
 #include <stdio.h>
@@ -84,6 +85,10 @@ int Asset::init_values()
 	strcpy(acodec, QUICKTIME_TWOS);
 	jpeg_quality = 100;
 	aspect_ratio = -1;
+
+	interlace_autofixoption = BC_ILACE_AUTOFIXOPTION_AUTO;
+	interlace_mode = BC_ILACE_MODE_UNDETECTED;
+	interlace_fixmethod = BC_ILACE_FIXMETHOD_NONE;
 
 	ampeg_bitrate = 256;
 	ampeg_derivative = 3;
@@ -158,6 +163,12 @@ int Asset::init_values()
 	use_header = 1;
 
 	id = EDL::next_id();
+
+	pipe[0] = 0;
+	use_pipe = 0;
+
+	reset_timecode();
+
 	return 0;
 }
 
@@ -198,6 +209,17 @@ void Asset::boundaries()
 void Asset::reset_index()
 {
 	index_state->reset();
+}
+
+int Asset::reset_timecode()
+{
+	strcpy(reel_name, "cin0000");
+	reel_number = 0;
+	tcstart = 0;
+	tcend = 0;
+	tcformat = 0;
+	
+	return 0;
 }
 
 void Asset::copy_from(Asset *asset, int do_index)

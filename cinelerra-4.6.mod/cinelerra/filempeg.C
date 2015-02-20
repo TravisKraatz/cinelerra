@@ -35,10 +35,12 @@
 #include "format.inc"
 #include "guicast.h"
 #include "indexfile.h"
+#include "interlacemodes.h"
 #include "indexstate.h"
 #include "language.h"
 #include "mainerror.h"
 #include "mwindow.h"
+#include "pipe.h"
 #include "preferences.h"
 #include "removefile.h"
 #include "vframe.h"
@@ -49,6 +51,7 @@
 #include <unistd.h>
 
 
+#define HVPEG_EXE "/hveg2enc.plugin"
 #define MJPEG_EXE "/mpeg2enc.plugin"
 
 
@@ -373,64 +376,56 @@ int FileMPEG::open_file(int rd, int wr)
 {
 	int result = 0;
 
-const int debug = 0;
-if(debug) printf("FileMPEG::open_file %d %s\n", __LINE__, asset->path);
-	if(rd)
-	{
-		char file_name[BCTEXTLEN];
-		result = file->preferences->get_asset_file_path(asset, file_name);
+	if(rd) {
+		char toc_name[BCTEXTLEN];
+		result = file->preferences->get_asset_file_path(asset, toc_name);
 		int error = 0;
-		if(!result && 
-			!(fd = mpeg3_open_title(asset->path, file_name, &error)))
-		{
-			char string[BCTEXTLEN];
-			if(error == zmpeg3_t::ERR_INVALID_TOC_VERSION)
-			{
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
-				sprintf(string, 
-					"Couldn't open %s because it has an invalid table of contents version.\n"
-					"Rebuild the table of contents with mpeg3toc.",
-					asset->path);
-				MainError::show_error(string);
-			}
-			else
-			if(error == zmpeg3_t::ERR_TOC_DATE_MISMATCH)
-			{
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
-				sprintf(string, 
-					"Couldn't open %s because the table of contents date differs from the source date.\n"
-					"Rebuild the table of contents with mpeg3toc.",
-					asset->path);
-				MainError::show_error(string);
-			}
+		fd = mpeg3_open_title(asset->path, toc_name, &error);
+		if( !fd ) {
 			result = 1;
+			if(error == zmpeg3_t::ERR_INVALID_TOC_VERSION) {
+				eprintf("Couldn't open %s: invalid table of contents version.\n"
+					"Rebuilding the table of contents.", asset->path);
+			}
+			else if(error == zmpeg3_t::ERR_TOC_DATE_MISMATCH) {
+				eprintf("Couldn't open %s: table of contents out of date.\n"
+					"Rebuilding the table of contents.", asset->path);
+			}
+			else {
+				eprintf("Couldn't open %s: table of contents corrupt.\n"
+					"Rebuilding the table of contents.", asset->path);
+			}
+			char filename[BCTEXTLEN];
+			strcpy(filename, toc_name);
+			char *sfx = strrchr(filename,'.');
+			if( sfx && !strcmp(sfx+1,"toc") ) {
+				remove(filename);
+				strcpy(sfx+1,"idx");
+				remove(filename);
+				strcpy(toc_name, asset->path);
+				fd = mpeg3_open_title(asset->path, toc_name, &error);
+				if( fd ) result = 0;
+			}
+			if( result )
+				eprintf("Couldn't open %s: rebuild failed.\n", asset->path);
 		}
-		if(!result)
-		{
+		if(!result) {
 // Determine if the file needs a table of contents and create one if needed.
 // If it has video it must be scanned since video has keyframes.
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
-			if(mpeg3_total_vstreams(fd) || mpeg3_total_astreams(fd))
-			{
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
+			if(mpeg3_total_vstreams(fd) || mpeg3_total_astreams(fd)) {
 				if(create_index()) return 1;
 			}
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 // more than 4 doesnt help much
 			mpeg3_set_cpus(fd, file->cpus < 4 ? file->cpus : 4);
 			file->current_program = mpeg3_set_program(fd, -1);
 			if( asset->program < 0 )
 				asset->program = file->current_program;
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			asset->audio_data = mpeg3_has_audio(fd);
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
-			if(asset->audio_data)
-			{
+			if(asset->audio_data) {
 				asset->channels = 0;
-				for(int i = 0; i < mpeg3_total_astreams(fd); i++)
-				{
+				for(int i = 0; i < mpeg3_total_astreams(fd); i++) {
 					asset->channels += mpeg3_audio_channels(fd, i);
 				}
 				if(!asset->sample_rate)
@@ -440,14 +435,13 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 					!asset->sample_rate)
 					result = 1;
 			}
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 			asset->video_data = mpeg3_has_video(fd);
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
-			if(asset->video_data)
-			{
-				if( !asset->layers )
+			if(asset->video_data) {
+				if( !asset->layers ) {
 					asset->layers = mpeg3_total_vstreams(fd);
+					asset->interlace_mode = BC_ILACE_MODE_UNDETECTED;
+				}
 				asset->actual_width = mpeg3_video_width(fd, 0);
 				if( !asset->width )
 					asset->width = asset->actual_width;
@@ -461,7 +455,6 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 				if( !asset->frame_rate )
 					asset->frame_rate = mpeg3_frame_rate(fd, 0);
 			}
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 		}
 	}
 
@@ -470,6 +463,7 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 	if(!result && wr && asset->format == FILE_VMPEG)
 	{
 // Heroine Virtual encoder
+//  this one is cinelerra-x.x.x/mpeg2enc
 		if(asset->vmpeg_cmodel == BC_YUV422P)
 		{
 			char bitrate_string[BCTEXTLEN];
@@ -483,8 +477,10 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 // Construct command line
 			if(!result)
 			{
-				append_vcommand_line("mpeg2enc");
-
+				char string[BCTEXTLEN];
+				sprintf(mjpeg_command, "%s%s", 
+					file->preferences->plugin_dir, HVPEG_EXE);
+				append_vcommand_line(string);
 
 				if(asset->aspect_ratio > 0)
 				{
@@ -531,13 +527,11 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 		}
 		else
 // mjpegtools encoder
+//  this one is cinelerra-x.x.x/thirdparty/mjpegtools/mpeg2enc
 		{
 			char string[BCTEXTLEN];
-			sprintf(mjpeg_command, 
-				"%s%s -v 0 ", 
-				file->preferences->plugin_dir,
-				MJPEG_EXE);
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
+			sprintf(mjpeg_command, "%s%s -v 0 ", 
+				file->preferences->plugin_dir, MJPEG_EXE);
 
 // Must disable interlacing if MPEG-1
 			switch (asset->vmpeg_preset)
@@ -547,7 +541,6 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 				case 2: asset->vmpeg_progressive = 1; break;
 			}
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 
 // The current usage of mpeg2enc requires bitrate of 0 when quantization is fixed and
@@ -563,7 +556,6 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			strcat(mjpeg_command, string);
 
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 
 
@@ -583,7 +575,6 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 				}
 			}
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 // Square pixels
 			if(EQUIV((double)asset->width / asset->height, asset->aspect_ratio))
@@ -591,7 +582,7 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			
 			if(aspect_ratio_code < 0)
 			{
-				printf("FileMPEG::open_file: Unsupported aspect ratio %f\n", asset->aspect_ratio);
+				eprintf("Unsupported aspect ratio %f\n", asset->aspect_ratio);
 				aspect_ratio_code = 2;
 			}
 			sprintf(string, " -a %d", aspect_ratio_code);
@@ -600,7 +591,6 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 
 // Frame rate
@@ -608,37 +598,27 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			int ncodes = sizeof(frame_rate_codes) / sizeof(double);
     			for(int i = 1; i < ncodes; ++i)
 			{
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 				if(EQUIV(asset->frame_rate, frame_rate_codes[i]))
 				{
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 					frame_rate_code = i;
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 					break;
 				}
 			}
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			if(frame_rate_code < 0)
 			{
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 				frame_rate_code = 4;
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
-				printf("FileMPEG::open_file: Unsupported frame rate %f\n", asset->frame_rate);
+				eprintf("Unsupported frame rate %f\n", asset->frame_rate);
 			}
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			sprintf(string, " -F %d", frame_rate_code);
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			strcat(mjpeg_command, string);
 
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 
 
 			strcat(mjpeg_command, 
 				asset->vmpeg_progressive ? " -I 0" : " -I 1");
 			
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 
 			sprintf(string, " -M %d", file->cpus);
@@ -650,42 +630,36 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 				strcat(mjpeg_command, asset->vmpeg_field_order ? " -z b" : " -z t");
 			}
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 			sprintf(string, " -f %d", asset->vmpeg_preset);
 			strcat(mjpeg_command, string);
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 			sprintf(string, " -g %d -G %d", asset->vmpeg_iframe_distance, asset->vmpeg_iframe_distance);
 			strcat(mjpeg_command, string);
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 			if(asset->vmpeg_seq_codes) strcat(mjpeg_command, " -s");
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 			sprintf(string, " -R %d", CLAMP(asset->vmpeg_pframe_distance, 0, 2));
 			strcat(mjpeg_command, string);
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 			sprintf(string, " -o '%s'", asset->path);
 			strcat(mjpeg_command, string);
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 
 			printf("FileMPEG::open_file: Running %s\n", mjpeg_command);
 			if(!(mjpeg_out = popen(mjpeg_command, "w")))
 			{
 				perror("FileMPEG::open_file");
+				eprintf("Error while opening \"%s\" for writing\n%m\n", mjpeg_command);
+				return 1;
 			}
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 			video_out = new FileMPEGVideo(this);
 			video_out->start();
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 		}
 	}
 	else
@@ -726,7 +700,7 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 				asset->channels);
 			if((result = lame_init_params(lame_global)) < 0)
 			{
-				printf(_("encode: lame_init_params returned %d\n"), result);
+				eprintf(_("encode: lame_init_params returned %d\n"), result);
 				lame_close(lame_global);
 				lame_global = 0;
 			}
@@ -734,6 +708,7 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			if(!(lame_fd = fopen(asset->path, "w")))
 			{
 				perror("FileMPEG::open_file");
+				eprintf("Error while opening \"%s\" for writing\n%m\n", asset->path);
 				lame_close(lame_global);
 				lame_global = 0;
 				result = 1;
@@ -741,7 +716,7 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 		}
 		else
 		{
-			printf("FileMPEG::open_file: ampeg_derivative=%d\n", asset->ampeg_derivative);
+			eprintf("ampeg_derivative=%d\n", asset->ampeg_derivative);
 			result = 1;
 		}
 	}
@@ -753,11 +728,11 @@ if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 			S_IRUSR+S_IWUSR + S_IRGRP+S_IWGRP)) < 0 )
 		{
 			perror("FileMPEG::open_file");
+			eprintf("Error while opening \"%s\" for writing\n%m\n", asset->path);
 			result = 1;
 		}
 	}
 
-if(debug) printf("FileMPEG::open_file %d\n", __LINE__);
 
 //asset->dump();
 	return result;
@@ -814,23 +789,18 @@ int FileMPEG::create_index()
 // Calculate TOC path
 	char index_filename[BCTEXTLEN];
 	char source_filename[BCTEXTLEN];
-	const int debug = 0;
 
-	if(debug) printf("FileMPEG::create_index %d %p\n", __LINE__, file->preferences);
 	IndexFile::get_index_filename(source_filename, 
 		file->preferences->index_directory, 
 		index_filename, 
 		asset->path);
-	if(debug) printf("FileMPEG::create_index %d\n", __LINE__);
 	char *ptr = strrchr(index_filename, '.');
 	int error = 0;
 
 	if(!ptr) return 1;
 
-	if(debug) printf("FileMPEG::create_index %d\n", __LINE__);
 // File is a table of contents.
 	if(fd && mpeg3_has_toc(fd)) return 0;
-	if(debug) printf("FileMPEG::create_index %d\n", __LINE__);
 
 	sprintf(ptr, ".toc");
 
@@ -838,7 +808,6 @@ int FileMPEG::create_index()
 
 	if(fd) mpeg3_close(fd);
 	fd = 0;
-	if(debug) printf("FileMPEG::create_index %d\n", __LINE__);
 
 // Test existing copy of TOC
 	if((fd = mpeg3_open_title(asset->path, index_filename, &error)))
@@ -853,7 +822,7 @@ int FileMPEG::create_index()
 		fd = mpeg3_start_toc( asset->path, index_filename,
 				file->current_program, &total_bytes);
 		if( !fd ) {
-			MainError::show_error("cant init toc index");
+			eprintf("cant init toc index\n");
 			result = 1;
 		}
 
@@ -863,7 +832,7 @@ int FileMPEG::create_index()
 		if( !result && file->preferences->scan_commercials ) {
 			set_skimming(-1, 1, toc_nail, file);
 			if( (result=MWindow::commercials->resetDb() ) != 0 )
-				MainError::show_error("cant access commercials database");
+				eprintf("cant access commercials database");
 		}
 
 		char progress_title[BCTEXTLEN], string[BCTEXTLEN];
@@ -900,7 +869,7 @@ int FileMPEG::create_index()
 			if(bytes_processed >= total_bytes) break;
 			if(progress->is_cancelled()) result = 1;
 			if( bytes_processed == last_bytes ) {
-				MainError::show_error("toc scan stopped before eof");
+				eprintf("toc scan stopped before eof");
 				break;
 			}
 			last_bytes = bytes_processed;
@@ -1049,7 +1018,7 @@ int FileMPEG::get_best_colormodel(Asset *asset, int driver)
 		case CAPTURE_IEC61883:
 			return BC_YUV422P;
 	}
-	printf("FileMPEG::get_best_colormodel: unknown driver %d\n",driver);
+	eprintf("unknown driver %d\n",driver);
 	return BC_RGB888;
 }
 
@@ -1309,8 +1278,10 @@ int FileMPEG::write_samples(double **buffer, int64_t len)
 			if(bytes > 0 && lame_started)
 			{
 				result = !fwrite(real_output, 1, bytes, lame_fd);
-				if(result)
+				if(result) {
 					perror("FileMPEG::write_samples");
+					eprintf("write failed: %m");
+				}
 			}
 			else
 				result = 0;
@@ -1325,8 +1296,6 @@ int FileMPEG::write_samples(double **buffer, int64_t len)
 int FileMPEG::write_frames(VFrame ***frames, int len)
 {
 	int result = 0;
-	const int debug = 0;
-if(debug) printf("FileMPEG::write_frames %d\n", __LINE__);
 
 	if(video_out)
 	{
@@ -1499,7 +1468,6 @@ if(debug) printf("FileMPEG::write_frames %d\n", __LINE__);
 	}
 
 
-if(debug) printf("FileMPEG::write_frames %d\n", __LINE__);
 
 	return result;
 }
@@ -1577,7 +1545,6 @@ int FileMPEG::read_frame(VFrame *frame)
 {
 	if(!fd) return 1;
 	int result = 0;
-	const int debug = 0;
 	int width = mpeg3_video_width(fd,file->current_layer);
 	int height = mpeg3_video_height(fd,file->current_layer);
 	int stream_cmdl = mpeg3_colormodel(fd,file->current_layer);
@@ -1586,21 +1553,18 @@ int FileMPEG::read_frame(VFrame *frame)
 	int frame_cmdl = zmpeg3_cmdl(frame_color_model);
 	mpeg3_show_subtitle(fd, file->current_layer, file->playback_subtitle);
 
-if(debug) printf("FileMPEG::read_frame %d\n", __LINE__);
 
 	switch( frame_color_model ) { // check for direct copy
 	case BC_YUV420P:
 	case BC_YUV422P:
 		if( stream_color_model == frame_color_model &&
 			width == frame->get_w() && height == frame->get_h() ) {
-if(debug) printf("FileMPEG::read_frame %d\n", __LINE__);
 			mpeg3_read_yuvframe(fd,
 				(char*)frame->get_y(),
 				(char*)frame->get_u(),
 				(char*)frame->get_v(),
 				0, 0, width, height,
 				file->current_layer);
-if(debug) printf("FileMPEG::read_frame %d\n", __LINE__);
 			return result;
 		}
 	}
@@ -1643,9 +1607,7 @@ if(debug) printf("FileMPEG::read_frame %d\n", __LINE__);
 	}
 
 	char *y, *u, *v;
-if(debug) printf("FileMPEG::read_frame %d\n", __LINE__);
 	mpeg3_read_yuvframe_ptr(fd, &y, &u, &v, file->current_layer);
-if(debug) printf("FileMPEG::read_frame %d\n", __LINE__);
 	if( y && u && v ) {
 		cmodel_transfer(frame->get_rows(), 0,
 			frame->get_y(),
@@ -1662,7 +1624,6 @@ if(debug) printf("FileMPEG::read_frame %d\n", __LINE__);
 			width,
 			frame->get_w());
 	}
-if(debug) printf("FileMPEG::read_frame %d\n", __LINE__);
 
 	return result;
 }

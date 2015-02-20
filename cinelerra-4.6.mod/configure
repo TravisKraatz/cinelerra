@@ -40,6 +40,7 @@
 #  nasm
 #  yasm
 #  libavc1394-devel
+#  libraw1394-devel
 #  libusb-devel
 #  libjpeg-devel
 #  libdv-devel

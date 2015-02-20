@@ -27,7 +27,8 @@ ASMOBJ = \
 
 endif
 
-OBJ = $(OBJDIR)/mpeg2enc.o \
+OBJ = \
+	$(OBJDIR)/mpeg2enc.o \
 	$(OBJDIR)/conform.o \
 	$(OBJDIR)/cpu_accel.o \
 	$(OBJDIR)/putseq.o \
@@ -50,33 +51,39 @@ OBJ = $(OBJDIR)/mpeg2enc.o \
 	$(OBJDIR)/writepic.o
 
 LIBS = \
-	../../quicktime/$(OBJDIR)/libquicktime.a \
-	../../libzmpeg3/$(OBJDIR)/libzmpeg3.a \
+	../quicktime/$(OBJDIR)/libquicktime.a \
+	../libzmpeg3/$(OBJDIR)/libzmpeg3.a \
 	-lpthread \
 	-lpng \
+	-lX11 \
 	-lz \
 	-lm \
 	-ldl
 
-OUTPUT = $(OBJDIR)/mpeg2enc.a
+HVEG2LIB = $(OBJDIR)/hveg2enc.a
+HVEG2ENC = ../bin/hveg2enc.plugin
 
 $(shell echo $(CFLAGS) > $(OBJDIR)/c_flags)
-$(shell echo $(OUTPUT)  $(OBJ) $(NASMOBJ) $(ASMOBJ) > $(OBJDIR)/objs)
+$(shell echo $(HVEG2LIB)  $(OBJ) $(NASMOBJ) $(ASMOBJ) > $(OBJDIR)/objs)
+
+$(HVEG2ENC):	$(OBJDIR)/hveg2enc.o $(HVEG2LIB)
+	$(CXX) `cat $(OBJDIR)/c_flags` -o $@ $^ $(LIBS)
+
+$(OBJDIR)/hveg2enc.o:	mpeg2enc.c
+	$(CC) -c `cat $(OBJDIR)/c_flags` -Dmpeg2enc=main -o $@ $^
+
+OUTPUT = $(HVEG2LIB) $(HVEG2ENC)
 
 all: $(OUTPUT)
 
 clean:
-	find \( -name core \
-		-o -name '*.o' \
-		-o -name '*.a' \
-		-o -name '*.so' \) -exec rm -f {} \;
-	rm -f $(OUTPUT)
+	rm -f $(HVEG2ENC)
 	rm -rf $(OBJDIR)
 
-install:
-	cp $(OUTPUT) /usr/lib/cinelerra
+install:	$(OUTPUT)
+	cp -a $(HVEG2LIB) ../bin/.
 
-$(OUTPUT): $(OBJ) $(NASMOBJ) $(ASMOBJ)
+$(HVEG2LIB): $(OBJ) $(NASMOBJ) $(ASMOBJ)
 	ar rcs `cat $(OBJDIR)/objs`
 
 $(NASMOBJ):
@@ -123,27 +130,4 @@ $(OBJDIR)/fdct_mmx.o:			    fdct_mmx.s
 
 #$(OBJDIR)/mblock_sub44_sads.o: 	 	    mblock_sub44_sads.c
 $(OBJDIR)/quantize_x86.o:		    quantize_x86.c
-
-   	 
- 
-
-
-   	 
- 
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

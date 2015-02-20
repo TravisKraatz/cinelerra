@@ -26,11 +26,13 @@
 #include <string.h>
 
 #include "bcsignals.h"
-#include "filexml.h"
 #include "format.inc"
+#include "filexml.h"
+#include "mainerror.h"
 
-
-
+// messes up cutads link
+#undef eprintf
+#define eprintf printf
 
 // Precision in base 10
 // for float is 6 significant figures
@@ -47,6 +49,7 @@ FileXML::FileXML(char left_delimiter, char right_delimiter)
 	string = new char[available];
 	string[0] = 0;
 	position = length = 0;
+	output = 0;
 	output_length = 0;
 	share_string = 0;
 }
@@ -54,7 +57,7 @@ FileXML::FileXML(char left_delimiter, char right_delimiter)
 FileXML::~FileXML()
 {
 	if(!share_string) delete [] string;
-	if(output_length) delete [] output;
+	delete [] output;
 }
 
 void FileXML::dump()
@@ -99,13 +102,13 @@ int FileXML::append_text(const char *text)
 
 int FileXML::append_text(const char *text, long len)
 {
-	while(position + len > available)
-	{
-		reallocate_string(available * 2);
+	if(position + len > available) {
+		long size = available;
+		while(position + len > size) size *= 2;
+		reallocate_string(size);
 	}
 
-	for(int i = 0; i < len; i++, position++)
-	{
+	for(int i = 0; i < len; i++, position++) {
 		string[position] = text[i];
 	}
 	return 0;
@@ -124,16 +127,14 @@ int FileXML::encode_text(const char *text)
 	char *replacement;
 	int len = strlen(text);
 	int lastpos = 0;
-	for (int i = 0; i < len; i++)
-	{
+	for (int i = 0; i < len; i++) {
 		switch (text[i]) {
 			case '<': replacement = leftb; break;
 			case '>': replacement = rightb; break;
 			case '&': replacement = amp; break;
 			default: replacement = 0; break;
 		}
-		if (replacement)
-		{
+		if (replacement) {
 			if (i - lastpos > 0)
 				append_text(text + lastpos, i - lastpos);
 			append_text(replacement, strlen(replacement));
@@ -148,10 +149,11 @@ int FileXML::encode_text(const char *text)
 
 int FileXML::reallocate_string(long new_available)
 {
-	if(!share_string)
-	{
+	if(!share_string) {
 		char *new_string = new char[new_available];
-		for(int i = 0; i < position; i++) new_string[i] = string[i];
+		long size = new_available;
+		if( position < size ) size = position;
+		for(int i = 0; i < size; i++) new_string[i] = string[i];
 		available = new_available;
 		delete [] string;
 		string = new_string;
@@ -166,60 +168,21 @@ char* FileXML::get_ptr()
 
 char* FileXML::read_text()
 {
-	long text_position = position;
-	int i;
-
 // use < to mark end of text and start of tag
+	char *bp = string + position, *ep = bp + length;
+// filter out first char is new line
+	if( bp < ep && *bp == '\n' ) ++bp;
+	char *cp = bp;
+// scan for end of bfr, end of string, or delimiter
+	while( cp < ep && *cp != 0 && *cp != left_delimiter ) ++cp;
 
-// find end of text
-	for(; position < length && string[position] != left_delimiter; position++)
-	{
-		;
+	long len = XMLTag::encoded_length(bp, cp-bp);
+	if( len > output_length ) {
+		delete [] output;
+		output_length = len;
+		output = new char[output_length + 1];
 	}
-
-// allocate enough space
-	if(output_length) delete [] output;
-	output_length = position - text_position;
-	output = new char[output_length + 1];
-
-//printf("FileXML::read_text %d %c\n", text_position, string[text_position]);
-	for(i = 0; text_position < position; text_position++)
-	{
-// filter out first newline
-		if((i > 0 && i < output_length - 1) || string[text_position] != '\n') 
-		{
-// check if we have to decode special characters
-// but try to be most backward compatible possible
-			int character = string[text_position];
-			if (string[text_position] == '&')
-			{
-				if (text_position + 3 < length)
-				{
-					if (string[text_position + 1] == 'l' && string[text_position + 2] == 't' && string[text_position + 3] == ';')
-					{
-						character = '<';
-						text_position += 3;
-					}		
-					if (string[text_position + 1] == 'g' && string[text_position + 2] == 't' && string[text_position + 3] == ';')
-					{
-						character = '>';
-						text_position += 3;
-					}		
-				}
-				if (text_position + 4 < length)
-				{
-					if (string[text_position + 1] == 'a' && string[text_position + 2] == 'm' && string[text_position + 3] == 'p' && string[text_position + 4] == ';')
-					{
-						character = '&';
-						text_position += 4;
-					}		
-				}
-			}
-			output[i] = character;
-			i++;
-		}
-	}
-	output[i] = 0;
+	XMLTag::encode_data(output, bp, cp-bp);
 
 	return output;
 }
@@ -292,10 +255,7 @@ int FileXML::write_to_file(const char *filename)
 // Position may have been rewound after storing so we use a strlen
 		if(!fwrite(string, strlen(string), 1, out) && strlen(string))
 		{
-			fprintf(stderr, "FileXML::write_to_file %d \"%s\": %s\n",
-				__LINE__,
-				filename,
-				strerror(errno));
+			eprintf("write_to_file %d \"%s\": %m\n", __LINE__, filename);
 			fclose(out);
 			return 1;
 		}
@@ -305,10 +265,7 @@ int FileXML::write_to_file(const char *filename)
 	}
 	else
 	{
-		fprintf(stderr, "FileXML::write_to_file %d \"%s\": %s\n",
-			__LINE__,
-			filename,
-			strerror(errno));
+		eprintf("write_to_file %d \"%s\": %m\n", __LINE__, filename);
 		return 1;
 	}
 	fclose(out);
@@ -326,9 +283,7 @@ int FileXML::write_to_file(FILE *file)
 	}
 	else
 	{
-		fprintf(stderr, "FileXML::write_to_file \"%s\": %s\n",
-			filename,
-			strerror(errno));
+		eprintf("\"%s\": %m\n", filename);
 		return 1;
 	}
 	return 0;
@@ -353,9 +308,7 @@ int FileXML::read_from_file(const char *filename, int ignore_error)
 	else
 	{
 		if(!ignore_error) 
-			fprintf(stderr, "FileXML::read_from_file \"%s\" %s\n",
-				filename,
-				strerror(errno));
+			eprintf("\"%s\" %m\n", filename);
 		return 1;
 	}
 	fclose(in);
@@ -598,9 +551,7 @@ int XMLTag::read_tag(char *input, long &position, long length)
 
 	if(total_properties || tag_title[0]) 
 		return 0; 
-	else 
-		return 1;
-	return 0;
+	return 1;
 }
 
 int XMLTag::title_is(const char *title)
@@ -641,7 +592,7 @@ const char* XMLTag::get_property(const char *property, char *value)
 		if(!strcasecmp(tag_properties[i], property))
 		{
 //printf("XMLTag::get_property %s %s\n", tag_properties[i], tag_property_values[i]);
-			strcpy((char*)value, tag_property_values[i]);
+			decode_data(value, tag_property_values[i]);
 			result = 1;
 		}
 	}
@@ -782,8 +733,9 @@ int XMLTag::set_property(const char *text, const char *value)
 {
 	tag_properties[total_properties] = new char[strlen(text) + 1];
 	strcpy(tag_properties[total_properties], text);
-	tag_property_values[total_properties] = new char[strlen(value) + 1];
-	strcpy(tag_property_values[total_properties], value);
+	int len = encoded_length(value);
+	tag_property_values[total_properties] = new char[len + 1];
+	encode_data(tag_property_values[total_properties], value);
 	total_properties++;
 	return 0;
 }
@@ -855,3 +807,20 @@ char *XMLTag::encode_data(char *bp, const char *sp, int n)
 	return ret;
 }
 
+long XMLTag::encoded_length(const char *sp, int n)
+{
+	long len = 0;
+	if( n < 0 ) n = strlen(sp);
+	const char *cp, *ep = sp + n;
+	while( sp < ep ) {
+		int ch = *sp++;
+		switch( ch ) {
+		case '<':  len += 4;  break;
+		case '>':  len += 4;  break;
+		case '&':  len += 5;  break;
+		case '"':  len += 6;  break;
+		default:   ++len;     break;
+		}
+	}
+	return len;
+}

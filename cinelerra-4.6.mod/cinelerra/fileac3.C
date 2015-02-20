@@ -2,26 +2,26 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "asset.h"
 
-extern "C" 
+extern "C"
 {
 #include "avcodec.h"
 }
@@ -32,7 +32,7 @@ extern "C"
 #include "filempeg.h"
 #include "language.h"
 #include "mwindow.inc"
-
+#include "mainerror.h"
 
 
 
@@ -64,8 +64,8 @@ int FileAC3::reset_parameters_derived()
 	return 0;
 }
 
-void FileAC3::get_parameters(BC_WindowBase *parent_window, 
-		Asset *asset, 
+void FileAC3::get_parameters(BC_WindowBase *parent_window,
+		Asset *asset,
 		BC_WindowBase* &format_window,
 		int audio_options,
 		int video_options)
@@ -119,8 +119,7 @@ int FileAC3::open_file(int rd, int wr)
 		codec = avcodec_find_encoder(CODEC_ID_AC3);
 		if(!codec)
 		{
-			fprintf(stderr, 
-				"FileAC3::open_file codec not found.\n");
+			eprintf("FileAC3::open_file codec not found.\n");
 			result = 1;
 		}
 		if( !result && !(fd = fopen(asset->path, "w")))
@@ -137,8 +136,7 @@ int FileAC3::open_file(int rd, int wr)
 				get_channel_layout(asset->channels);
 			if(avcodec_open(((AVCodecContext*)codec_context), ((AVCodec*)codec)))
 			{
-				fprintf(stderr, 
-					"FileAC3::open_file failed to open codec.\n");
+				eprintf("FileAC3::open_file failed to open codec.\n");
 				result = 1;
 			}
 		}
@@ -195,12 +193,12 @@ int FileAC3::get_index(char *index_path)
 // different channel order than liba52 decodes.
 // Each row is an output channel.
 // Each column is an input channel.
-// static int channels5[] = 
+// static int channels5[] =
 // {
 // 	{ }
 // };
-// 
-// static int channels6[] = 
+//
+// static int channels6[] =
 // {
 // 	{ }
 // };
@@ -215,8 +213,8 @@ int FileAC3::write_samples(double **buffer, int64_t len)
 		int16_t *new_raw = new int16_t[new_allocated * asset->channels];
 		if(temp_raw)
 		{
-			memcpy(new_raw, 
-				temp_raw, 
+			memcpy(new_raw,
+				temp_raw,
 				sizeof(int16_t) * temp_raw_size * asset->channels);
 			delete [] temp_raw;
 		}
@@ -248,14 +246,14 @@ int FileAC3::write_samples(double **buffer, int64_t len)
 	int frame_size = ((AVCodecContext*)codec_context)->frame_size;
 	int output_size = 0;
 	int current_sample = 0;
-	for(current_sample = 0; 
-		current_sample + frame_size <= temp_raw_size; 
+	for(current_sample = 0;
+		current_sample + frame_size <= temp_raw_size;
 		current_sample += frame_size)
 	{
 		int compressed_size = avcodec_encode_audio(
-			((AVCodecContext*)codec_context), 
-			temp_compressed + output_size, 
-			compressed_allocated - output_size, 
+			((AVCodecContext*)codec_context),
+			temp_compressed + output_size,
+			compressed_allocated - output_size,
             temp_raw + current_sample * asset->channels);
 		output_size += compressed_size;
 	}
@@ -269,7 +267,7 @@ int FileAC3::write_samples(double **buffer, int64_t len)
 	int bytes_written = fwrite(temp_compressed, 1, output_size, fd);
 	if(bytes_written < output_size)
 	{
-		perror("FileAC3::write_samples");
+		eprintf("Error while writing samples. \n%m\n");
 		return 1;
 	}
 	return 0;
@@ -305,9 +303,9 @@ void AC3ConfigAudio::create_objects()
 	lock_window("AC3ConfigAudio::create_objects");
 	add_tool(new BC_Title(x, y, "Bitrate (kbps):"));
 	AC3ConfigAudioBitrate *bitrate;
-	add_tool(bitrate = 
+	add_tool(bitrate =
 		new AC3ConfigAudioBitrate(this,
-			x1, 
+			x1,
 			y));
 	bitrate->create_objects();
 
@@ -327,8 +325,8 @@ int AC3ConfigAudio::close_event()
 
 
 
-AC3ConfigAudioBitrate::AC3ConfigAudioBitrate(AC3ConfigAudio *gui, 
-	int x, 
+AC3ConfigAudioBitrate::AC3ConfigAudioBitrate(AC3ConfigAudio *gui,
+	int x,
 	int y)
  : BC_PopupMenu(x,
  	y,

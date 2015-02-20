@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2014 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "asset.h"
@@ -24,6 +24,8 @@
 #include "file.h"
 #include "filegif.h"
 #include "gif_lib.h"
+#include "interlacemodes.h"
+#include "mainerror.h"
 #include "vframe.h"
 #include <string.h>
 
@@ -57,7 +59,7 @@ int FileGIF::check_sig(Asset *asset)
 		int temp = fread(test, 6, 1, stream);
 		fclose(stream);
 
-		if(test[0] == 'G' && test[1] == 'I' && test[2] == 'F' && 
+		if(test[0] == 'G' && test[1] == 'I' && test[2] == 'F' &&
 			test[3] == '8' && test[4] == '7' && test[5] == 'A')
 		{
 			return 1;
@@ -95,10 +97,12 @@ int FileGIF::read_frame_header(char *path)
 
 		asset->width = test[6] | (test[7] << 8);
 		asset->height = test[8] | (test[9] << 8);
+		asset->interlace_mode = BC_ILACE_MODE_NOTINTERLACED;
 //printf("FileGIF::read_frame_header %d %d %d\n", __LINE__, asset->width, asset->height);
 		return 0;
 	}
 
+	perror(path);
 	return 1;
 }
 
@@ -124,11 +128,11 @@ int FileGIF::read_frame(VFrame *output, VFrame *input)
 	GifFileType *gif_file;
 	GifRowType *gif_buffer;
 	gif_file = DGifOpen(this, input_func);
-	
-	
+
+
 	if(gif_file == 0)
 	{
-		printf("FileGIF::read_frame %d: %s\n", __LINE__, GifErrorString());
+		eprintf("FileGIF::read_frame %d: %s\n", __LINE__, GifErrorString());
 		return 1;
 	}
 	gif_buffer = (GifRowType*)malloc(sizeof(GifRowType) * gif_file->SHeight);
@@ -151,17 +155,17 @@ int FileGIF::read_frame(VFrame *output, VFrame *input)
 	{
 		if(DGifGetRecordType(gif_file, &record_type) == GIF_ERROR)
 		{
-			printf("FileGIF::read_frame %d: %s\n", __LINE__, GifErrorString());
+			eprintf("FileGIF::read_frame %d: %s\n", __LINE__, GifErrorString());
 			break;
 		}
-		
+
 		switch(record_type)
 		{
 			case IMAGE_DESC_RECORD_TYPE:
 			{
 				if(DGifGetImageDesc(gif_file) == GIF_ERROR)
 				{
-					printf("FileGIF::read_frame %d: %s\n", __LINE__, GifErrorString());
+					eprintf("FileGIF::read_frame %d: %s\n", __LINE__, GifErrorString());
 					break;
 				}
 
@@ -180,21 +184,21 @@ int FileGIF::read_frame(VFrame *output, VFrame *input)
 					free(gif_buffer);
 					return 1;
 				}
-				
-				if (gif_file->Image.Interlace) 
+
+				if (gif_file->Image.Interlace)
 				{
 				    static int InterlacedOffset[] = { 0, 4, 2, 1 };
 				    static int InterlacedJumps[] = { 8, 8, 4, 2 };
 /* Need to perform 4 passes on the images: */
 		    		for (int i = 0; i < 4; i++)
 					{
-						for (int j = row + InterlacedOffset[i]; 
+						for (int j = row + InterlacedOffset[i];
 							j < row + height;
-							j += InterlacedJumps[i]) 
+							j += InterlacedJumps[i])
 						{
-			    			if (DGifGetLine(gif_file, 
+			    			if (DGifGetLine(gif_file,
 								&gif_buffer[j][col],
-								width) == GIF_ERROR) 
+								width) == GIF_ERROR)
 							{
 								DGifCloseFile(gif_file);
 								for(int k = 0; k < gif_file->SHeight; k++)
@@ -207,12 +211,12 @@ int FileGIF::read_frame(VFrame *output, VFrame *input)
 						}
 					}
 				}
-				else 
+				else
 				{
-		    		for (int i = 0; i < height; i++) 
+		    		for (int i = 0; i < height; i++)
 					{
 						if (DGifGetLine(gif_file, &gif_buffer[row++][col],
-							width) == GIF_ERROR) 
+							width) == GIF_ERROR)
 						{
 							DGifCloseFile(gif_file);
 							for(int k = 0; k < gif_file->SHeight; k++)
@@ -224,20 +228,20 @@ int FileGIF::read_frame(VFrame *output, VFrame *input)
 						}
 		    		}
 				}
-				
+
 				break;
 			}
-			
+
 		}
-		
+
 	} while(record_type != TERMINATE_RECORD_TYPE);
 
-	
+
 	int background = gif_file->SBackGroundColor;
 	ColorMapObject *color_map = (gif_file->Image.ColorMap
 		? gif_file->Image.ColorMap
 		: gif_file->SColorMap);
-	if(!color_map) 
+	if(!color_map)
 	{
 		DGifCloseFile(gif_file);
 		for(int k = 0; k < gif_file->SHeight; k++)
@@ -263,7 +267,7 @@ int FileGIF::read_frame(VFrame *output, VFrame *input)
 		}
 	}
 
-	
+
 	for(int k = 0; k < gif_file->SHeight; k++)
 	{
 		free(gif_buffer[k]);

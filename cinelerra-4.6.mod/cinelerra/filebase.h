@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef FILEBASE_H
@@ -58,8 +58,8 @@ public:
 
 
 
-	virtual void get_parameters(BC_WindowBase *parent_window, 
-			Asset *asset, 
+	virtual void get_parameters(BC_WindowBase *parent_window,
+			Asset *asset,
 			BC_WindowBase **format_window,
 			int audio_options,
 			int video_options,
@@ -101,7 +101,7 @@ public:
 // Only used in read mode.
 	virtual int64_t base_memory_usage();
 
-	virtual int write_samples(double **buffer, 
+	virtual int write_samples(double **buffer,
 		int64_t len) { return 0; }
 	virtual int write_frames(VFrame ***frames, int len) { return 0; }
 	virtual int read_compressed_frame(VFrame *buffer) { return 0; }
@@ -113,11 +113,15 @@ public:
 // get dvb record stream file descriptor
 	virtual int record_fd() { return -1; }
 
+	virtual int prefer_samples_float() {return 0;};
+	virtual int read_samples_float(float *buffer, int64_t len) { return 0; };
+
+
 // Return either the argument or another colormodel which read_frame should
 // use.
 	virtual int colormodel_supported(int colormodel) { return BC_RGB888; }
 // This file can copy compressed frames directly from the asset
-	virtual int can_copy_from(Asset *asset, int64_t position) { return 0; } 
+	virtual int can_copy_from(Asset *asset, int64_t position) { return 0; }
 	virtual int get_render_strategy(ArrayList<int>* render_strategies) { return VRENDER_VPIXEL; }
 
 // Manages an audio history buffer
@@ -129,35 +133,36 @@ public:
 // Interleaved short
 	void append_history(short *new_data, int len);
 	void read_history(double *dst,
-		int64_t start_sample, 
+		int64_t start_sample,
 		int channel,
 		int64_t len);
 	void allocate_history(int len);
 
 // For static functions to access it
 	Asset *asset;
+	int rd, wr;
 
 protected:
 // Return 1 if the render_strategy is present on the list.
 	static int search_render_strategies(ArrayList<int>* render_strategies, int render_strategy);
 
 // convert samples into file format
-	int64_t samples_to_raw(char *out_buffer, 
+	int64_t samples_to_raw(char *out_buffer,
 							float **in_buffer, // was **buffer
-							int64_t input_len, 
-							int bits, 
+							int64_t input_len,
+							int bits,
 							int channels,
 							int byte_order,
 							int signed_);
 
 // overwrites the buffer from PCM data depending on feather.
-	int raw_to_samples(float *out_buffer, char *in_buffer, 
-		int64_t samples, int bits, int channels, int channel, int feather, 
+	int raw_to_samples(float *out_buffer, char *in_buffer,
+		int64_t samples, int bits, int channels, int channel, int feather,
 		float lfeather_len, float lfeather_gain, float lfeather_slope);
 
 // Overwrite the buffer from float data using feather.
-	int overlay_float_buffer(float *out_buffer, float *in_buffer, 
-		int64_t samples, 
+	int overlay_float_buffer(float *out_buffer, float *in_buffer,
+		int64_t samples,
 		float lfeather_len, float lfeather_gain, float lfeather_slope);
 
 // convert a frame to and from file format

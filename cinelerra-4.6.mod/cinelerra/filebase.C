@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "asset.h"
@@ -57,7 +57,7 @@ int FileBase::close_file()
 	if(row_pointers_in) delete [] row_pointers_in;
 	if(row_pointers_out) delete [] row_pointers_out;
 	if(float_buffer) delete [] float_buffer;
-	
+
 
 	if(pcm_history)
 	{
@@ -88,7 +88,7 @@ void FileBase::update_pcm_history(int64_t len)
 		history_size = 0;
 		history_allocated = HISTORY_MAX;
 	}
-	
+
 
 //printf("FileBase::update_pcm_history current_sample=" _LD " history_start=" _LD " history_size=" _LD "\n",
 //file->current_sample,
@@ -165,13 +165,13 @@ void FileBase::append_history(short *new_data, int len)
 }
 
 void FileBase::read_history(double *dst,
-	int64_t start_sample, 
+	int64_t start_sample,
 	int channel,
 	int64_t len)
 {
 	if(start_sample - history_start + len > history_size)
 		len = history_size - (start_sample - history_start);
-//printf("FileBase::read_history start_sample=" _LD " history_start=" _LD " history_size=" _LD " len=" _LD "\n", 
+//printf("FileBase::read_history start_sample=" _LD " history_start=" _LD " history_size=" _LD " len=" _LD "\n",
 //start_sample, history_start, history_size, len);
 	double *input = pcm_history[channel] + start_sample - history_start;
 	for(int i = 0; i < len; i++)
@@ -224,6 +224,7 @@ int FileBase::reset_parameters()
 	prev_layer = -1;
 	ulawtofloat_table = 0;
 	floattoulaw_table = 0;
+	rd = wr = 0;
 	pcm_history = 0;
 	history_start = 0;
 	history_size = 0;
@@ -244,8 +245,8 @@ int FileBase::get_mode(char *mode, int rd, int wr)
 		int exists = 0;
 		FILE *stream = fopen(asset->path, "rb");
 		if( stream ) {
-			exists = 1; 
-			fclose(stream); 
+			exists = 1;
+			fclose(stream);
 		}
 		sprintf(mode, exists ? "rb+" : "wb+");
 	}
@@ -304,7 +305,7 @@ int FileBase::search_render_strategies(ArrayList<int>* render_strategies, int re
 int64_t FileBase::base_memory_usage()
 {
 //printf("FileBase::base_memory_usage %d\n", __LINE__);
-	return !pcm_history ? 0 : 
+	return !pcm_history ? 0 :
 		history_allocated * history_channels * sizeof(double);
 }
 

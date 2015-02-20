@@ -1250,7 +1250,7 @@ void SceneChunk::render()
 // Process command
 	switch(command)
 	{
-		case SceneChunk::PAUSE:
+		case SceneChunk::PAUSE_COMMAND:
 			audio_allocated = PAUSE_SAMPLES * 2;
 			audio_size = PAUSE_SAMPLES * 2;
 			advance_samples = PAUSE_SAMPLES;
@@ -1750,7 +1750,7 @@ int SceneTokens::read_script(char *path)
 // Convert command to code
 						if(!strcasecmp(string, "pause"))
 						{
-							chunk->command = SceneChunk::PAUSE;
+							chunk->command = SceneChunk::PAUSE_COMMAND;
 						}
 						else
 						{

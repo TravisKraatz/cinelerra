@@ -2,28 +2,26 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "asset.h"
 #include "assets.h"
 #include "bitspopup.h"
-#include "file.h"
-#include "filesystem.h"
 #include "fileformat.h"
 #include "language.h"
 #include "mwindow.h"
@@ -33,12 +31,12 @@
 
 
 FileFormat::FileFormat(MWindow *mwindow)
- : BC_Window(PROGRAM_NAME ": File Format", 
+ : BC_Window(PROGRAM_NAME ": File Format",
 		mwindow->gui->get_abs_cursor_x(0),
 		mwindow->gui->get_abs_cursor_y(0),
- 		375, 
-		300, 
-		375, 
+ 		375,
+		300,
+		375,
 		300)
 {
 	this->mwindow = mwindow;
@@ -66,8 +64,6 @@ void FileFormat::create_objects(Asset *asset, char *string2)
 
 void FileFormat::create_objects_(char *string2)
 {
-	FileSystem dir;
-	File file;
 	char string[1024];
 	int x1 = 10, x2 = 180;
 	int x = x1, y = 10;
@@ -88,49 +84,49 @@ void FileFormat::create_objects_(char *string2)
 	sprintf(string, "%d", asset->sample_rate);
 	add_subwindow(rate_button = new FileFormatRate(x2, y, this, string));
 	add_subwindow(new SampleRatePulldown(mwindow, rate_button, x2 + 100, y));
-	
+
 	y += 30;
 	add_subwindow(new BC_Title(x, y, _("Bits:")));
-	bitspopup = new BitsPopup(this, 
-		x2, 
-		y, 
-		&asset->bits, 
-		0, 
-		1, 
-		1, 
-		0, 
+	bitspopup = new BitsPopup(this,
+		x2,
+		y,
+		&asset->bits,
+		0,
+		1,
+		1,
+		0,
 		1);
 	bitspopup->create_objects();
-	
+
 	y += 30;
 	add_subwindow(new BC_Title(x, y, _("Header length:")));
 	sprintf(string, "%d", asset->header);
 	add_subwindow(header_button = new FileFormatHeader(x2, y, this, string));
-	
+
 	y += 30;
 
 //printf("FileFormat::create_objects_ 1 %d\n", asset->byte_order);
 	add_subwindow(new BC_Title(x, y, _("Byte order:")));
 	add_subwindow(lohi = new FileFormatByteOrderLOHI(x2, y, this, asset->byte_order));
 	add_subwindow(hilo = new FileFormatByteOrderHILO(x2 + 70, y, this, !asset->byte_order));
-	
+
 	y += 30;
 	add_subwindow(signed_button = new FileFormatSigned(x, y, this, asset->signed_));
-	
+
 	add_subwindow(new BC_OKButton(this));
 	add_subwindow(new BC_CancelButton(this));
-	
+
 	show_window(1);
 	unlock_window();
 }
 
 FileFormatChannels::FileFormatChannels(int x, int y, FileFormat *fwindow, char *text)
- : BC_TumbleTextBox(fwindow, 
- 	(int)atol(text), 
-	(int)1, 
-	(int)MAXCHANNELS, 
-	x, 
-	y, 
+ : BC_TumbleTextBox(fwindow,
+ 	(int)atol(text),
+	(int)1,
+	(int)MAXCHANNELS,
+	x,
+	y,
 	50)
 {
 	this->fwindow = fwindow;

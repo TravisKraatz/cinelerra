@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "asset.h"
@@ -29,7 +29,7 @@
 #include "format.inc"
 #include "language.h"
 #include "mwindow.inc"
-
+#include "mainerror.h"
 
 FileSndFile::FileSndFile(Asset *asset, File *file)
  : FileBase(asset, file)
@@ -114,19 +114,19 @@ void FileSndFile::asset_to_format()
 				fd_config.format |= SF_ENDIAN_BIG;
 			break;
 
-		case BITSULAW: 
-			fd_config.format |= SF_FORMAT_ULAW; 
+		case BITSULAW:
+			fd_config.format |= SF_FORMAT_ULAW;
 			break;
 
-		case BITSFLOAT: 
-			fd_config.format |= SF_FORMAT_FLOAT; 
+		case BITSFLOAT:
+			fd_config.format |= SF_FORMAT_FLOAT;
 			break;
 
-		case BITS_ADPCM: 
+		case BITS_ADPCM:
 			if(fd_config.format == FILE_WAV)
 				fd_config.format |= SF_FORMAT_MS_ADPCM;
 			else
-				fd_config.format |= SF_FORMAT_IMA_ADPCM; 
+				fd_config.format |= SF_FORMAT_IMA_ADPCM;
 			fd_config.format |= SF_FORMAT_PCM_16;
 			break;
 	}
@@ -147,8 +147,8 @@ void FileSndFile::format_to_asset()
 		asset->signed_ = 1;
 		switch(fd_config.format & SF_FORMAT_TYPEMASK)
 		{
-			case SF_FORMAT_WAV:  
-				asset->format = FILE_WAV;  
+			case SF_FORMAT_WAV:
+				asset->format = FILE_WAV;
 				asset->byte_order = 1;
 				asset->header = 44;
 				break;
@@ -162,11 +162,11 @@ void FileSndFile::format_to_asset()
 
 		switch(fd_config.format & SF_FORMAT_SUBMASK)
 		{
-			case SF_FORMAT_FLOAT: 
-				asset->bits = BITSFLOAT; 
+			case SF_FORMAT_FLOAT:
+				asset->bits = BITSFLOAT;
 				break;
-			case SF_FORMAT_ULAW: 
-				asset->bits = BITSULAW; 
+			case SF_FORMAT_ULAW:
+				asset->bits = BITSULAW;
 				break;
 			case SF_FORMAT_IMA_ADPCM:
 			case SF_FORMAT_MS_ADPCM:
@@ -234,6 +234,7 @@ int FileSndFile::open_file(int rd, int wr)
 // Doesn't calculate the length
 			if(fd) format_to_asset();
 		}
+SET_TRACE
 	}
 	else
 	if(wr)
@@ -242,11 +243,10 @@ int FileSndFile::open_file(int rd, int wr)
 		fd = sf_open(asset->path, SFM_WRITE, &fd_config);
 	}
 
-	if(!fd) 
+	if(!fd)
 	{
 		result = 1;
-		printf("FileSndFile::open_file: ");
-		sf_perror(0);
+		eprintf("%s", sf_strerror(0));
 	}
 
 	return result;
@@ -266,7 +266,7 @@ int FileSndFile::set_audio_position(int64_t sample)
 // Commented out /* && psf->dataoffset */ in sndfile.c: 761
 	if(sf_seek(fd, sample, SEEK_SET) < 0)
 	{
-		printf("FileSndFile::set_audio_position " _LD ": failed\n", sample);
+		eprintf("sf_seek() to sample %lld failed, reason: %s\n", sample, sf_strerror(fd));
 		sf_perror(fd);
 		return 1;
 	}
@@ -280,10 +280,10 @@ int FileSndFile::read_samples(double *buffer, int64_t len)
 //printf("FileSndFile::read_samples " _LD " " _LD "\n", file->current_sample, len);
 // Get temp buffer for interleaved channels
 	if(len <= 0 || len > 1000000)
-		printf("FileSndFile::read_samples len=" _LD "\n", len);
+		eprintf("FileSndFile::read_samples len=" _LD "\n", len);
 
 	if(!buffer)
-		printf("FileSndFile::read_samples buffer=%p\n", buffer);
+		eprintf("buffer=%p\n", buffer);
 
 	if(temp_allocated && temp_allocated < len)
 	{
@@ -301,12 +301,12 @@ int FileSndFile::read_samples(double *buffer, int64_t len)
 	result = !sf_read_double(fd, temp_double, len * asset->channels);
 
 	if(result)
-		printf("FileSndFile::read_samples fd=%p temp_double=%p"
+		eprintf("FileSndFile::read_samples fd=%p temp_double=%p"
 			" len=" _LD " asset=%p asset->channels=%d\n",
 			fd, temp_double, len, asset, asset->channels);
 
 // Extract single channel
-	for(int i = 0, j = file->current_channel; 
+	for(int i = 0, j = file->current_channel;
 		i < len;
 		i++, j += asset->channels)
 	{
@@ -355,8 +355,8 @@ int FileSndFile::write_samples(double **buffer, int64_t len)
 	return result;
 }
 
-void FileSndFile::get_parameters(BC_WindowBase *parent_window, 
-		Asset *asset, 
+void FileSndFile::get_parameters(BC_WindowBase *parent_window,
+		Asset *asset,
 		BC_WindowBase* &format_window,
 		int audio_options,
 		int video_options)
@@ -394,9 +394,9 @@ SndFileConfig::~SndFileConfig()
 
 void SndFileConfig::create_objects()
 {
+	lock_window("SndFileConfig::create_objects()");
 	int x = 10, y = 10;
 
-	lock_window("SndFileConfig::create_objects");
 	bits_popup = 0;
 	switch(asset->format)
 	{

@@ -25,6 +25,7 @@
 #include "../config.h"
 #include "filebase.h"
 #include "file.inc"
+#include "packagingengine.h"
 
 #include <theora/theora.h>
 #include <vorbis/codec.h>
@@ -96,6 +97,7 @@ theoraframes_info_t;
 
 class FileOGG : public FileBase
 {
+friend class PackagingEngineOGG;
 public:
 	FileOGG(Asset *asset, File *file);
 	~FileOGG();
@@ -150,6 +152,7 @@ private:
 
 	int ogg_get_page_of_frame(sync_window_t *sw, long serialno, ogg_page *og, int64_t frame);
 	int ogg_seek_to_keyframe(sync_window_t *sw, long serialno, int64_t frame, int64_t *keyframe_number);
+	int ogg_seek_to_databegin(sync_window_t *sw, long serialno);
 
 
 	int64_t start_sample; // first and last sample inside this file
@@ -174,6 +177,7 @@ private:
 	int64_t ogg_frame_position;    // LAST decoded frame position
 	int64_t next_frame_position;   // what is the next sample read_frames must deliver
 	char theora_keyframe_granule_shift;
+	int final_write;
 };
 
 class OGGConfigAudio;
@@ -311,6 +315,45 @@ public:
 	Asset *asset;
 private:
 	BC_WindowBase *parent_window;
+};
+
+class PackagingEngineOGG : public PackagingEngine
+{
+public:
+	PackagingEngineOGG();
+	~PackagingEngineOGG();
+	int create_packages_single_farm(
+		EDL *edl,
+		Preferences *preferences,
+		Asset *default_asset, 
+		double total_start, 
+		double total_end);
+	RenderPackage* get_package_single_farm(double frames_per_second, 
+		int client_number,
+		int use_local_rate);
+	int64_t get_progress_max();
+	void get_package_paths(ArrayList<char*> *path_list);
+	int packages_are_done();
+
+private:
+	EDL *edl;
+
+	RenderPackage **packages;
+	int total_packages;
+	double video_package_len;    // Target length of a single package
+
+	Asset *default_asset;
+	Preferences *preferences;
+	int current_package;
+	double total_start;
+	double total_end;
+	int64_t audio_position;
+	int64_t video_position;
+	int64_t audio_start;
+	int64_t video_start;
+	int64_t audio_end;
+	int64_t video_end;
+
 };
 
 

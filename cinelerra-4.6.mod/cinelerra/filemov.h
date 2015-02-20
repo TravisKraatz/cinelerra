@@ -66,7 +66,7 @@ public:
 		BC_WindowBase* &format_window,
 		int audio_options,
 		int video_options,
-		char *locked_compressor);
+		const char *locked_compressor);
 	static int check_sig(Asset *asset);
 
 	int open_file(int rd, int wr);
@@ -91,12 +91,17 @@ public:
 	static int get_best_colormodel(Asset *asset, int driver);
 	int64_t get_memory_usage();
 	int colormodel_supported(int colormodel);
-	int can_copy_from(Asset *asset, int64_t position); // This file can copy frames directly from the asset
+	int can_copy_from(Edit *edit, int64_t position); // This file can copy frames directly from the asset
 	static const char *strtocompression(const char *string);
 	static const char *compressiontostr(const char *string);
 
 // Fix codec to what AVI or MOV support
 	static void fix_codecs(Asset *asset);
+// Check if resolutions match the DV codec when used
+	int check_codec_params(Asset *asset);
+
+// set programme timecode
+	void set_frame_start(int64_t offset);
 
 private:
 	void new_audio_temp(int64_t len);
@@ -110,6 +115,7 @@ private:
 	int reset_parameters_derived();
 	int quicktime_atracks;
 	int quicktime_vtracks;
+// current positions for when the file descriptor doesn't have the right position
 	quicktime_t *fd;
 	int depth;        // Depth in bits per pixel
 	int64_t frames_correction;  // Correction after 32bit overflow
@@ -244,7 +250,7 @@ class MOVConfigVideo : public BC_Window
 public:
 	MOVConfigVideo(BC_WindowBase *parent_window, 
 		Asset *asset, 
-		char *locked_compressor);
+		const char *locked_compressor);
 	~MOVConfigVideo();
 
 	void create_objects();
@@ -258,8 +264,8 @@ public:
 	BC_WindowBase *parent_window;
 	Asset *asset;
 	int param_x, param_y;
-	char *locked_compressor;
-	
+	const char *locked_compressor;
+
 	BC_ISlider *jpeg_quality;
 	BC_Title *jpeg_quality_title;
 
@@ -300,7 +306,7 @@ public:
 class MOVConfigVideoFixBitrate : public BC_Radial
 {
 public:
-	MOVConfigVideoFixBitrate(int x, 
+	MOVConfigVideoFixBitrate(int x,
 		int y,
 		int *output,
 		int value);
@@ -313,7 +319,7 @@ public:
 class MOVConfigVideoFixQuant : public BC_Radial
 {
 public:
-	MOVConfigVideoFixQuant(int x, 
+	MOVConfigVideoFixQuant(int x,
 		int y,
 		int *output,
 		int value);
@@ -337,20 +343,20 @@ public:
 class MOVConfigVideoNum : public BC_TumbleTextBox
 {
 public:
-	MOVConfigVideoNum(MOVConfigVideo *popup, 
-		char *title_text, 
-		int x, 
-		int y, 
+	MOVConfigVideoNum(MOVConfigVideo *popup,
+		char *title_text,
+		int x,
+		int y,
 		int *output);
-	MOVConfigVideoNum(MOVConfigVideo *popup, 
-		char *title_text, 
-		int x, 
-		int y, 
+	MOVConfigVideoNum(MOVConfigVideo *popup,
+		char *title_text,
+		int x,
+		int y,
 		int min,
 		int max,
 		int *output);
 	~MOVConfigVideoNum();
-	
+
 	void create_objects();
 	int handle_event();
 	int *output;

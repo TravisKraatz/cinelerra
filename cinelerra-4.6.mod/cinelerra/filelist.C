@@ -25,11 +25,13 @@
 #include "filelist.h"
 #include "format.inc"
 #include "guicast.h"
+#include "interlacemodes.h"
 #include "mutex.h"
 #include "mwindow.inc"
 #include "render.h"
 #include "renderfarmfsserver.inc"
 #include "vframe.h"
+#include "mainerror.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -48,9 +50,10 @@ FileList::FileList(Asset *asset,
  : FileBase(asset, file)
 {
 	reset_parameters();
+	path_list.set_array_delete();
 	asset->video_data = 1;
-	this->list_prefix = (char*)list_prefix;
-	this->file_extension = (char*)file_extension;
+	this->list_prefix = list_prefix;
+	this->file_extension = file_extension;
 	this->frame_type = frame_type;
 	this->list_type = list_type;
 	table_lock = new Mutex("FileList::table_lock");
@@ -234,6 +237,7 @@ int FileList::read_list_header()
 		}while(!feof(stream) && (string[0] == '#' || string[0] == ' '));
 		asset->height = atol(string);
 
+		asset->interlace_mode = BC_ILACE_MODE_UNDETECTED;  // May be good to store the info in the list?
 		asset->layers = 1;
 		asset->audio_data = 0;
 		asset->video_data = 1;
@@ -304,7 +308,7 @@ int FileList::read_frame(VFrame *frame)
 		{
 			if(!(in = fopen(string, "rb")))
 			{
-				fprintf(stderr, "FileList::read_frame %s: %s\n", string, strerror(errno));
+			eprintf("Error while opening \"%s\" for reading. \n%m\n", string);
 			}
 			else
 			{
@@ -378,7 +382,7 @@ int FileList::read_frame(VFrame *frame)
 				}
 				else
 				{
-					fprintf(stderr, "FileList::read_frame %s: %s\n", asset->path, strerror(errno));
+				eprintf("Error while opening \"%s\" for reading. \n%m\n", asset->path);
 					result = 1;
 				}
 			}
@@ -476,7 +480,7 @@ int FileList::write_frames(VFrame ***frames, int len)
 				}
 				else
 				{
-					printf("FileList::write_frames %s: %s\n", path, strerror(errno));
+					eprintf("Error while opening \"%s\" for writing. \n%m\n", asset->path);
 					return_value++;
 				}
 			}
@@ -658,16 +662,14 @@ void FrameWriterUnit::process_package(LoadPackage *package)
 //printf("FrameWriterUnit::process_package 2 %s\n", ptr->path);
 	if(!(file = fopen(ptr->path, "wb")))
 	{
-		printf("FrameWriterUnit::process_package %s: %s\n",
-			ptr->path,
-			strerror(errno));
+		eprintf("Error while opening \"%s\" for writing. \n%m\n", ptr->path);
 		return;
 	}
 //printf("FrameWriterUnit::process_package 3");
 
 
 	int result = server->file->write_frame(ptr->input, output, this);
-	
+
 //printf("FrameWriterUnit::process_package 4 %s %d\n", ptr->path, output->get_compressed_size());
 	if(!result) result = !fwrite(output->get_data(), output->get_compressed_size(), 1, file);
 //TRACE("FrameWriterUnit::process_package 4");
@@ -701,16 +703,16 @@ FrameWriter::~FrameWriter()
 
 void FrameWriter::init_packages()
 {
-	for(int i = 0, layer = 0, number = 0; 
-		i < get_total_packages(); 
+	for(int i = 0, layer = 0, number = 0;
+		i < get_total_packages();
 		i++)
 	{
 		FrameWriterPackage *package = (FrameWriterPackage*)get_package(i);
 		package->input = frames[layer][number];
 		package->path = file->create_path(package->input->get_number());
-// printf("FrameWriter::init_packages 1 %p %d %s\n", 
+// printf("FrameWriter::init_packages 1 %p %d %s\n",
 // package->input,
-// package->input->get_number(), 
+// package->input->get_number(),
 // package->path);
 		number++;
 		if(number >= len)
@@ -726,7 +728,7 @@ void FrameWriter::write_frames(VFrame ***frames, int len)
 	this->frames = frames;
 	this->len = len;
 	set_package_count(len * file->asset->layers);
-	
+
 	process_packages();
 }
 

@@ -485,6 +485,7 @@ calculate_packet_size()
 int zmpeg3_t::
 get_file_type(int *toc_atracks, int *toc_vtracks, const char *title_path)
 {
+  int result = 0;
   file_type = 0;
   uint32_t bits = fs->read_uint32();
   uint32_t bits2 = fs->read_uint32();
@@ -492,7 +493,7 @@ get_file_type(int *toc_atracks, int *toc_vtracks, const char *title_path)
   /* TOC  */
   if( is_toc_(bits) ) {
     /* Table of contents for another title set */
-    int result = toc_atracks && toc_vtracks ?
+    result = toc_atracks && toc_vtracks ?
       read_toc(toc_atracks, toc_vtracks, title_path) : 1;
     if( result ) fs->close_file();
   }
@@ -534,13 +535,14 @@ get_file_type(int *toc_atracks, int *toc_vtracks, const char *title_path)
       }
     }
   }
+//zmsgs("2 %x\n", file_type);
   if( !file_type ) {
     zerr("not a readable stream.\n");
-    return 1;
+    if( !result ) result = ERR_UNDEFINED_ERROR;
   }
-//zmsgs("2 %x\n", file_type);
-  packet_size = calculate_packet_size();
-  return 0;
+  else
+    packet_size = calculate_packet_size();
+  return result;
 }
 
 int zmpeg3_t::

@@ -272,14 +272,14 @@ void quicktime_set_parameter(quicktime_t *file, const char *key, void *value)
 	{
 		quicktime_codec_t *codec = (quicktime_codec_t*)file->vtracks[i].codec;
 		if(codec)
-			if(codec->set_parameter) codec->set_parameter(file, i, key, value);
+			if(codec->set_parameter) codec->set_parameter(file, i,(char*)key, value);
 	}
 
 	for(i = 0; i < file->total_atracks; i++)
 	{
 		quicktime_codec_t *codec = (quicktime_codec_t*)file->atracks[i].codec;
 		if(codec)
-			if(codec->set_parameter) codec->set_parameter(file, i, key, value);
+			if(codec->set_parameter) codec->set_parameter(file, i,(char*)key, value);
 	}
 }
 

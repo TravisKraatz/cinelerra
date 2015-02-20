@@ -36,10 +36,12 @@
 
 #include "filethread.inc"
 #include "filexml.inc"
+#include "formattools.inc"
 #include "formatwindow.inc"
 #include "framecache.inc"
 #include "guicast.h"
 #include "mutex.inc"
+#include "packagingengine.inc"
 #include "pluginserver.inc"
 #include "preferences.inc"
 #include "samples.inc"
@@ -60,12 +62,9 @@ public:
 
 // Get attributes for various file formats.
 // The dither parameter is carried over from recording, where dither is done at the device.
-	int get_options(BC_WindowBase *parent_window, 
-		ArrayList<PluginServer*> *plugindb, 
-		Asset *asset,
-		int audio_options,
-		int video_options,
-		char *locked_compressor);
+	int get_options(FormatTools *format,
+                int audio_options,
+                int video_options);
 
 	int raise_window();
 // Close parameter window
@@ -247,6 +246,7 @@ public:
 	static int supports_audio(ArrayList<PluginServer*> *plugindb, char *format);
 // Get the extension for the filename
 	static const char* get_tag(int format);
+	static const char* get_prefix(int format);
 	static int supports_video(int format);   // returns 1 if the format supports video or audio
 	static int supports_audio(int format);
 	static int strtoformat(char *format);
@@ -268,6 +268,7 @@ public:
 
 // Temporary storage for color conversions
 	VFrame *temp_frame;
+
 // Temporary storage for get_audio_buffer.
 // [ring buffers][channels][Samples]
 	Samples ***temp_samples_buffer;
@@ -308,6 +309,7 @@ public:
 //	int64_t normalized_sample_rate;
 	Preferences *preferences;
 	int wr, rd;
+	static PackagingEngine *new_packaging_engine(Asset *asset);
 
 private:
 	void reset_parameters();

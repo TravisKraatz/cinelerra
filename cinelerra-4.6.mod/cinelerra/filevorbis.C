@@ -27,6 +27,7 @@
 #include "filevorbis.h"
 #include "guicast.h"
 #include "language.h"
+#include "mainerror.h"
 #include "mwindow.inc"
 
 #include <errno.h>
@@ -121,7 +122,7 @@ int FileVorbis::open_file(int rd, int wr)
 //printf("FileVorbis::open_file 1\n");
 		if(!(fd = fopen(asset->path, "rb")))
 		{
-			printf("FileVorbis::open_file %s: %s\n", asset->path, strerror(errno));
+			eprintf("FileVorbis::open_file %s: %s\n", asset->path, strerror(errno));
 			result = 1;
 		}
 		else
@@ -129,7 +130,7 @@ int FileVorbis::open_file(int rd, int wr)
 //printf("FileVorbis::open_file 2 %p %p\n", fd, vf);
 			if(ov_open(fd, &vf, NULL, 0) < 0)
 			{
-				printf(_("FileVorbis::open_file %s: invalid bitstream.\n"), asset->path);
+				eprintf(_("FileVorbis::open_file %s: invalid bitstream.\n"), asset->path);
 				result = 1;
 			}
 			else
@@ -155,7 +156,7 @@ int FileVorbis::open_file(int rd, int wr)
 	{
 		if(!(fd = fopen(asset->path, "wb")))
 		{
-			printf("FileVorbis::open_file %s: %s\n", asset->path, strerror(errno));
+			eprintf("FileVorbis::open_file %s: %s\n", asset->path, strerror(errno));
 			result = 1;
 		}
 		else

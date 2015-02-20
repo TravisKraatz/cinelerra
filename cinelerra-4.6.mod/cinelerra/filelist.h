@@ -2,21 +2,21 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #ifndef FILELIST_H
@@ -40,10 +40,10 @@
 class FileList : public FileBase
 {
 public:
-	FileList(Asset *asset, 
-		File *file, 
+	FileList(Asset *asset,
+		File *file,
 		const char *list_prefix,
-		const char *file_extension, 
+		const char *file_extension,
 		int frame_type,
 		int list_type);
 	virtual ~FileList();
@@ -84,14 +84,14 @@ public:
 	VFrame *temp;
 
 private:
-	int read_raw(VFrame *frame, 
+	int read_raw(VFrame *frame,
 		float in_x1, float in_y1, float in_x2, float in_y2,
-		float out_x1, float out_y1, float out_x2, float out_y2, 
+		float out_x1, float out_y1, float out_x2, float out_y2,
 		int alpha, int use_alpha, int use_float, int interpolate);
 	int reset_parameters_derived();
 	ArrayList<char*> path_list;     // List of files
-	char *list_prefix;
-	char *file_extension;
+	const char *list_prefix;
+	const char *file_extension;
 	int frame_type;
 	int list_type;
 	Mutex *table_lock;
@@ -110,10 +110,10 @@ class FrameWriterPackage : public LoadPackage
 public:
 	FrameWriterPackage();
 	~FrameWriterPackage();
-	
-	
+
+
 	VFrame *input;
-	
+
 	char *path;
 };
 
@@ -125,7 +125,7 @@ class FrameWriterUnit : public LoadClient
 public:
 	FrameWriterUnit(FrameWriter *server);
 	virtual ~FrameWriterUnit();
-	
+
 	void process_package(LoadPackage *package);
 
 	FrameWriter *server;
@@ -141,12 +141,12 @@ class FrameWriter : public LoadServer
 public:
 	FrameWriter(FileList *file, int cpus);
 	~FrameWriter();
-	
+
 	void write_frames(VFrame ***frames, int len);
 	void init_packages();
 	LoadClient* new_client();
 	LoadPackage* new_package();
-	
+
 	FileList *file;
 	VFrame ***frames;
 	int len;

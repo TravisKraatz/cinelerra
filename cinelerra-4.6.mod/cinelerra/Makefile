@@ -18,6 +18,7 @@ TIFF_DIR := ../thirdparty/tiff-v3.5.7
 TOOLAME_DIR := ../thirdparty/toolame-02l
 UUID_DIR := ../thirdparty/uuid
 VORBIS_DIR := $(shell expr ../quicktime/thirdparty/libvorbis* )
+MJPEG_DIR := $(shell expr ../thirdparty/mjpegtools-* )
 
 ifeq ($(STATIC_LIBRARIES), y)
 AVC_LIB := $(AVC_DIR)/libavc1394/.libs/libavc1394.a $(AVC_DIR)/librom1394/.libs/librom1394.a
@@ -149,6 +150,7 @@ OBJS = \
 	$(OBJDIR)/filebaseima4.o \
 	$(OBJDIR)/filebaseulaw.o \
 	$(OBJDIR)/filecr2.o \
+	$(OBJDIR)/filedv.o \
 	$(OBJDIR)/filefork.o \
 	$(OBJDIR)/fileformat.o \
 	$(OBJDIR)/filegif.o \
@@ -166,6 +168,7 @@ OBJS = \
 	$(OBJDIR)/filetiff.o \
 	$(OBJDIR)/filevorbis.o \
 	$(OBJDIR)/filexml.o \
+	$(OBJDIR)/fileyuv.o \
 	$(OBJDIR)/floatauto.o \
 	$(OBJDIR)/floatautos.o \
 	$(OBJDIR)/forkwrapper.o \
@@ -233,6 +236,7 @@ OBJS = \
 	$(OBJDIR)/overlayframe.o \
 	$(OBJDIR)/packagedispatcher.o \
 	$(OBJDIR)/packagerenderer.o \
+	$(OBJDIR)/packagingengine.o \
 	$(OBJDIR)/panauto.o \
 	$(OBJDIR)/panautos.o \
 	$(OBJDIR)/panedividers.o \
@@ -240,6 +244,7 @@ OBJS = \
 	$(OBJDIR)/patchgui.o \
 	$(OBJDIR)/performanceprefs.o \
 	$(OBJDIR)/picture.o \
+	$(OBJDIR)/pipe.o \
 	$(OBJDIR)/playabletracks.o \
 	$(OBJDIR)/playback3d.o \
 	$(OBJDIR)/playbackconfig.o \
@@ -352,6 +357,7 @@ OBJS = \
 	$(OBJDIR)/vwindow.o \
 	$(OBJDIR)/vwindowgui.o \
 	$(OBJDIR)/wavecache.o \
+	$(OBJDIR)/yuvstream.o \
 	$(OBJDIR)/zoombar.o \
 	$(OBJDIR)/zoompanel.o \
 \
@@ -379,8 +385,11 @@ OBJS = \
 # some files need different compilation options
 FILEEXR := $(OBJDIR)/fileexr.o
 FILEFLAC := $(OBJDIR)/fileflac.o
+
 FFMPEG_OBJS := $(OBJDIR)/fileffmpeg.o \
+	$(OBJDIR)/ffmpeg.o \
 	$(OBJDIR)/fileac3.o
+
 DCRAW := $(OBJDIR)/dcraw.o
 
 THEME_DATA := $(OBJDIR)/theme_data.o
@@ -415,7 +424,7 @@ LIBRARIES = \
 	../libzmpeg3/$(OBJDIR)/libzmpeg3.a \
 	../db/$(OBJDIR)/db.a \
 	$(SNDFILE_LIB) \
-	../mpeg2enc/$(OBJDIR)/mpeg2enc.a \
+	../mpeg2enc/$(OBJDIR)/hveg2enc.a \
 	$(TOOLAME_DIR)/$(OBJDIR)/toolame.a \
 	$(UUID_DIR)/$(OBJDIR)/libuuid.a \
 	$(THEME_DATA) \
@@ -442,7 +451,9 @@ CFLAGS += -DHAVE_ALSA
 LIBS += -lasound
 endif
 
-
+LIBS += $(MJPEG_DIR)/utils/.libs/libmjpegutils.a
+LIBS += $(FFMPEG_DIR)/libavcodec/libavcodec.a
+LIBS += $(FFMPEG_DIR)/libswscale/libswscale.a
 
 LIBS += \
 	-lX11 \
@@ -724,7 +735,6 @@ $(OBJDIR)/filebaseima4.o: 			  filebaseima4.C
 $(OBJDIR)/filebaseulaw.o: 			  filebaseulaw.C
 $(OBJDIR)/filebasevideo.o: 			  filebasevideo.C
 $(OBJDIR)/filecr2.o:                              filecr2.C
-$(OBJDIR)/fileffmpeg.o:                           fileffmpeg.C
 $(OBJDIR)/filefork.o:	 			  filefork.C
 $(OBJDIR)/filescene.o:	 			  filescene.C
 $(OBJDIR)/fileserver.o:                           fileserver.C
@@ -810,6 +820,7 @@ $(OBJDIR)/newfolder.o:  			  newfolder.C
 $(OBJDIR)/overlayframe.o: 			  overlayframe.C
 $(OBJDIR)/packagedispatcher.o:                    packagedispatcher.C
 $(OBJDIR)/packagerenderer.o: 			  packagerenderer.C
+$(OBJDIR)/packagingengine.o:			  packagingengine.C
 $(OBJDIR)/panauto.o: 			          panauto.C
 $(OBJDIR)/panautos.o: 			          panautos.C
 $(OBJDIR)/panedividers.o: 			  panedividers.C
@@ -818,6 +829,7 @@ $(OBJDIR)/patchbay.o: 				  patchbay.C
 $(OBJDIR)/patchgui.o: 				  patchgui.C
 $(OBJDIR)/performanceprefs.o: 			  performanceprefs.C
 $(OBJDIR)/picture.o:                              picture.C
+$(OBJDIR)/pipe.o:				  pipe.C
 $(OBJDIR)/playabletracks.o: 			  playabletracks.C
 $(OBJDIR)/playback3d.o:                           playback3d.C
 $(OBJDIR)/playbackconfig.o: 			  playbackconfig.C
@@ -943,6 +955,7 @@ $(OBJDIR)/vtracking.o:  			  vtracking.C
 $(OBJDIR)/vwindow.o: 				  vwindow.C
 $(OBJDIR)/vwindowgui.o: 			  vwindowgui.C
 $(OBJDIR)/wavecache.o:                            wavecache.C
+$(OBJDIR)/yuvstream.o:				  yuvstream.C
 $(OBJDIR)/zoombar.o: 				  zoombar.C
 $(OBJDIR)/zoompanel.o:  			  zoompanel.C
 

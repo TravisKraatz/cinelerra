@@ -47,7 +47,6 @@ DIRS = \
 	echo \
 	echocancel \
 	fieldframe \
-	findobject \
 	flash \
 	flip \
 	framefield \
@@ -128,6 +127,8 @@ DIRS = \
 	yuvshift \
 	zoom \
 	zoomblur \
+
+#	findobject \
 
 # Make static table of all plugins
 ifeq ($(DO_STATIC), y)

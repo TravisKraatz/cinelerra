@@ -34,6 +34,7 @@
 #include "fileavi.h"
 #include "fileavi.inc"
 #include "language.h"
+#include "interlacemodes.h"
 #include "mwindow.inc"
 #include "vframe.h"
 
@@ -456,6 +457,7 @@ int FileAVI::open_avifile_in(Asset *asset)
 		vstream_in[0]->GetVideoFormatInfo(&bh, sizeof(bh));
 	    asset->width = bh.biWidth;
 	    asset->height = bh.biHeight;
+		asset->interlace_mode = BC_ILACE_MODE_UNDETECTED; // FIXME
 
 		uint32_t fourcc = stream_info->GetFormat();
 		asset->vcodec[0] = ((char*)&fourcc)[0];
@@ -583,7 +585,7 @@ void FileAVI::get_parameters(BC_WindowBase *parent_window,
 		BC_WindowBase* &format_window,
 		int audio_options,
 		int video_options,
-		char *locked_compressor)
+		const char *locked_compressor)
 {
 	if(audio_options)
 	{
@@ -864,7 +866,7 @@ int AVIACodecList::handle_event()
 
 AVIConfigVideo::AVIConfigVideo(BC_WindowBase *parent_window, 
 		Asset *asset, 
-		char *locked_compressor)
+		const char *locked_compressor)
  : BC_Window(PROGRAM_NAME ": Video Compression",
  	parent_window->get_abs_cursor_x(1),
  	parent_window->get_abs_cursor_y(1),
@@ -992,7 +994,7 @@ void AVIConfigVideo::generate_attributelist()
 			avm::vector<AttributeInfo>& attributes = i->encoder_info;
 
 			for(avm::vector<AttributeInfo>::const_iterator j = attributes.begin();
-				j < attributes.end();
+				j != attributes.end();
 				j++)
 			{
 				char *name = (char*)j->GetName();
@@ -1019,8 +1021,12 @@ void AVIConfigVideo::generate_attributelist()
 					}
 
 					case AttributeInfo::String:
-						Creators::GetCodecAttr(*i, name, value, BCTEXTLEN);
+					{
+						const char * temp = 0;
+						Creators::GetCodecAttr(*i, name, &temp);
+						if(temp) strncpy(value, temp, BCTEXTLEN);
 						break;
+				}
 				}
 
 				attribute_items[0].append(new BC_ListBoxItem(name));
@@ -1096,8 +1102,8 @@ void AVIConfigVideo::set_current_attribute(const char *text)
 				}
 			}
 		}
-		
-		
+
+
 		update_attribute(1);
 	}
 #endif
@@ -1113,7 +1119,7 @@ void AVIConfigVideo::update_attribute(int recursive)
 						0,
 						2,
 						attributes->get_xposition(),
-						attributes->get_yposition(), 
+						attributes->get_yposition(),
 						0,
 						1);
 
@@ -1132,7 +1138,7 @@ AVIVCodecList::AVIVCodecList(AVIConfigVideo *gui, int x, int y)
  : BC_PopupTextBox(gui,
  		&gui->codec_items,
 		FileAVI::fourcc_to_vcodec(gui->asset->vcodec, gui->string),
- 		x, 
+ 		x,
 		y,
 		280,
 		400)
@@ -1154,7 +1160,7 @@ int AVIVCodecList::handle_event()
 
 
 AVIVAttributeList::AVIVAttributeList(AVIConfigVideo *gui, int x, int y)
- : BC_ListBox(x, 
+ : BC_ListBox(x,
 		y,
 		300,
 		200,

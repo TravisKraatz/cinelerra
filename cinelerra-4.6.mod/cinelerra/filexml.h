@@ -55,8 +55,9 @@ public:
 //	int get_property(const char *property, int default_);
 	float get_property(const char *property, float default_);
 	double get_property(const char *property, double default_);
-	static char *encode_data(char *bp, const char *sp, int n=-1);
 	static char *decode_data(char *bp, const char *sp, int n=-1);
+	static char *encode_data(char *bp, const char *sp, int n=-1);
+	static long encoded_length(const char *sp, int n=-1);
 
 	int set_title(const char *text);       // set the title field
 	int set_property(const char *text, const char *value);

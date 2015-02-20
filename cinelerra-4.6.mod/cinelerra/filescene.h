@@ -131,7 +131,7 @@ public:
 	enum
 	{
 		NO_COMMAND,
-		PAUSE
+		PAUSE_COMMAND,
 	};
 
 // Pointer to character

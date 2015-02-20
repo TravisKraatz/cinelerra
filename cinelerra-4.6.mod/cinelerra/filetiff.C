@@ -2,29 +2,31 @@
 /*
  * CINELERRA
  * Copyright (C) 2008 Adam Williams <broadcast at earthling dot net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- * 
+ *
  */
 
 #include "asset.h"
 #include "edit.h"
 #include "file.h"
 #include "filetiff.h"
+#include "interlacemodes.h"
 #include "language.h"
 #include "vframe.h"
+#include "mainerror.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -43,8 +45,8 @@ FileTIFF::~FileTIFF()
 }
 
 
-void FileTIFF::get_parameters(BC_WindowBase *parent_window, 
-	Asset *asset, 
+void FileTIFF::get_parameters(BC_WindowBase *parent_window,
+	Asset *asset,
 	BC_WindowBase* &format_window,
 	int audio_options,
 	int video_options)
@@ -75,19 +77,19 @@ int FileTIFF::check_sig(Asset *asset)
 			return 1;
 		}
 		else
-		if(test[0] == 'T' && test[1] == 'I' && test[2] == 'F' && test[3] == 'F' && 
+		if(test[0] == 'T' && test[1] == 'I' && test[2] == 'F' && test[3] == 'F' &&
 			test[4] == 'L' && test[5] == 'I' && test[6] == 'S' && test[7] == 'T')
 		{
 			return 1;
 		}
 		else
-		if(strlen(asset->path) > 4 && 
+		if(strlen(asset->path) > 4 &&
 			!strcasecmp(asset->path + strlen(asset->path) - 4, ".tif"))
 		{
 			return 1;
 		}
 		else
-		if(strlen(asset->path) > 5 && 
+		if(strlen(asset->path) > 5 &&
 			!strcasecmp(asset->path + strlen(asset->path) - 5, ".tiff"))
 		{
 			return 1;
@@ -105,8 +107,8 @@ const char* FileTIFF::compression_to_str(int value)
 		case FileTIFF::PACK_BITS: return "Pack Bits"; break;
 		case FileTIFF::DEFLATE: return "Deflate"; break;
 		case FileTIFF::JPEG: return "JPEG"; break;
-		default: 
-			return "None"; 
+		default:
+			return "None";
 			break;
 	}
 }
@@ -122,8 +124,8 @@ const char* FileTIFF::cmodel_to_str(int value)
 		case FileTIFF::RGBA_16161616: return "RGBA-16 Bit"; break;
 		case FileTIFF::RGB_FLOAT: return "RGB-FLOAT"; break;
 		case FileTIFF::RGBA_FLOAT: return "RGBA-FLOAT"; break;
-		default: 
-			return "RGB-8 Bit"; 
+		default:
+			return "RGB-8 Bit";
 			break;
 	}
 }
@@ -134,7 +136,7 @@ int FileTIFF::can_copy_from(Asset *asset, int64_t position)
 	if(asset->format == FILE_TIFF_LIST ||
 		asset->format == FILE_TIFF)
 		return 1;
-	
+
 	return 0;
 }
 
@@ -147,14 +149,14 @@ int FileTIFF::read_frame_header(char *path)
 
 	if(!(stream = TIFFOpen(path, "rb")))
 	{
-		fprintf(stderr, "FileTIFF::read_frame_header failed from %s\n", asset->path);
+		eprintf("Error while opening \"%s\" for reading. \n%m\n", asset->path);
 		return 1;
 	}
 
 	char *ptr = 0;
 	TIFFGetField(stream, TIFFTAG_MODEL, &ptr);
 //printf("FileTIFF::read_frame_header 1 %s\n", ptr);
-	if(ptr && !strcmp(ptr, "Canon EOS-1DS"))
+	if(ptr && !strcmp(ptr, "Canon EOS-1DS"))       // FIXME: Does this have a purpose?
 	{
 		printf("FileTIFF::read_frame_header: got a %s.\n",
 			ptr);
@@ -196,6 +198,7 @@ int FileTIFF::read_frame_header(char *path)
 //printf("FileTIFF::read_frame_header %d %d %d\n", bitspersample, components, asset->tiff_cmodel);
 	TIFFClose(stream);
 
+	asset->interlace_mode = BC_ILACE_MODE_NOTINTERLACED;
 
 	return result;
 }
@@ -307,18 +310,18 @@ int FileTIFF::read_frame(VFrame *output, VFrame *input)
 	unit->offset = 0;
 	unit->data = input;
 
-	stream = TIFFClientOpen("FileTIFF", 
+	stream = TIFFClientOpen("FileTIFF",
 		"r",
 	    (void*)unit,
-	    tiff_read, 
+	    tiff_read,
 		tiff_write,
-	    tiff_seek, 
+	    tiff_seek,
 		tiff_close,
 	    tiff_size,
-	    tiff_mmap, 
+	    tiff_mmap,
 		tiff_unmap);
 
-// This loads the original TIFF data into each scanline of the output frame, 
+// This loads the original TIFF data into each scanline of the output frame,
 // assuming the output scanlines are bigger than the input scanlines.
 // Then it expands the input data in reverse to fill the row.
 	for(int i = 0; i < asset->height; i++)
@@ -386,15 +389,15 @@ int FileTIFF::write_frame(VFrame *frame, VFrame *data, FrameWriterUnit *unit)
 	tiff_unit->data = data;
 	tiff_unit->data->set_compressed_size(0);
 
-	stream = TIFFClientOpen("FileTIFF", 
+	stream = TIFFClientOpen("FileTIFF",
 		"w",
 	    (void*)tiff_unit,
-	    tiff_read, 
+	    tiff_read,
 		tiff_write,
-	    tiff_seek, 
+	    tiff_seek,
 		tiff_close,
 	    tiff_size,
-	    tiff_mmap, 
+	    tiff_mmap,
 		tiff_unmap);
 
 	int components, color_model, bits, compression;
@@ -402,35 +405,35 @@ int FileTIFF::write_frame(VFrame *frame, VFrame *data, FrameWriterUnit *unit)
 	//int bytesperrow, type;
 	switch(asset->tiff_cmodel)
 	{
-		case FileTIFF::RGB_888: 
+		case FileTIFF::RGB_888:
 			components = 3;
 			color_model = BC_RGB888;
 			bits = 8;
 			//type = TIFF_BYTE;
 			//bytesperrow = 3 * asset->width;
 			break;
-		case FileTIFF::RGB_161616: 
+		case FileTIFF::RGB_161616:
 			components = 3;
 			color_model = BC_RGB_FLOAT;
 			bits = 16;
 			//type = TIFF_SHORT;
 			//bytesperrow = 6 * asset->width;
 			break;
-		case FileTIFF::RGBA_8888: 
+		case FileTIFF::RGBA_8888:
 			components = 4;
 			color_model = BC_RGBA8888;
 			bits = 8;
 			//type = TIFF_BYTE;
 			//bytesperrow = 4 * asset->width;
 			break;
-		case FileTIFF::RGBA_16161616: 
+		case FileTIFF::RGBA_16161616:
 			components = 4;
 			color_model = BC_RGBA_FLOAT;
 			bits = 16;
 			//type = TIFF_SHORT;
 			//bytesperrow = 8 * asset->width;
 			break;
-		case FileTIFF::RGB_FLOAT: 
+		case FileTIFF::RGB_FLOAT:
 			components = 3;
 			color_model = BC_RGB_FLOAT;
 			bits = 32;
@@ -438,7 +441,7 @@ int FileTIFF::write_frame(VFrame *frame, VFrame *data, FrameWriterUnit *unit)
 			sampleformat = SAMPLEFORMAT_IEEEFP;
 			//bytesperrow = 12 * asset->width;
 			break;
-		case FileTIFF::RGBA_FLOAT: 
+		case FileTIFF::RGBA_FLOAT:
 			components = 4;
 			color_model = BC_RGBA_FLOAT;
 			bits = 32;
@@ -446,7 +449,7 @@ int FileTIFF::write_frame(VFrame *frame, VFrame *data, FrameWriterUnit *unit)
 			sampleformat = SAMPLEFORMAT_IEEEFP;
 			//bytesperrow = 16 * asset->width;
 			break;
-		default: 
+		default:
 			components = 3;
 			color_model = BC_RGB888;
 			bits = 8;
@@ -483,9 +486,9 @@ int FileTIFF::write_frame(VFrame *frame, VFrame *data, FrameWriterUnit *unit)
     TIFFSetField(stream, TIFFTAG_SAMPLEFORMAT, sampleformat);
 	TIFFSetField(stream, TIFFTAG_COMPRESSION, compression);
 	TIFFSetField(stream, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
- 	TIFFSetField(stream, TIFFTAG_ROWSPERSTRIP, 
+ 	TIFFSetField(stream, TIFFTAG_ROWSPERSTRIP,
  		TIFFDefaultStripSize(stream, (uint32_t)-1));
-//  	TIFFSetField(stream, TIFFTAG_ROWSPERSTRIP, 
+//  	TIFFSetField(stream, TIFFTAG_ROWSPERSTRIP,
 // 		(8 * 1024) / bytesperrow);
 	TIFFSetField(stream, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
 
@@ -514,7 +517,7 @@ int FileTIFF::write_frame(VFrame *frame, VFrame *data, FrameWriterUnit *unit)
 				-1);
 		}
 
-		cmodel_transfer(tiff_unit->temp->get_rows(), 
+		cmodel_transfer(tiff_unit->temp->get_rows(),
 			frame->get_rows(),
 			tiff_unit->temp->get_y(),
 			tiff_unit->temp->get_u(),
@@ -522,15 +525,15 @@ int FileTIFF::write_frame(VFrame *frame, VFrame *data, FrameWriterUnit *unit)
 			frame->get_y(),
 			frame->get_u(),
 			frame->get_v(),
-			0, 
-			0, 
-			frame->get_w(), 
+			0,
+			0,
+			frame->get_w(),
 			frame->get_h(),
-			0, 
-			0, 
-			frame->get_w(), 
+			0,
+			0,
+			frame->get_w(),
 			frame->get_h(),
-			frame->get_color_model(), 
+			frame->get_color_model(),
 			color_model,
 			0,
 			frame->get_w(),
@@ -599,9 +602,9 @@ TIFFConfigVideo::~TIFFConfigVideo()
 
 void TIFFConfigVideo::create_objects()
 {
+	lock_window("TIFFConfigVideo::create_objects()");
 	int x = 10, y = 10;
 
-	lock_window("TIFFConfigVideo::create_objects");
 	add_subwindow(new BC_Title(x, y, "Colorspace:"));
 	TIFFColorspace *menu1;
 	add_subwindow(menu1 = new TIFFColorspace(this, x + 150, y, 200));

@@ -130,6 +130,7 @@ OBJS += \
 	$(OBJDIR)/cmodel_yuv422.o \
 	$(OBJDIR)/codecs.o \
 	$(OBJDIR)/colormodels.o \
+	$(OBJDIR)/interlacemodes.o \
 	$(OBJDIR)/ctab.o \
 	$(OBJDIR)/dinf.o \
 	$(OBJDIR)/dref.o \
