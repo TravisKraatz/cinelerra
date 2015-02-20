@@ -21,9 +21,25 @@ DISTOBJS = \
 	$(INSTDIR)/bcast/bcast2000 \
 	$(INSTDIR)/plugins/*.plugin
 MJPEGDIR := $(shell expr thirdparty/mjpegtools* )
+MJPEGPATH := $(shell cd $(MJPEGDIR); pwd)
+MJPEGINC := $(MJPEGPATH)/usr/local/include/mjpegtools
+# a bunch of header file fixups
+MJPEGFIXS := editlist/lav_io.h lav_io/quicktime.h lav_io/yuv4mpeg.h
+MJPEGFIXS += liblavrec/mjpeg_types.h mjpeg_logging/mjpeg_types.h
+MJPEGFIXS += motionsearch/mjpeg_types.h mpegconsts/yuv4mpeg.h
+MJPEGFIXS += yuv4mpeg/mjpeg_types.h yuv4mpeg/mjpeg_types.h
 
-
+ 
 all: $(OBJDIR)/soundtest
+	mkdir -p bin
+	$(MAKE) -C $(MJPEGDIR) install-data DESTDIR=$(MJPEGPATH)
+	for ff in $(MJPEGFIXS); do \
+		f=`basename $$ff`; fn=$(MJPEGINC)/`dirname $$ff`.h; \
+		sed -e "s/#include[ ]*<$$f>/#include \"$$f\"/" -i $$fn; \
+	done
+	$(MAKE) -C $(MJPEGDIR)/utils 
+	$(MAKE) -C $(MJPEGDIR)/mpeg2enc 
+	$(MAKE) -C $(MJPEGDIR)/mplex
 	$(MAKE) -C quicktime
 	$(MAKE) -f build/Makefile.toolame
 	$(MAKE) -f build/Makefile.uuid
@@ -51,10 +67,6 @@ endif
 	MAKE='make -j1' make -j1 -C thirdparty/speech_tools
 	MAKE='make -j1' make -j1 -C thirdparty/festival
 endif
-	mkdir -p bin
-	$(MAKE) -C $(MJPEGDIR)/utils 
-	$(MAKE) -C $(MJPEGDIR)/mpeg2enc 
-	$(MAKE) -C $(MJPEGDIR)/mplex
 	@ for i in $(DIRS) ; \
 	do \
 		 $(MAKE) -C $$i ; \

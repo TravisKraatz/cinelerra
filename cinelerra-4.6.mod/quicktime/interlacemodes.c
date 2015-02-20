@@ -23,8 +23,7 @@
 #define HAVE_STDINT_H
 #endif /* HAVE_STDINT_H */
 
-#include <mjpegtools/yuv4mpeg.h>
-
+#include "mjpegtools/yuv4mpeg.h"
 #include "interlacemodes.h"
 
 // AUTO FIX METHOD ====================

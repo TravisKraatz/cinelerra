@@ -490,6 +490,8 @@ CFLAGS += \
 	-I$(LIBIEC_DIR)/src/ \
 	-I$(TOOLAME_DIR) \
 	-I$(LAME_DIR) \
+	-I$(MJPEG_DIR)/usr/local/include \
+	-I$(MJPEG_DIR)/usr/local/include/mjpegtools \
 	-I../libzmpeg3 \
 	-I$(SNDFILE_DIR)/src \
 	-I$(UUID_DIR) \

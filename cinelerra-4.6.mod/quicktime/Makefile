@@ -15,6 +15,7 @@ endif
 ENCORE_DIR := thirdparty/encore50
 ENCORE_INCLUDE := $(ENCORE_DIR)/encore.h
 MPEG3_DIR := $(shell expr ../libzmpeg3* )
+MJPEG_DIR := $(shell expr ../thirdparty/mjpegtools-* )
 OBJS := 
 
 
@@ -218,6 +219,8 @@ SHAREDOUTPUT = $(OBJDIR)/libquicktime.so
 
 CFLAGS += \
 	-I. \
+	-I$(MJPEG_DIR)/usr/local/include \
+	-I$(MJPEG_DIR)/usr/local/include/mjpegtools \
 	-I$(ENCORE_DIR) \
 	-I$(FAAC_INCLUDE) \
 	-I$(FAAD_INCLUDE) \
