@@ -23,7 +23,7 @@
 #define FILEAC3_H
 
 extern "C" {
-#include <libavcodec/avcodec.h>
+#include "libavcodec/avcodec.h"
 };
 
 #include "filebase.h"
