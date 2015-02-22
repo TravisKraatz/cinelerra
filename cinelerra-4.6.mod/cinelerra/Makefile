@@ -167,7 +167,6 @@ OBJS = \
 	$(OBJDIR)/filetiff.o \
 	$(OBJDIR)/filevorbis.o \
 	$(OBJDIR)/filexml.o \
-	$(OBJDIR)/fileyuv.o \
 	$(OBJDIR)/floatauto.o \
 	$(OBJDIR)/floatautos.o \
 	$(OBJDIR)/forkwrapper.o \
@@ -388,6 +387,7 @@ FILEFLAC := $(OBJDIR)/fileflac.o
 FFMPEG_OBJS := $(OBJDIR)/fileffmpeg.o \
 	$(OBJDIR)/ffmpeg.o \
 	$(OBJDIR)/fileac3.o \
+	$(OBJDIR)/fileyuv.o \
 	$(OBJDIR)/file.o
 
 DCRAW := $(OBJDIR)/dcraw.o
