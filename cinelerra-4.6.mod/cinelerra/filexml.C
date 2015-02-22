@@ -161,7 +161,7 @@ const char *XMLTag::get_property(const char *property, char *value)
 
 //getters
 const char *XMLTag::get_property_text(int i) {
-	return i < properties.size() ? properties[i]->value : "";
+	return i < properties.size() ? properties[i]->prop : "";
 }
 int XMLTag::get_property_int(int i) {
 	return i < properties.size() ? atol(properties[i]->value) : 0;
@@ -443,7 +443,9 @@ char* FileXML::read_text()
 	long ipos = buffer->itell()-1;
 // scan for delimiter
 	while( ch >= 0 && ch != left_delm ) ch = buffer->next();
-	long len = buffer->itell()-1 - ipos;
+	long pos = buffer->itell()-1;
+	if( ch >= 0 ) buffer->iseek(pos);
+	long len = pos - ipos;
 	if( len >= output_length ) {
 		delete [] output;
 		output_length = len+1;
