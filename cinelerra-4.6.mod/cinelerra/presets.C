@@ -280,7 +280,8 @@ void PresetsDBPlugin::load(FileXML *file)
 				PresetsDBKeyframe *keyframe = new PresetsDBKeyframe(keyframe_title);
 
 				char data[MESSAGESIZE];
-				file->read_text_until("/KEYFRAME", data, MESSAGESIZE);
+				int len = file->read_data_until("/KEYFRAME", data, MESSAGESIZE-1);
+				data[len] = 0;
 				keyframe->set_data(data);
 				keyframes.append(keyframe);
 		

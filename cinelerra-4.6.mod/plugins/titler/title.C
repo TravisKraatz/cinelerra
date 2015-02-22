@@ -613,13 +613,12 @@ void TitleEngine::init_packages()
 	int dx = plugin->config.outline_size - plugin->extent.x1;
 	int dy = plugin->config.outline_size - plugin->extent.y1;
 	for(int i = plugin->visible_char1; i < plugin->visible_char2; i++) {
-		TitlePackage *pkg = (TitlePackage*)get_package(current_package);
+		TitlePackage *pkg = (TitlePackage*)get_package(current_package++);
 		char_pos_t *pos = plugin->char_pos + i;
 		pkg->x = pos->x + dx;
 		pkg->y = pos->y + dy;
 		pkg->char_code = plugin->config.wtext[i];
 //printf("draw '%c' at %d,%d\n",(int)pkg->char_code, pkg->x, pkg->y);
-		current_package++;
 	}
 }
 
@@ -718,16 +717,13 @@ void TitleOutlineEngine::init_packages()
 {
 	int mask_h = plugin->text_mask->get_h();
 	if( !mask_h ) return;	
-	int y1 = 0, y2 = 0;
-	int i = 0, pkgs = get_total_packages();
-	TitleOutlinePackage *pkg = (TitleOutlinePackage*)get_package(i++);
-	while( (y2 = mask_h * i / pkgs) < mask_h ) {
-		pkg->y1 = y1;  pkg->y2 = y2;
-		if( y1 == y2 ) continue;
-		pkg = (TitleOutlinePackage*)get_package(i++);
-		y1 = y2;
+	int py1 = 0, py2 = 0;
+	int pkgs = get_total_packages();
+	for( int i=0; i<pkgs; ++i, py1=py2 ) {
+		TitleOutlinePackage *pkg = (TitleOutlinePackage*)get_package(i);
+		py2 = (i * mask_h)/ pkgs;
+		pkg->y1 = py1;  pkg->y2 = py2;
 	}
-	pkg->y1 = y1;  pkg->y2 = mask_h;
 }
 		
 void TitleOutlineEngine::do_outline()
@@ -989,18 +985,13 @@ void TitleTranslate::init_packages()
 	out_x1 = out_x1_int;  out_x2 = out_x2_int;
 	out_y1 = out_y1_int;  out_y2 = out_y2_int;
 
-	int slice = out_y2 - out_y1;
-	if( slice > 0 ) {
-		int y1 = 0, y2 = 0;
-		int i = 0, pkgs = get_total_packages();
-		TitleTranslatePackage *pkg = (TitleTranslatePackage*)get_package(i++);
-		while( (y2 = slice * i / pkgs) < slice ) {
-			pkg->y1 = y1;  pkg->y2 = y2;
-			if( y1 == y2 ) continue;
-			pkg = (TitleTranslatePackage*)get_package(i++);
-			y1 = y2;
-		}
-		pkg->y1 = y1;  pkg->y2 = slice;
+	int out_h = out_y2 - out_y1;
+	int py1 = 0, py2 = 0;
+	int pkgs = get_total_packages();
+	for( int i=0; i<pkgs; ++i, py1=py2 ) {
+		TitleTranslatePackage *pkg = (TitleTranslatePackage*)get_package(i);
+		py2 = (i*out_h) / pkgs;
+		pkg->y1 = py1;  pkg->y2 = py2;
 	}
 //printf("TitleTranslate::init_packages 2\n");
 }

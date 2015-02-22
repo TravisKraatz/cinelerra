@@ -478,7 +478,10 @@ int FileXML::read_data_until(const char *tag_end, char *out, int len)
 				out[opos++] = ch;
 			continue;
 		}
-		if( tag_end[pos] != ch ) { // mismatched, copy prefix to out
+		// check for end of match
+		if( !tag_end[pos] && ch == right_delm ) break;
+		// if mismatched, copy prefix to out
+		if( tag_end[pos] != ch ) {
 			out[opos++] = left_delm;
 			for( int i=0; i<pos && opos<olen; ++i )
 				out[opos++] = tag_end[i];
@@ -486,7 +489,7 @@ int FileXML::read_data_until(const char *tag_end, char *out, int len)
 			pos = -1;
 			continue;
 		}
-		if( !tag_end[++pos] ) break;
+		++pos;
 	}
 // if end tag is reached, pos is left on the < of the end tag
 	if( pos >= 0 && !tag_end[pos] )
