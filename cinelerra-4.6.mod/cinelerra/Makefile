@@ -143,7 +143,6 @@ OBJS = \
 	$(OBJDIR)/edl.o \
 	$(OBJDIR)/edlsession.o \
 	$(OBJDIR)/fadeengine.o \
-	$(OBJDIR)/file.o \
 	$(OBJDIR)/fileavi.o \
 	$(OBJDIR)/filebase.o \
 	$(OBJDIR)/filebaseaudio.o \
@@ -388,7 +387,8 @@ FILEFLAC := $(OBJDIR)/fileflac.o
 
 FFMPEG_OBJS := $(OBJDIR)/fileffmpeg.o \
 	$(OBJDIR)/ffmpeg.o \
-	$(OBJDIR)/fileac3.o
+	$(OBJDIR)/fileac3.o \
+	$(OBJDIR)/file.o
 
 DCRAW := $(OBJDIR)/dcraw.o
 
