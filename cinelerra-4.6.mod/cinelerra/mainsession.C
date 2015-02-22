@@ -57,13 +57,6 @@ MainSession::MainSession(MWindow *mwindow)
 	brender_end = 0;
 	cwindow_controls = 1;
 	trim_edits = 0;
-	gwindow_x = 0;
-	gwindow_y = 0;
-	cswindow_x = 0;
-	cswindow_y = 0;
-	swindow_x = 0;
-	swindow_y = 0;
-	show_gwindow = 0;
 	current_tip = 0;
 	cwindow_fullscreen = 0;
 	rwindow_fullscreen = 0;
@@ -73,6 +66,49 @@ MainSession::MainSession(MWindow *mwindow)
 	a_x11_host[0] = 0;
 	b_x11_host[0] = 0;
 	record_scope = 0;
+
+	free_drag = 0;
+	drag_auto = 0;
+	drag_button = 0;
+	drag_handle = 0;
+	drag_position = 0;
+	drag_start = 0;
+	drag_origin_x = drag_origin_y = 0;
+	drag_start_percentage = 0;
+	drag_start_position = 0;
+	cwindow_output_x = cwindow_output_y = 0;
+	batchrender_x = batchrender_y = batchrender_w = batchrender_h = 0;
+	lwindow_x = lwindow_y = lwindow_w = lwindow_h = 0;
+	mwindow_x = mwindow_y = mwindow_w = mwindow_h = 0;
+	vwindow_x = vwindow_y = vwindow_w = vwindow_h = 0;
+	cwindow_x = cwindow_y = cwindow_w = cwindow_h = 0;
+	ctool_x = ctool_y = 0;
+	awindow_x = awindow_y = awindow_w = awindow_h = 0;
+	rmonitor_x = rmonitor_y = rmonitor_w = rmonitor_h = 0;
+	rwindow_x = rwindow_y = rwindow_w = rwindow_h = 0;
+	gwindow_x = gwindow_y = 0;
+	cswindow_x = cswindow_y = cswindow_w = cswindow_h = 0;
+	swindow_x = swindow_y = swindow_w = swindow_h = 0;
+	ewindow_w = ewindow_h = 0;
+	channels_x = channels_y = 0;
+	picture_x = picture_y = 0;
+	scope_x = scope_y = scope_w = scope_h = 0;
+	histogram_x = histogram_y = histogram_w = histogram_h = 0;
+	use_hist = 0;
+	use_wave = 0;
+	use_vector = 0;
+	use_hist_parade = 0;
+	use_wave_parade = 0;
+	afolders_w = 0;
+	show_vwindow = show_awindow = show_cwindow = show_gwindow = show_lwindow = 0;
+	plugindialog_w = plugindialog_h = 0;
+	presetdialog_w = presetdialog_h = 0;
+	keyframedialog_w = keyframedialog_h = 0;
+	keyframedialog_column1 = 0;
+	keyframedialog_column2 = 0;
+	keyframedialog_all = 0;
+	menueffect_w = menueffect_h = 0;
+	transitiondialog_w = transitiondialog_h = 0;
 }
 
 MainSession::~MainSession()

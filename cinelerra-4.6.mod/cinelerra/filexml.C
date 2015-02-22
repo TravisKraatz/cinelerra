@@ -106,85 +106,6 @@ int XMLBuffer::read(char *bp, int len)
 	return len;
 }
 
-int XMLBuffer::enext(unsigned int v)
-{
-	if( v >= 0x80 )
-		return v > 0xffff ? unibs('U',v,4): unibs('u',v,2);
-	switch( v ) {
-	case '\n': break; // return uesc('n');
-	case '\t': return uesc('t');
-	case '\r': return uesc('r');
-	case '\b': return uesc('b');
-	case '\f': return uesc('f');
-	case '\v': return uesc('v');
-	case '\a': return uesc('a');
-	case '\\': return uesc('\\');
-	default:
-		if( v < 0x20 || v == 0x7f )
-			return unibs('x',v,1);
-	}
-	next(v);
-	return 1;
-}
-
-int XMLBuffer::wnext(unsigned int v)
-{
-	if( v < 0x00000080 ) { next(v);	return 1; }
-	int n = v < 0x00000800 ? 2 : v < 0x00010000 ? 3 :
-		v < 0x00200000 ? 4 : v < 0x04000000 ? 5 : 6;
-	int m = (0xff00 >> n), i = n-1;
-	next((v>>(6*i)) | m);
-	while( --i >= 0 ) next(((v>>(6*i)) & 0x3f) | 0x80);
-	return n;
-}
-
-int XMLBuffer::wnext()
-{
-	int v = 0, n = 0, ch = next();
-	if( ch == '\\' ) {
-		switch( (ch=next()) ) {
-		case 'n': return '\n';
-		case 't': return '\t';
-		case 'r': return '\r';
-		case 'b': return '\b';
-		case 'f': return '\f';
-		case 'v': return '\v';
-		case 'a': return '\a';
-		case '0': case '1': case '2': case '3':
-		case '4': case '5': case '6': case '7':
-			v = ch - '0';
-			for( int i=3; --i>0; v=v*8+ch, next() )
-				if( (ch=cur()-'0') < 0 || ch >= 8 ) break;
-			return v;
-		case 'x':	n = 2;	break;
-		case 'u':	n = 4;	break;
-		case 'U':	n = 8;	break;
-		default: return ch;
-		}
-		for( int i=n; --i>=0; v=v*16+ch, next() ) {
-			if( (ch=cur()-'0')>=0 && ch<10 ) continue;
-			if( (ch-='A'-'0'-10)>=10 && ch<16 ) continue;
-			if( (ch-='a'-'A')<10 || ch>=16 ) break;
-		}
-	}
-	else if( ch >= 0x80 ) {
-		static const unsigned char byts[] = {
-			1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 5,
-		};
-		int i = ch - 0xc0;
-		n = i<0 ? 0 : byts[i/4];
-		for( v=ch, i=n; --i>=0; v+=next() ) v <<= 6;
-		static const unsigned int ofs[6] = {
-			0x00000000U, 0x00003080U, 0x000E2080U,
-			0x03C82080U, 0xFA082080U, 0x82082080U
-		};
-		v -= ofs[n];
-	}
-	else
-		v = ch;
-	return v;
-}
-
 
 // Precision in base 10
 // for float is 6 significant figures
@@ -345,6 +266,11 @@ int XMLTag::write_tag(FileXML *xml)
 	return 0;
 }
 
+#define ERETURN(s) do { \
+  printf("XMLTag::read_tag:%d tag \"%s\"%s\n",__LINE__,title,s);\
+  return 1; } while(0)
+#define EOB_RETURN(s) ERETURN(", end of buffer");
+
 int XMLTag::read_tag(FileXML *xml)
 {
 	XMLBuffer *buf = xml->buffer;
@@ -352,19 +278,20 @@ int XMLTag::read_tag(FileXML *xml)
 	long prop_start, prop_end;
 	long value_start, value_end;
 	long ttl;
-	int ch = buf->wnext();
+	int ch = buf->next();
+	title[0] = 0;
 // skip ws
-	while( ch>=0 && ws(ch) ) ch = buf->wnext();
-	if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+	while( ch>=0 && ws(ch) ) ch = buf->next();
+	if( ch < 0 ) EOB_RETURN();
 	
 // read title
 	ttl = buf->itell() - 1;
-	for( int i=0; i<MAX_TITLE && ch>=0; ++i, ch=buf->wnext() ) {
+	for( int i=0; i<MAX_TITLE && ch>=0; ++i, ch=buf->next() ) {
 		if( ch == right_delm || ch == '=' || ws(ch) ) break;
 	}
-	if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+	if( ch < 0 ) EOB_RETURN();
 	len = buf->itell()-1 - ttl;
-	if( len >= MAX_TITLE ) { printf("err %d\n",__LINE__); return 1; }
+	if( len >= MAX_TITLE ) ERETURN(", title too long");
 // if title
 	if( ch != '=' ) {
 		memmove(title, buf->pos(ttl), len);
@@ -374,37 +301,37 @@ int XMLTag::read_tag(FileXML *xml)
 	else {
 		title[0] = 0;
 		buf->iseek(ttl);
-		ch = buf->wnext();
+		ch = buf->next();
 	}
 // read properties
 	while( ch >= 0 && ch != right_delm ) {
 // find tag start, skip header leadin
 		while( ch >= 0 && (ch==left_delm || ws(ch)) )
-			ch = buf->wnext();
+			ch = buf->next();
 // find end of property name
 		prop_start = buf->itell()-1;
 		while( ch >= 0 && (ch!=right_delm && ch!='=' && !ws(ch)) )
-			ch = buf->wnext();
-		if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+			ch = buf->next();
+		if( ch < 0 ) EOB_RETURN();
 		prop_end = buf->itell()-1;
 // skip ws = ws
 		while( ch >= 0 && ws(ch) )
-			ch = buf->wnext();
-		if( ch == '=' ) ch = buf->wnext();
+			ch = buf->next();
+		if( ch == '=' ) ch = buf->next();
 		while( ch >= 0 && ws(ch) )
-			ch = buf->wnext();
-		if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+			ch = buf->next();
+		if( ch < 0 ) EOB_RETURN();
 // set terminating char
 		if( ch == '\"' ) {
 			term = ch;
-			ch = buf->wnext();
+			ch = buf->next();
 		}
 		else
 			term = ' ';
 		value_start = buf->itell()-1;
 		while( ch >= 0 && (ch!=term && ch!=right_delm && ch!='\n') )
-			ch = buf->wnext();
-		if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+			ch = buf->next();
+		if( ch < 0 ) EOB_RETURN();
 		value_end = buf->itell()-1;
 // add property
 		int plen = prop_end-prop_start;
@@ -422,22 +349,20 @@ int XMLTag::read_tag(FileXML *xml)
 			properties.append(property);
 		}
 // skip the terminating char
-		if( ch != right_delm ) ch = buf->wnext();
+		if( ch != right_delm ) ch = buf->next();
 	}
-	if( !properties.size() && !title[0] ) { printf("err %d\n",__LINE__); return 1; }
+	if( !properties.size() && !title[0] ) ERETURN(", emtpy");
 	return 0;
 }
 
 
 
-FileXML::FileXML()
+FileXML::FileXML(int coded)
 {
 	output = 0;
 	output_length = 0;
 	buffer = new XMLBuffer();
-	decode = decode_data;
-	encode = encode_data;
-	coded_length = encoded_length;
+	set_coding(coded);
 }
 
 FileXML::~FileXML()
@@ -449,7 +374,7 @@ FileXML::~FileXML()
 
 int FileXML::terminate_string()
 {
-	append_text("", 1);
+	append_data("", 1);
 	return 0;
 }
 
@@ -463,7 +388,7 @@ int FileXML::rewind()
 
 int FileXML::append_newline()
 {
-	append_text("\n", 1);
+	append_data("\n", 1);
 	return 0;
 }
 
@@ -512,17 +437,17 @@ char* FileXML::string()
 
 char* FileXML::read_text()
 {
-	int ch = buffer->wnext();
+	int ch = buffer->next();
 // filter out first char is new line
-	if( ch == '\n' ) ch = buffer->wnext();
+	if( ch == '\n' ) ch = buffer->next();
 	long ipos = buffer->itell()-1;
 // scan for delimiter
-	while( ch >= 0 && ch != left_delm ) ch = buffer->wnext();
+	while( ch >= 0 && ch != left_delm ) ch = buffer->next();
 	long len = buffer->itell()-1 - ipos;
-	if( len > output_length ) {
+	if( len >= output_length ) {
 		delete [] output;
-		output_length = len;
-		output = new char[output_length+1];
+		output_length = len+1;
+		output = new char[output_length];
 	}
 	decode(output,(const char *)buffer->pos(ipos), len);
 	return output;
@@ -530,9 +455,9 @@ char* FileXML::read_text()
 
 int FileXML::read_tag()
 {
-	int ch = buffer->wnext();
+	int ch = buffer->next();
 // scan to next tag
-	while( ch >= 0 && ch != left_delm ) ch = buffer->wnext();
+	while( ch >= 0 && ch != left_delm ) ch = buffer->next();
 	if( ch < 0 ) return 1;
 	tag.reset_tag();
 	return tag.read_tag(this);
@@ -542,8 +467,8 @@ int FileXML::read_data_until(const char *tag_end, char *out, int len)
 {
 	long ipos = buffer->itell();
 	int opos = 0, pos = -1;
-	int ch = buffer->wnext();
-	for( int olen=len-1; ch>=0 && opos<olen; ch=buffer->wnext() ) {
+	int ch = buffer->next();
+	for( int olen=len-1; ch>=0 && opos<olen; ch=buffer->next() ) {
 		if( pos < 0 ) { // looking for next tag
 			if( ch == left_delm ) {
 				ipos = buffer->itell()-1;
@@ -557,6 +482,7 @@ int FileXML::read_data_until(const char *tag_end, char *out, int len)
 			out[opos++] = left_delm;
 			for( int i=0; i<pos && opos<olen; ++i )
 				out[opos++] = tag_end[i];
+			if( opos < olen ) out[opos++] = ch;
 			pos = -1;
 			continue;
 		}
@@ -646,9 +572,16 @@ int FileXML::read_from_string(char *string)
 void FileXML::set_coding(int coding)
 {
 	coded = coding;
-	decode = coded ? decode_data : copy_data;
-	encode = coded ? encode_data : copy_data;
-	coded_length = coded ? encoded_length : copy_length;
+	if( coded ) {
+		decode = XMLBuffer::decode_data;
+		encode = XMLBuffer::encode_data;
+		coded_length = XMLBuffer::encoded_length;
+	}
+	else {
+		decode = XMLBuffer::copy_data;
+		encode = XMLBuffer::copy_data;
+		coded_length = XMLBuffer::copy_length;
+	}
 }
 
 int FileXML::get_coding()
@@ -713,7 +646,7 @@ static inline int xml_cmp(const char *np, const char *sp)
    return np - tp;
 }
 
-char *FileXML::decode_data(char *bp, const char *sp, int n)
+char *XMLBuffer::decode_data(char *bp, const char *sp, int n)
 {
    char *ret = bp;
    if( n < 0 ) n = strlen(sp);
@@ -751,7 +684,7 @@ char *FileXML::decode_data(char *bp, const char *sp, int n)
 }
 
 
-char *FileXML::encode_data(char *bp, const char *sp, int n)
+char *XMLBuffer::encode_data(char *bp, const char *sp, int n)
 {
 	char *ret = bp;
 	if( n < 0 ) n = strlen(sp);
@@ -771,7 +704,7 @@ char *FileXML::encode_data(char *bp, const char *sp, int n)
 	return ret;
 }
 
-long FileXML::encoded_length(const char *sp, int n)
+long XMLBuffer::encoded_length(const char *sp, int n)
 {
 	long len = 0;
 	if( n < 0 ) n = strlen(sp);
@@ -789,7 +722,7 @@ long FileXML::encoded_length(const char *sp, int n)
 	return len;
 }
 
-char *FileXML::copy_data(char *bp, const char *sp, int n)
+char *XMLBuffer::copy_data(char *bp, const char *sp, int n)
 {
 	int len = n < 0 ? strlen(sp) : n;
 	memmove(bp,sp,len);
@@ -797,7 +730,7 @@ char *FileXML::copy_data(char *bp, const char *sp, int n)
 	return bp;
 }
 
-long FileXML::copy_length(const char *sp, int n)
+long XMLBuffer::copy_length(const char *sp, int n)
 {
 	int len = n < 0 ? strlen(sp) : n;
 	return len;

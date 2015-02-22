@@ -40,7 +40,7 @@ class XMLBuffer
 	void nibs(int v, int n) { while(--n>=0) nib(v>>(4*n)); }
 	int uesc(int v) { next('\\');  next(v);  return 2; }
 	int unibs(int ch, int v, int n) {
-		next('\\');  next(ch);  nibs(v,2*n);  return n;
+		next('\\');  next(ch);  nibs(v,2*n);  return 2+2*n;
 	}
 	unsigned char *&demand(long len);
 public:
@@ -64,9 +64,11 @@ public:
 		return *inp++ = ch;
 	}
 
-	int enext(unsigned int v);
-	int wnext(unsigned int v);
-	int wnext();
+	static char *decode_data(char *bp, const char *sp, int n=-1);
+	static char *encode_data(char *bp, const char *sp, int n=-1);
+	static char *copy_data(char *bp, const char *sp, int n=-1);
+	static long encoded_length(const char *sp, int n=-1);
+	static long copy_length(const char *sp, int n=-1);
 };
 
 class XMLTag
@@ -123,7 +125,7 @@ public:
 class FileXML
 {
 public:
-	FileXML();
+	FileXML(int coded=1);
 	~FileXML();
 
 	int terminate_string();
@@ -142,11 +144,6 @@ public:
 	int write_to_file(FILE *file);
 	int read_from_file(const char *filename, int ignore_error = 0);
 	int read_from_string(char *string);
-	static char *decode_data(char *bp, const char *sp, int n=-1);
-	static char *encode_data(char *bp, const char *sp, int n=-1);
-	static char *copy_data(char *bp, const char *sp, int n=-1);
-	static long encoded_length(const char *sp, int n=-1);
-	static long copy_length(const char *sp, int n=-1);
 	char *(*decode)(char *bp, const char *sp, int n);
 	char *(*encode)(char *bp, const char *sp, int n);
 	long (*coded_length)(const char *sp, int n);
