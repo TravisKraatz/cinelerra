@@ -22,110 +22,151 @@
 #ifndef FILEXML_H
 #define FILEXML_H
 
+#include "arraylist.h"
+#include "filexml.inc"
 #include "sizes.h"
 #include <stdio.h>
+#include <limits.h>
 
-#define MAX_TITLE 1024
-#define MAX_PROPERTIES 1024
-#define MAX_LENGTH 4096
+#define MAX_TITLE 256
 
+class XMLBuffer
+{
+	long bsz, isz;
+	unsigned char *inp, *outp, *bfr, *lmt;
+	int destroy;
+
+	void nib(int v) { v &=0x0f;  next(v<10?v+'0':v+'a'-10); }
+	void nibs(int v, int n) { while(--n>=0) nib(v>>(4*n)); }
+	int uesc(int v) { next('\\');  next(v);  return 2; }
+	int unibs(int ch, int v, int n) {
+		next('\\');  next(ch);  nibs(v,2*n);  return n;
+	}
+	unsigned char *&demand(long len);
+public:
+	XMLBuffer(long buf_size=0x1000, long max_size=LONG_MAX, int del=1);
+	XMLBuffer(long buf_size, const char *buf, int del=0); // writing
+	XMLBuffer(const char *buf, long buf_size, int del=0); // reading
+	~XMLBuffer();
+
+	long otell() { return inp - bfr; }
+	long itell() { return outp - bfr; }
+	void oseek(long pos) { inp = bfr + pos; }
+	void iseek(long pos) { outp = bfr + pos; }
+  	unsigned char *pos(long ofs=0) { return bfr+ofs; }
+	int read(char *bp, int n);
+	int write(const char *bp, int n);
+
+	int cur()  { return outp>=inp ? -1 : *outp; }
+	int next() { return outp>=inp ? -1 : *outp++; }
+	int next(int ch) {
+		demand(otell()+1);
+		return *inp++ = ch;
+	}
+
+	int enext(unsigned int v);
+	int wnext(unsigned int v);
+	int wnext();
+};
 
 class XMLTag
 {
+	XMLBuffer *buffer;
+	class Property {
+	public:
+		const char *prop;
+		const char *value;
+
+		Property(const char *pp, const char *vp);
+		~Property();
+	};
+	bool ws(char ch) { return ch==' ' || ch=='\n'; }
+
+	int write_tag(FileXML *xml);
+	int read_tag(FileXML *xml);
+	friend class FileXML;
 public:
 	XMLTag();
 	~XMLTag();
 
-	int set_delimiters(char left_delimiter, char right_delimiter);
-	int reset_tag();     // clear all structures
+	int reset_tag();
+	char *&demand(int len);
 
-	int read_tag(char *input, long &position, long length);
-
-	int title_is(const char *title);        // test against title and return 1 if they match
+	int title_is(const char *title);
 	char *get_title();
 	int get_title(char *value);
 	int test_property(char *property, char *value);
 	const char *get_property_text(int number);
 	int get_property_int(int number);
 	float get_property_float(int number);
-	char *get_property(const char *property);
+	const char *get_property(const char *property);
 	const char* get_property(const char *property, char *value);
 	int32_t get_property(const char *property, int32_t default_);
 	int64_t get_property(const char *property, int64_t default_);
-//	int get_property(const char *property, int default_);
 	float get_property(const char *property, float default_);
 	double get_property(const char *property, double default_);
-	static char *decode_data(char *bp, const char *sp, int n=-1);
-	static char *encode_data(char *bp, const char *sp, int n=-1);
-	static long encoded_length(const char *sp, int n=-1);
 
-	int set_title(const char *text);       // set the title field
+	int set_title(const char *text);
 	int set_property(const char *text, const char *value);
 	int set_property(const char *text, int32_t value);
 	int set_property(const char *text, int64_t value);
-//	int set_property(const char *text, int value);
 	int set_property(const char *text, float value);
 	int set_property(const char *text, double value);
-	int write_tag();
 
-	char tag_title[MAX_TITLE];       // title of this tag
-
-	char *tag_properties[MAX_PROPERTIES];      // list of properties for this tag
-	char *tag_property_values[MAX_PROPERTIES];     // values for this tag
-
-	int total_properties;
-	int len;         // current size of the string
-
-	char string[MAX_LENGTH];
-	char temp_string[32];       // for converting numbers
-	char left_delimiter, right_delimiter;
+	char title[MAX_TITLE];
+	ArrayList<Property*> properties;
+	char *string;
+	long used, avail;
 };
 
 
 class FileXML
 {
 public:
-	FileXML(char left_delimiter = '<', char right_delimiter = '>');
+	FileXML();
 	~FileXML();
 
-	void dump();
-	int terminate_string();         // append the terminal 0
-	int append_newline();       // append a newline to string
-	int append_tag();           // append tag object
+	int terminate_string();
+	int append_newline();
+	int append_tag();
 	int append_text(const char *text);
-// add generic text to the string
-	int append_text(const char *text, long len);        
-// add generic text to the string which contains <>& characters
- 	int encode_text(const char *text);      
+	int append_data(const char *text, long len);
+	int append_text(const char *text, long len);
+ 	int encode_text(const char *text);
 
-// Text array is dynamically allocated and deleted when FileXML is deleted
-	char* read_text();         // read text, put it in *output, and return it
-	int read_text_until(const char *tag_end, char *output, int max_len);     // store text in output until the tag is reached
-	int read_tag();          // read next tag from file, ignoring any text, and put it in tag
-	// return 1 on failure
+	char* read_text();
+	int read_data_until(const char *tag_end, char *out, int len);
+	int read_text_until(const char *tag_end, char *out, int len);
+	int read_tag();
+	int write_to_file(const char *filename);
+	int write_to_file(FILE *file);
+	int read_from_file(const char *filename, int ignore_error = 0);
+	int read_from_string(char *string);
+	static char *decode_data(char *bp, const char *sp, int n=-1);
+	static char *encode_data(char *bp, const char *sp, int n=-1);
+	static char *copy_data(char *bp, const char *sp, int n=-1);
+	static long encoded_length(const char *sp, int n=-1);
+	static long copy_length(const char *sp, int n=-1);
+	char *(*decode)(char *bp, const char *sp, int n);
+	char *(*encode)(char *bp, const char *sp, int n);
+	long (*coded_length)(const char *sp, int n);
 
-	int write_to_file(const char *filename);           // write the file to disk
-	int write_to_file(FILE *file);           // write the file to disk
-	int read_from_file(const char *filename, int ignore_error = 0);          // read an entire file from disk
-	int read_from_string(char *string);          // read from a string
-
-	int reallocate_string(long new_available);     // change size of string to accomodate new output
-	int set_shared_string(char *shared_string, long available);    // force writing to a message buffer
+	int set_shared_input(char *shared_string, long avail, int coded=1);
+	int set_shared_output(char *shared_string, long avail, int coded=1);
+	void set_coding(int coding);
+	int get_coding();
 	int rewind();
-// Get current pointer in the string
-	char* get_ptr();
+	char *get_data();
+	char *string();
 
-	char *string;      // string that contains the actual file
-	long position;    // current position in string file
-	long length;      // length of string file for reading - terminating 0
-	long available;    // possible length before reallocation
-	int share_string;      // string is shared between this and a message buffer so don't delete
+	XMLBuffer *buffer;
+	int coded;
 
 	XMLTag tag;
 	long output_length;
-	char *output;       // for reading text
+	char *output;
 	char left_delimiter, right_delimiter;
-	char filename[MAX_TITLE];  // Filename used in the last read_from_file or write_to_file
+	char filename[MAX_TITLE];
 };
 
 #endif

@@ -22,6 +22,7 @@
 #ifndef FILEXML_INC
 #define FILEXML_INC
 
+class XMLBuffer;
 class XMLTag;
 class FileXML;
 

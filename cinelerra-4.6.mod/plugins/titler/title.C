@@ -2054,7 +2054,7 @@ void TitleMain::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
 
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 	output.tag.set_title("TITLE");
 	output.tag.set_property("FONT", config.font);
 	output.tag.set_property("ENCODING", config.encoding);
@@ -2085,11 +2085,11 @@ void TitleMain::save_data(KeyFrame *keyframe)
 	output.append_tag();
 	output.append_newline();
 	char text[BCTEXTLEN];
-	BC_Resources::encode(BC_Resources::wide_encoding, DEFAULT_ENCODING,
+	int text_len = BC_Resources::encode(
+		BC_Resources::wide_encoding, DEFAULT_ENCODING,
 		(char*)config.wtext, config.wlen*sizeof(wchar_t),
 		text, sizeof(text));
-	output.encode_text(text);
-
+	output.append_text(text, text_len);
 	output.tag.set_title("/TITLE");
 	output.append_tag();
 	output.append_newline();
@@ -2102,7 +2102,7 @@ void TitleMain::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
 
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 
 	int result = 0;
 

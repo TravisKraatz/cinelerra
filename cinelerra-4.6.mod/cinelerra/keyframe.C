@@ -55,7 +55,7 @@ void KeyFrame::load(FileXML *file)
 //	position = file->tag.get_property((char*)"POSITION", position);
 //printf("KeyFrame::load 1\n");
 
-	file->read_text_until((char*)"/KEYFRAME", data, MESSAGESIZE);
+	file->read_data_until((char*)"/KEYFRAME", data, MESSAGESIZE);
 //printf("KeyFrame::load 2 data=\n%s\nend of data\n", data);
 }
 
@@ -75,7 +75,7 @@ void KeyFrame::copy(int64_t start, int64_t end, FileXML *file, int default_auto)
 // with new newlines.
 //	file->append_newline();
 
-	file->append_text(data);
+	file->append_data(data, strlen(data));
 //	file->append_newline();
 
 	file->tag.set_title((char*)"/KEYFRAME");
@@ -111,7 +111,7 @@ int KeyFrame::identical(KeyFrame *src)
 void KeyFrame::get_contents(BC_Hash *ptr, char **text, char **extra)
 {
 	FileXML input;
-	input.set_shared_string(data, strlen(data));
+	input.set_shared_input(data, strlen(data));
 	int result = 0;
 	char *this_text = 0;
 	char *this_extra = 0;
@@ -120,7 +120,7 @@ void KeyFrame::get_contents(BC_Hash *ptr, char **text, char **extra)
 		result = input.read_tag();
 		if(!result)
 		{
-			for(int i = 0; i < input.tag.total_properties; i++)
+			for(int i = 0; i < input.tag.properties.size(); i++)
 			{
 				const char *key = input.tag.get_property_text(i);
 				const char *value = input.tag.get_property(key);
@@ -132,7 +132,7 @@ void KeyFrame::get_contents(BC_Hash *ptr, char **text, char **extra)
 			(*text) = cstrdup(this_text);
 
 // Read remaining data
-			this_extra = input.get_ptr();
+			this_extra = input.get_data();
 			(*extra) = cstrdup(this_extra);
 			break;
 		}
@@ -145,7 +145,7 @@ void KeyFrame::update_parameter(BC_Hash *params,
 {
 	FileXML output;
 	FileXML input;
-	input.set_shared_string(get_data(), strlen(get_data()));
+	input.set_shared_input(get_data(), strlen(get_data()));
 	int result = 0;
 	BC_Hash this_params;
 	char *this_text = 0;
@@ -257,7 +257,7 @@ void KeyFrame::update_parameter(BC_Hash *params,
 
 // Move output to input
 			output.terminate_string();
-			strcpy(this->data, output.string);
+			strcpy(this->data, output.string());
 			break;
 		}
 	}
@@ -274,7 +274,7 @@ void KeyFrame::get_diff(KeyFrame *src,
 {
 	const int debug = 0;
 	FileXML input;
-	input.set_shared_string(data, strlen(data));
+	input.set_shared_input(data, strlen(data));
 	BC_Hash this_params;
 	char *this_text = 0;
 	char *this_extra = 0;

@@ -66,7 +66,7 @@ void MainUndo::update_undo_entry(const char *description,
 	UndoStackItem *current = undo_stack->push();
 
 	current->set_flags(load_flags);
-	current->set_data(file.string);
+	current->set_data(file.string());
 	current->set_description((char*)description);
 	current->set_creator(creator);
 	current->set_filename(mwindow->session->filename);

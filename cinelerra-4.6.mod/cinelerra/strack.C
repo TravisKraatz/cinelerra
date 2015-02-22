@@ -166,17 +166,13 @@ copy_from(Edit *edit)
 
 int SEdit::load_properties_derived(FileXML *xml)
 {
-	char xtext[BCTEXTLEN];
-	xml->tag.get_property("TEXT", xtext);
-	XMLTag::decode_data(text, xtext);
+	xml->tag.get_property("TEXT", text);
 	return 0;
 }
 
 int SEdit::copy_properties_derived(FileXML *xml, int64_t length_in_selection)
 {
-	char xtext[BCTEXTLEN];
-	XMLTag::encode_data(xtext, text);
-	xml->tag.set_property("TEXT", xtext);
+	xml->tag.set_property("TEXT", text);
 	return 0;
 }
 

@@ -128,11 +128,12 @@ class C41Effect : public PluginVClient
 public:
 	C41Effect(PluginServer *server);
 	~C41Effect();
+	PLUGIN_CLASS_MEMBERS(C41Config);
+
 	int process_buffer(VFrame *frame,
 			int64_t start_position,
 			double frame_rate);
 	int is_realtime();
-	const char* plugin_title();
 	int load_defaults();
 	int save_defaults();
 	void save_data(KeyFrame *keyframe);
@@ -141,15 +142,12 @@ public:
 	void render_gui(void* data);
 	int show_gui();
 	void raise_window();
-	int load_configuration();
 	float myLog2(float i) __attribute__ ((optimize(0)));
 	float myPow2(float i) __attribute__ ((optimize(0)));
 	float myPow(float a, float b);
 	double difftime_nano(timespec start, timespec end);
 
 	struct magic values;
-
-	C41Config config;
 };
 
 
@@ -387,6 +385,10 @@ int C41Effect::is_realtime() { return 1; }
 
 LOAD_CONFIGURATION_MACRO(C41Effect, C41Config)
 
+NEW_PICON_MACRO(C41Effect)
+
+NEW_WINDOW_MACRO(C41Effect, C41Window)
+
 void C41Effect::update_gui()
 {
 	if(thread && load_configuration())
@@ -446,7 +448,7 @@ int C41Effect::save_defaults()
 void C41Effect::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 	output.tag.set_title("C41");
 	output.tag.set_property("ACTIVE", config.active);
 	output.tag.set_property("COMPUTE_MAGIC", config.compute_magic);
@@ -467,7 +469,7 @@ void C41Effect::save_data(KeyFrame *keyframe)
 void C41Effect::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 	while(!input.read_tag())
 	{
 		if(input.tag.title_is("C41"))

@@ -190,7 +190,7 @@ void SvgMain::save_data(KeyFrame *keyframe)
 	FileXML output;
 
 // cause data to be stored directly in text
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 
 // Store data
 	output.tag.set_title("SVG");
@@ -216,7 +216,7 @@ void SvgMain::read_data(KeyFrame *keyframe)
 	FileXML input;
 
 	const char *data = keyframe->get_data();
-	input.set_shared_string((char*)data, strlen(data));
+	input.set_shared_input((char*)data, strlen(data));
 
 	int result = 0;
 

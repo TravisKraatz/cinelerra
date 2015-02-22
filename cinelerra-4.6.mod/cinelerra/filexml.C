@@ -19,13 +19,14 @@
  * 
  */
 
-#include <ctype.h>
-#include <errno.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "bcsignals.h"
+#include "arraylist.h"
+#include "cstrdup.h"
 #include "format.inc"
 #include "filexml.h"
 #include "mainerror.h"
@@ -34,36 +35,417 @@
 #undef eprintf
 #define eprintf printf
 
+static const char left_delm = '<', right_delm = '>';
+
+XMLBuffer::XMLBuffer(long buf_size, long max_size, int del)
+{
+	bsz = buf_size;
+	bfr = new unsigned char[bsz];
+	inp = outp = bfr;
+	lmt = bfr + bsz;
+	isz = max_size;
+	destroy = del;
+}
+
+XMLBuffer::XMLBuffer(const char *buf, long buf_size, int del)
+{	// reading
+	bfr = (unsigned char *)buf;
+	bsz = buf_size;
+	outp = bfr;
+	inp = bfr+bsz;
+	lmt = inp+1;
+	isz = bsz;
+	destroy = del;
+}
+
+XMLBuffer::XMLBuffer(long buf_size, const char *buf, int del)
+{	// writing
+	bfr = (unsigned char *)buf;
+	bsz = buf_size;
+	outp = bfr+bsz;
+	inp = bfr;
+	lmt = inp+1;
+	isz = bsz;
+	destroy = del;
+}
+
+XMLBuffer::~XMLBuffer()
+{
+	if( destroy ) delete [] bfr;
+}
+
+unsigned char *&XMLBuffer::demand(long len)
+{
+	if( len > bsz ) {
+		len += BCTEXTLEN;
+		unsigned char *np = new unsigned char[len];
+		if( inp > bfr ) memcpy(np,bfr,inp-bfr);
+		inp = np + (inp-bfr);
+		outp = np + (outp-bfr);
+		lmt = np + len;  bsz = len;
+		delete [] bfr;   bfr = np;
+	}
+	return bfr;
+}
+
+int XMLBuffer::write(const char *bp, int len)
+{
+	unsigned char *sp = demand(otell()+len);
+	memmove(inp,bp,len);
+	inp += len;
+	return len;
+}
+
+int XMLBuffer::read(char *bp, int len)
+{
+	long size = inp - outp;
+	if( size <= 0 && len > 0 ) return -1;
+	if( len > size ) len = size;
+	memmove(bp,outp,len);
+	outp += len;
+	return len;
+}
+
+int XMLBuffer::enext(unsigned int v)
+{
+	if( v >= 0x80 )
+		return v > 0xffff ? unibs('U',v,4): unibs('u',v,2);
+	switch( v ) {
+	case '\n': break; // return uesc('n');
+	case '\t': return uesc('t');
+	case '\r': return uesc('r');
+	case '\b': return uesc('b');
+	case '\f': return uesc('f');
+	case '\v': return uesc('v');
+	case '\a': return uesc('a');
+	case '\\': return uesc('\\');
+	default:
+		if( v < 0x20 || v == 0x7f )
+			return unibs('x',v,1);
+	}
+	next(v);
+	return 1;
+}
+
+int XMLBuffer::wnext(unsigned int v)
+{
+	if( v < 0x00000080 ) { next(v);	return 1; }
+	int n = v < 0x00000800 ? 2 : v < 0x00010000 ? 3 :
+		v < 0x00200000 ? 4 : v < 0x04000000 ? 5 : 6;
+	int m = (0xff00 >> n), i = n-1;
+	next((v>>(6*i)) | m);
+	while( --i >= 0 ) next(((v>>(6*i)) & 0x3f) | 0x80);
+	return n;
+}
+
+int XMLBuffer::wnext()
+{
+	int v = 0, n = 0, ch = next();
+	if( ch == '\\' ) {
+		switch( (ch=next()) ) {
+		case 'n': return '\n';
+		case 't': return '\t';
+		case 'r': return '\r';
+		case 'b': return '\b';
+		case 'f': return '\f';
+		case 'v': return '\v';
+		case 'a': return '\a';
+		case '0': case '1': case '2': case '3':
+		case '4': case '5': case '6': case '7':
+			v = ch - '0';
+			for( int i=3; --i>0; v=v*8+ch, next() )
+				if( (ch=cur()-'0') < 0 || ch >= 8 ) break;
+			return v;
+		case 'x':	n = 2;	break;
+		case 'u':	n = 4;	break;
+		case 'U':	n = 8;	break;
+		default: return ch;
+		}
+		for( int i=n; --i>=0; v=v*16+ch, next() ) {
+			if( (ch=cur()-'0')>=0 && ch<10 ) continue;
+			if( (ch-='A'-'0'-10)>=10 && ch<16 ) continue;
+			if( (ch-='a'-'A')<10 || ch>=16 ) break;
+		}
+	}
+	else if( ch >= 0x80 ) {
+		static const unsigned char byts[] = {
+			1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 5,
+		};
+		int i = ch - 0xc0;
+		n = i<0 ? 0 : byts[i/4];
+		for( v=ch, i=n; --i>=0; v+=next() ) v <<= 6;
+		static const unsigned int ofs[6] = {
+			0x00000000U, 0x00003080U, 0x000E2080U,
+			0x03C82080U, 0xFA082080U, 0x82082080U
+		};
+		v -= ofs[n];
+	}
+	else
+		v = ch;
+	return v;
+}
+
+
 // Precision in base 10
 // for float is 6 significant figures
 // for double is 16 significant figures
 
-
-
-FileXML::FileXML(char left_delimiter, char right_delimiter)
+XMLTag::Property::Property(const char *pp, const char *vp)
 {
-	tag.set_delimiters(left_delimiter, right_delimiter);
-	this->left_delimiter = left_delimiter;
-	this->right_delimiter = right_delimiter;
-	available = 64;
-	string = new char[available];
-	string[0] = 0;
-	position = length = 0;
+//printf("Property %s = %s\n",pp, vp);
+	prop = cstrdup(pp);
+	value = cstrdup(vp);
+}
+
+XMLTag::Property::~Property()
+{
+	delete [] prop;
+	delete [] value;
+}
+
+
+XMLTag::XMLTag()
+{
+	string = 0;
+	avail = used = 0;
+}
+
+XMLTag::~XMLTag()
+{
+	properties.remove_all_objects();
+	delete [] string;
+}
+
+char *&XMLTag::demand(int len)
+{
+	if( len > avail ) {
+		char *np = new char[len+=BCSTRLEN];
+		if( used > 0 ) memcpy(np, string, used);
+		delete [] string;  string = np;
+		string[used] = 0;  avail = len;
+	}
+	return string;
+}
+
+const char *XMLTag::get_property(const char *property, char *value)
+{
+	int i = properties.size();
+	while( --i >= 0 && strcasecmp(properties[i]->prop, property) );
+	if( i >= 0 )
+		strcpy(value, properties[i]->value);
+	else
+		*value = 0;
+	return value;
+}
+
+//getters
+const char *XMLTag::get_property_text(int i) {
+	return i < properties.size() ? properties[i]->value : "";
+}
+int XMLTag::get_property_int(int i) {
+	return i < properties.size() ? atol(properties[i]->value) : 0;
+}
+float XMLTag::get_property_float(int i) {
+	return i < properties.size() ? atof(properties[i]->value) : 0.;
+}
+const char* XMLTag::get_property(const char *prop) {
+	for( int i=0; i<properties.size(); ++i ) {
+		if( !strcasecmp(properties[i]->prop, prop) )
+			return properties[i]->value;
+	}
+	return 0;
+}
+int32_t XMLTag::get_property(const char *prop, int32_t dflt) {
+	const char *cp = get_property(prop);
+	return !cp ? dflt : atol(cp);
+}
+int64_t XMLTag::get_property(const char *prop, int64_t dflt) {
+	const char *cp = get_property(prop);
+	return !cp ? dflt : strtoll(cp,0,0);
+}
+float XMLTag::get_property(const char *prop, float dflt) {
+	const char *cp = get_property(prop);
+	return !cp ? dflt : atof(cp);
+}
+double XMLTag::get_property(const char *prop, double dflt) {
+	const char *cp = get_property(prop);
+	return !cp ? dflt : atof(cp);
+}
+
+//setters
+int XMLTag::set_title(const char *text) {
+	strcpy(title, text);
+	return 0;
+}
+int XMLTag::set_property(const char *text, const char *value) {
+	properties.append(new XMLTag::Property(text, value));
+	return 0;
+}
+int XMLTag::set_property(const char *text, int32_t value)
+{
+	char text_value[BCSTRLEN];
+	sprintf(text_value, "%d", value);
+	set_property(text, text_value);
+}
+int XMLTag::set_property(const char *text, int64_t value)
+{
+	char text_value[BCSTRLEN];
+	sprintf(text_value, "" _LD "", value);
+	set_property(text, text_value);
+}
+int XMLTag::set_property(const char *text, float value)
+{
+	char text_value[BCSTRLEN];
+	if (value - (float)((int64_t)value) == 0)
+		sprintf(text_value, "" _LD "", (int64_t)value);
+	else
+		sprintf(text_value, "%.6e", value);
+	set_property(text, text_value);
+}
+int XMLTag::set_property(const char *text, double value)
+{
+	char text_value[BCSTRLEN];
+	if (value - (double)((int64_t)value) == 0)
+		sprintf(text_value, "" _LD "", (int64_t)value);
+	else
+		sprintf(text_value, "%.16e", value);
+	set_property(text, text_value);
+}
+
+
+int XMLTag::reset_tag()
+{
+	used = 0;
+	properties.remove_all_objects();
+	return 0;
+}
+
+int XMLTag::write_tag(FileXML *xml)
+{
+	XMLBuffer *buf = xml->buffer;
+// title header
+	buf->next(left_delm);
+	buf->write(title, strlen(title));
+
+// properties
+	for( int i=0; i<properties.size(); ++i ) {
+		const char *prop = properties[i]->prop;
+		const char *value = properties[i]->value;
+		int plen = strlen(prop), vlen = strlen(value);
+		bool need_quotes = !vlen || strchr(value,' ');
+		buf->next(' ');
+		xml->append_text(prop, plen);
+		buf->next('=');
+		if( need_quotes ) buf->next('\"');
+		xml->append_text(value, vlen);
+		if( need_quotes ) buf->next('\"');
+	}
+
+	buf->next(right_delm);
+	return 0;
+}
+
+int XMLTag::read_tag(FileXML *xml)
+{
+	XMLBuffer *buf = xml->buffer;
+	int len, term;
+	long prop_start, prop_end;
+	long value_start, value_end;
+	long ttl;
+	int ch = buf->wnext();
+// skip ws
+	while( ch>=0 && ws(ch) ) ch = buf->wnext();
+	if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+	
+// read title
+	ttl = buf->itell() - 1;
+	for( int i=0; i<MAX_TITLE && ch>=0; ++i, ch=buf->wnext() ) {
+		if( ch == right_delm || ch == '=' || ws(ch) ) break;
+	}
+	if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+	len = buf->itell()-1 - ttl;
+	if( len >= MAX_TITLE ) { printf("err %d\n",__LINE__); return 1; }
+// if title
+	if( ch != '=' ) {
+		memmove(title, buf->pos(ttl), len);
+		title[len] = 0;
+	}
+// no title but first property.
+	else {
+		title[0] = 0;
+		buf->iseek(ttl);
+		ch = buf->wnext();
+	}
+// read properties
+	while( ch >= 0 && ch != right_delm ) {
+// find tag start, skip header leadin
+		while( ch >= 0 && (ch==left_delm || ws(ch)) )
+			ch = buf->wnext();
+// find end of property name
+		prop_start = buf->itell()-1;
+		while( ch >= 0 && (ch!=right_delm && ch!='=' && !ws(ch)) )
+			ch = buf->wnext();
+		if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+		prop_end = buf->itell()-1;
+// skip ws = ws
+		while( ch >= 0 && ws(ch) )
+			ch = buf->wnext();
+		if( ch == '=' ) ch = buf->wnext();
+		while( ch >= 0 && ws(ch) )
+			ch = buf->wnext();
+		if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+// set terminating char
+		if( ch == '\"' ) {
+			term = ch;
+			ch = buf->wnext();
+		}
+		else
+			term = ' ';
+		value_start = buf->itell()-1;
+		while( ch >= 0 && (ch!=term && ch!=right_delm && ch!='\n') )
+			ch = buf->wnext();
+		if( ch < 0 ) { printf("err %d\n",__LINE__); return 1; }
+		value_end = buf->itell()-1;
+// add property
+		int plen = prop_end-prop_start;
+		if( !plen ) continue;
+		int vlen = value_end-value_start;
+		char prop[plen+1], value[vlen+1];
+		const char *coded_prop = (const char *)buf->pos(prop_start);
+		const char *coded_value = (const char *)buf->pos(value_start);
+// props should not have coded text
+		memcpy(prop, coded_prop, plen);
+		prop[plen] = 0;
+		xml->decode(value, coded_value, vlen);
+		if( prop_end > prop_start ) {
+			Property *property = new Property(prop, value);
+			properties.append(property);
+		}
+// skip the terminating char
+		if( ch != right_delm ) ch = buf->wnext();
+	}
+	if( !properties.size() && !title[0] ) { printf("err %d\n",__LINE__); return 1; }
+	return 0;
+}
+
+
+
+FileXML::FileXML()
+{
 	output = 0;
 	output_length = 0;
-	share_string = 0;
+	buffer = new XMLBuffer();
+	decode = decode_data;
+	encode = encode_data;
+	coded_length = encoded_length;
 }
 
 FileXML::~FileXML()
 {
-	if(!share_string) delete [] string;
+	delete buffer;
 	delete [] output;
 }
 
-void FileXML::dump()
-{
-	printf("FileXML::dump:\n%s\n", string);
-}
 
 int FileXML::terminate_string()
 {
@@ -74,8 +456,7 @@ int FileXML::terminate_string()
 int FileXML::rewind()
 {
 	terminate_string();
-	length = strlen(string);
-	position = 0;
+	buffer->iseek(0);
 	return 0;
 }
 
@@ -88,8 +469,8 @@ int FileXML::append_newline()
 
 int FileXML::append_tag()
 {
-	tag.write_tag();
-	append_text(tag.string, tag.len);
+	tag.write_tag(this);
+	append_text(tag.string, tag.used);
 	tag.reset_tag();
 	return 0;
 }
@@ -100,172 +481,115 @@ int FileXML::append_text(const char *text)
 	return 0;
 }
 
+int FileXML::append_data(const char *text, long len)
+{
+	if( text != 0 && len > 0 )
+		buffer->write(text, len);
+	return 0;
+}
+
 int FileXML::append_text(const char *text, long len)
 {
-	if(position + len > available) {
-		long size = available;
-		while(position + len > size) size *= 2;
-		reallocate_string(size);
-	}
-
-	for(int i = 0; i < len; i++, position++) {
-		string[position] = text[i];
+	if( text != 0 && len > 0 ) {
+		int size = coded_length(text, len);
+		char coded_text[size+1];
+		encode(coded_text, text, len);
+		buffer->write(coded_text, size);
 	}
 	return 0;
 }
 
-int FileXML::encode_text(const char *text)
+
+char* FileXML::get_data()
 {
-// We have to encode at least the '<' char
-// We encode three things:
-// '<' -> '<'
-// '>' -> '>'
-// '&' -> '&'
-	char leftb[] = "<";
-	char rightb[] = ">";
-	char amp[] = "&";
-	char *replacement;
-	int len = strlen(text);
-	int lastpos = 0;
-	for (int i = 0; i < len; i++) {
-		switch (text[i]) {
-			case '<': replacement = leftb; break;
-			case '>': replacement = rightb; break;
-			case '&': replacement = amp; break;
-			default: replacement = 0; break;
-		}
-		if (replacement) {
-			if (i - lastpos > 0)
-				append_text(text + lastpos, i - lastpos);
-			append_text(replacement, strlen(replacement));
-			lastpos = i + 1;
-		}
-	}
-	append_text(text + lastpos, len - lastpos);
-	return 0;
+	long ofs = buffer->itell();
+	return (char *)buffer->pos(ofs);
 }
-
-
-
-int FileXML::reallocate_string(long new_available)
+char* FileXML::string()
 {
-	if(!share_string) {
-		char *new_string = new char[new_available];
-		long size = new_available;
-		if( position < size ) size = position;
-		for(int i = 0; i < size; i++) new_string[i] = string[i];
-		available = new_available;
-		delete [] string;
-		string = new_string;
-	}
-	return 0;
-}
-
-char* FileXML::get_ptr()
-{
-	return string + position;
+	return (char *)buffer->pos();
 }
 
 char* FileXML::read_text()
 {
-// use < to mark end of text and start of tag
-	char *bp = string + position, *ep = bp + length;
+	int ch = buffer->wnext();
 // filter out first char is new line
-	if( bp < ep && *bp == '\n' ) ++bp;
-	char *cp = bp;
-// scan for end of bfr, end of string, or delimiter
-	while( cp < ep && *cp != 0 && *cp != left_delimiter ) ++cp;
-
-	long len = XMLTag::encoded_length(bp, cp-bp);
+	if( ch == '\n' ) ch = buffer->wnext();
+	long ipos = buffer->itell()-1;
+// scan for delimiter
+	while( ch >= 0 && ch != left_delm ) ch = buffer->wnext();
+	long len = buffer->itell()-1 - ipos;
 	if( len > output_length ) {
 		delete [] output;
 		output_length = len;
-		output = new char[output_length + 1];
+		output = new char[output_length+1];
 	}
-	XMLTag::encode_data(output, bp, cp-bp);
-
+	decode(output,(const char *)buffer->pos(ipos), len);
 	return output;
 }
 
 int FileXML::read_tag()
 {
+	int ch = buffer->wnext();
 // scan to next tag
-	while(position < length && string[position] != left_delimiter)
-	{
-		position++;
-	}
+	while( ch >= 0 && ch != left_delm ) ch = buffer->wnext();
+	if( ch < 0 ) return 1;
 	tag.reset_tag();
-	if(position >= length) return 1;
-//printf("FileXML::read_tag %s\n", &string[position]);
-	return tag.read_tag(string, position, length);
+	return tag.read_tag(this);
 }
 
-int FileXML::read_text_until(const char *tag_end, char *output, int max_len)
+int FileXML::read_data_until(const char *tag_end, char *out, int len)
 {
-// read to next tag
-	int out_position = 0;
-	int test_position1, test_position2;
-	int result = 0;
-	
-	while(!result && position < length && out_position < max_len - 1)
-	{
-		while(position < length && string[position] != left_delimiter)
-		{
-//printf("FileXML::read_text_until 1 %c\n", string[position]);
-			output[out_position++] = string[position++];
-		}
-		
-		if(position < length && string[position] == left_delimiter)
-		{
-// tag reached
-// test for tag_end
-			result = 1;         // assume end
-			
-			for(test_position1 = 0, test_position2 = position + 1;   // skip < 
-				test_position2 < length &&
-				tag_end[test_position1] != 0 &&
-				result; 
-				test_position1++, test_position2++)
-			{
-// null result when first wrong character is reached
-//printf("FileXML::read_text_until 2 %c\n", string[test_position2]);
-				if(tag_end[test_position1] != string[test_position2]) result = 0;
+	long ipos = buffer->itell();
+	int opos = 0, pos = -1;
+	int ch = buffer->wnext();
+	for( int olen=len-1; ch>=0 && opos<olen; ch=buffer->wnext() ) {
+		if( pos < 0 ) { // looking for next tag
+			if( ch == left_delm ) {
+				ipos = buffer->itell()-1;
+				pos = 0;
 			}
-
-// no end tag reached to copy <
-			if(!result)
-			{
-				output[out_position++] = string[position++];
-			}
+			else
+				out[opos++] = ch;
+			continue;
 		}
+		if( tag_end[pos] != ch ) { // mismatched, copy prefix to out
+			out[opos++] = left_delm;
+			for( int i=0; i<pos && opos<olen; ++i )
+				out[opos++] = tag_end[i];
+			pos = -1;
+			continue;
+		}
+		if( !tag_end[++pos] ) break;
 	}
-	output[out_position] = 0;
-// if end tag is reached, position is left on the < of the end tag
-	return 0;
+// if end tag is reached, pos is left on the < of the end tag
+	if( pos >= 0 && !tag_end[pos] )
+		buffer->iseek(ipos);
+	return opos;
 }
 
+int FileXML::read_text_until(const char *tag_end, char *out, int len)
+{
+	char data[len+1];
+	int opos = read_data_until(tag_end, data, len);
+	decode(out, data, opos);
+}
 
 int FileXML::write_to_file(const char *filename)
 {
 	strcpy(this->filename, filename);
 	FILE *out = fopen(filename, "wb");
-	if( out != 0 )
-	{
-		fprintf(out, "<?xml version=\"1.0\"?>\n");
-// Position may have been rewound after storing so we use a strlen
-		if(!fwrite(string, strlen(string), 1, out) && strlen(string))
-		{
-			eprintf("write_to_file %d \"%s\": %m\n", __LINE__, filename);
-			fclose(out);
-			return 1;
-		}
-		else
-		{
-		}
-	}
-	else
-	{
+	if( !out ) {
 		eprintf("write_to_file %d \"%s\": %m\n", __LINE__, filename);
+		return 1;
+	}
+// Position may have been rewound after storing
+	const char *str = string();
+	long len = strlen(str);
+	fprintf(out, "<?xml version=\"1.0\"?>\n");
+	if( len && !fwrite(str, len, 1, out) ) {
+		eprintf("write_to_file %d \"%s\": %m\n", __LINE__, filename);
+		fclose(out);
 		return 1;
 	}
 	fclose(out);
@@ -276,13 +600,10 @@ int FileXML::write_to_file(FILE *file)
 {
 	strcpy(filename, "");
 	fprintf(file, "<?xml version=\"1.0\"?>\n");
+	const char *str = string();
+	long len = strlen(str);
 // Position may have been rewound after storing
-	if(fwrite(string, strlen(string), 1, file) || !strlen(string))
-	{
-		return 0;
-	}
-	else
-	{
+	if( len && !fwrite(str, len, 1, file) ) {
 		eprintf("\"%s\": %m\n", filename);
 		return 1;
 	}
@@ -294,50 +615,63 @@ int FileXML::read_from_file(const char *filename, int ignore_error)
 	
 	strcpy(this->filename, filename);
 	FILE *in = fopen(filename, "rb");
-	if( in != 0 )
-	{
-		fseek(in, 0, SEEK_END);
-		int new_length = ftell(in);
-		fseek(in, 0, SEEK_SET);
-		reallocate_string(new_length + 1);
-		(void)fread(string, new_length, 1, in);
-		string[new_length] = 0;
-		position = 0;
-		length = new_length;
-	}
-	else
-	{
+	if( !in ) {
 		if(!ignore_error) 
 			eprintf("\"%s\" %m\n", filename);
 		return 1;
 	}
+	fseek(in, 0, SEEK_END);
+	long length = ftell(in);
+	fseek(in, 0, SEEK_SET);
+	char *fbfr = new char[length+1];
+	delete buffer;
+	(void)fread(fbfr, length, 1, in);
+	fbfr[length] = 0;
+	buffer = new XMLBuffer(fbfr, length, 1);
 	fclose(in);
 	return 0;
 }
 
 int FileXML::read_from_string(char *string)
 {
-	strcpy(this->filename, "");
-	reallocate_string(strlen(string) + 1);
-	strcpy(this->string, string);
-	length = strlen(string);
-	position = 0;
-	return 0;
+        strcpy(this->filename, "");
+	long length = strlen(string);
+	char *sbfr = new char[length+1];
+	strcpy(sbfr, string);
+	delete buffer;
+	buffer = new XMLBuffer(sbfr, length, 1);
+        return 0;
 }
 
-int FileXML::set_shared_string(char *shared_string, long available)
+void FileXML::set_coding(int coding)
+{
+	coded = coding;
+	decode = coded ? decode_data : copy_data;
+	encode = coded ? encode_data : copy_data;
+	coded_length = coded ? encoded_length : copy_length;
+}
+
+int FileXML::get_coding()
+{
+	return coded;
+}
+
+int FileXML::set_shared_input(char *shared_string, long avail, int coded)
 {
 	strcpy(this->filename, "");
-	if(!share_string)
-	{
-		delete [] string;
-		share_string = 1;
-		string = shared_string;
-		this->available = available;
-		length = available;
-		position = 0;
-	}
-	return 0;
+	delete buffer;
+	buffer = new XMLBuffer(shared_string, avail, 0);
+	set_coding(coded);
+        return 0;
+}
+
+int FileXML::set_shared_output(char *shared_string, long avail, int coded)
+{
+	strcpy(this->filename, "");
+	delete buffer;
+	buffer = new XMLBuffer(avail, shared_string, 0);
+	set_coding(coded);
+        return 0;
 }
 
 
@@ -345,402 +679,32 @@ int FileXML::set_shared_string(char *shared_string, long available)
 // ================================ XML tag
 
 
-XMLTag::XMLTag()
+
+int XMLTag::title_is(const char *tp)
 {
-	total_properties = 0;
-	len = 0;
-}
-
-XMLTag::~XMLTag()
-{
-	reset_tag();
-}
-
-int XMLTag::set_delimiters(char left_delimiter, char right_delimiter)
-{
-	this->left_delimiter = left_delimiter;
-	this->right_delimiter = right_delimiter;
-	return 0;
-}
-
-int XMLTag::reset_tag()     // clear all structures
-{
-	len = 0;
-	for(int i = 0; i < total_properties; i++) delete [] tag_properties[i];
-	for(int i = 0; i < total_properties; i++) delete [] tag_property_values[i];
-	total_properties = 0;
-	return 0;
-}
-
-int XMLTag::write_tag()
-{
-	int i, j;
-	char *current_property, *current_value;
-	int has_space;
-
-// opening bracket
-	string[len] = left_delimiter;        
-	len++;
-	
-// title
-	for(i = 0; tag_title[i] != 0 && len < MAX_LENGTH; i++, len++) string[len] = tag_title[i];
-
-// properties
-	for(i = 0; i < total_properties && len < MAX_LENGTH; i++)
-	{
-		string[len++] = ' ';         // add a space before every property
-		
-		current_property = tag_properties[i];
-
-// property title
-		for(j = 0; current_property[j] != 0 && len < MAX_LENGTH; j++, len++)
-		{
-			string[len] = current_property[j];
-		}
-		
-		if(len < MAX_LENGTH) string[len++] = '=';
-		
-		current_value = tag_property_values[i];
-
-// property value
-// search for spaces in value
-		for(j = 0, has_space = 0; current_value[j] != 0 && !has_space; j++)
-		{
-			if(current_value[j] == ' ') has_space = 1;
-		}
-
-// Is it 0 length?
-		if(current_value[0] == 0) has_space = 1;
-
-// add a quote if space
-		if(has_space && len < MAX_LENGTH) string[len++] = '\"';
-// write the value
-		for(j = 0; current_value[j] != 0 && len < MAX_LENGTH; j++, len++)
-		{
-			string[len] = current_value[j];
-		}
-// add a quote if space
-		if(has_space && len < MAX_LENGTH) string[len++] = '\"';
-		
-		
-	}     // next property
-	
-	if(len < MAX_LENGTH) string[len++] = right_delimiter;   // terminating bracket
-	return 0;
-}
-
-int XMLTag::read_tag(char *input, long &position, long length)
-{
-	long tag_start;
-	int i, j, terminating_char;
-
-// search for beginning of a tag
-	while(input[position] != left_delimiter && position < length) position++;
-	
-	if(position >= length) return 1;
-
-// find the start
-	while(position < length &&
-		(input[position] == ' ' ||         // skip spaces
-		input[position] == '\n' ||	 // also skip new lines
-		input[position] == left_delimiter))           // skip <
-		position++;
-
-	if(position >= length) return 1;
-	
-	tag_start = position;
-	
-// read title
-	for(i = 0; 
-		i < MAX_TITLE && 
-		position < length && 
-		input[position] != '=' && 
-		input[position] != ' ' &&       // space ends title
-		input[position] != right_delimiter;
-		position++, i++)
-	{
-		tag_title[i] = input[position];
-	}
-	tag_title[i] = 0;
-	
-	if(position >= length) return 1;
-	
-	if(input[position] == '=')
-	{
-// no title but first property
-		tag_title[0] = 0;
-		position = tag_start;       // rewind
-	}
-
-// read properties
-	for(i = 0;
-		i < MAX_PROPERTIES &&
-		position < length &&
-		input[position] != right_delimiter;
-		i++)
-	{
-// read a tag
-// find the start
-		while(position < length &&
-			(input[position] == ' ' ||         // skip spaces
-			input[position] == '\n' ||         // also skip new lines
-			input[position] == left_delimiter))           // skip <
-			position++;
-
-// read the property description
-		for(j = 0; 
-			j < MAX_LENGTH &&
-			position < length &&
-			input[position] != right_delimiter &&
-			input[position] != ' ' &&
-			input[position] != '\n' &&	// also new line ends it
-			input[position] != '=';
-			j++, position++)
-		{
-			string[j] = input[position];
-		}
-		string[j] = 0;
-
-
-// store the description in a property array
-		tag_properties[total_properties] = new char[strlen(string) + 1];
-		strcpy(tag_properties[total_properties], string);
-
-// find the start of the value
-		while(position < length &&
-			(input[position] == ' ' ||         // skip spaces
-			input[position] == '\n' ||         // also skip new lines
-			input[position] == '='))           // skip =
-			position++;
-
-// find the terminating char
-		if(position < length && input[position] == '\"')
-		{
-			terminating_char = '\"';     // use quotes to terminate
-			if(position < length) position++;   // don't store the quote itself
-		}
-		else 
-			terminating_char = ' ';         // use space to terminate
-
-// read until the terminating char
-		for(j = 0;
-			j < MAX_LENGTH &&
-			position < length &&
-			input[position] != right_delimiter &&
-			input[position] != '\n' &&
-			input[position] != terminating_char;
-			j++, position++)
-		{
-			string[j] = input[position];
-		}
-		string[j] = 0;
-
-// store the value in a property array
-		tag_property_values[total_properties] = new char[strlen(string) + 1];
-		strcpy(tag_property_values[total_properties], string);
-		
-// advance property if one was just loaded
-		if(tag_properties[total_properties][0] != 0) total_properties++;
-
-// get the terminating char
-		if(position < length && input[position] != right_delimiter) position++;
-	}
-
-// skip the >
-	if(position < length && input[position] == right_delimiter) position++;
-
-	if(total_properties || tag_title[0]) 
-		return 0; 
-	return 1;
-}
-
-int XMLTag::title_is(const char *title)
-{
-	if(!strcasecmp(title, tag_title)) return 1;
-	else return 0;
+	return !strcasecmp(title, tp) ? 1 : 0;
 }
 
 char* XMLTag::get_title()
 {
-	return tag_title;
+	return title;
 }
 
 int XMLTag::get_title(char *value)
 {
-	if(tag_title[0] != 0) strcpy(value, tag_title);
+	if( title[0] != 0 ) strcpy(value, title);
 	return 0;
 }
 
 int XMLTag::test_property(char *property, char *value)
 {
-	int i, result;
-	for(i = 0, result = 0; i < total_properties && !result; i++)
-	{
-		if(!strcasecmp(tag_properties[i], property) && !strcasecmp(value, tag_property_values[i]))
-		{
+	for( int i=0; i<properties.size(); ++i ) {
+		if( !strcasecmp(properties[i]->prop, property) &&
+		    !strcasecmp(properties[i]->value, value) )
 			return 1;
-		}
 	}
 	return 0;
 }
-
-const char* XMLTag::get_property(const char *property, char *value)
-{
-	int i, result;
-	for(i = 0, result = 0; i < total_properties && !result; i++)
-	{
-		if(!strcasecmp(tag_properties[i], property))
-		{
-//printf("XMLTag::get_property %s %s\n", tag_properties[i], tag_property_values[i]);
-			decode_data(value, tag_property_values[i]);
-			result = 1;
-		}
-	}
-	return value;
-}
-
-const char* XMLTag::get_property_text(int number)
-{
-	if(number < total_properties) 
-		return tag_properties[number];
-	else
-		return "";
-}
-
-int XMLTag::get_property_int(int number)
-{
-	if(number < total_properties) 
-		return atol(tag_properties[number]);
-	else
-		return 0;
-}
-
-float XMLTag::get_property_float(int number)
-{
-	if(number < total_properties) 
-		return atof(tag_properties[number]);
-	else
-		return 0;
-}
-
-char* XMLTag::get_property(const char *property)
-{
-	int i, result;
-	for(i = 0, result = 0; i < total_properties && !result; i++)
-	{
-		if(!strcasecmp(tag_properties[i], property))
-		{
-			return tag_property_values[i];
-		}
-	}
-	return 0;
-}
-
-
-int32_t XMLTag::get_property(const char *property, int32_t default_)
-{
-	temp_string[0] = 0;
-	get_property(property, temp_string);
-	if(temp_string[0] == 0) 
-		return default_;
-	else 
-		return atol(temp_string);
-}
-
-int64_t XMLTag::get_property(const char *property, int64_t default_)
-{
-	int64_t result;
-	temp_string[0] = 0;
-	get_property(property, temp_string);
-	if(temp_string[0] == 0) 
-		result = default_;
-	else 
-	{
-		result = strtoll(temp_string,0,0);
-	}
-	return result;
-}
-// 
-// int XMLTag::get_property(char *property, int default_)
-// {
-// 	temp_string[0] = 0;
-// 	get_property(property, temp_string);
-// 	if(temp_string[0] == 0) return default_;
-// 	else return atol(temp_string);
-// }
-// 
-float XMLTag::get_property(const char *property, float default_)
-{
-	temp_string[0] = 0;
-	get_property(property, temp_string);
-	if(temp_string[0] == 0) 
-		return default_;
-	else 
-		return atof(temp_string);
-}
-
-double XMLTag::get_property(const char *property, double default_)
-{
-	temp_string[0] = 0;
-	get_property(property, temp_string);
-	if(temp_string[0] == 0) 
-		return default_;
-	else 
-		return atof(temp_string);
-}
-
-int XMLTag::set_title(const char *text)       // set the title field
-{
-	strcpy(tag_title, text);
-	return 0;
-}
-
-int XMLTag::set_property(const char *text, int32_t value)
-{
-	sprintf(temp_string, "%d", value);
-	set_property(text, temp_string);
-	return 0;
-}
-
-int XMLTag::set_property(const char *text, int64_t value)
-{
-	sprintf(temp_string, "" _LD "", value);
-	set_property(text, temp_string);
-	return 0;
-}
-
-int XMLTag::set_property(const char *text, float value)
-{
-	if (value - (float)((int64_t)value) == 0)
-		sprintf(temp_string, "" _LD "", (int64_t)value);
-	else
-		sprintf(temp_string, "%.6e", value);
-	set_property(text, temp_string);
-	return 0;
-}
-
-int XMLTag::set_property(const char *text, double value)
-{
-	if (value - (double)((int64_t)value) == 0)
-		sprintf(temp_string, "" _LD "", (int64_t)value);
-	else
-		sprintf(temp_string, "%.16e", value);
-	set_property(text, temp_string);
-	return 0;
-}
-
-int XMLTag::set_property(const char *text, const char *value)
-{
-	tag_properties[total_properties] = new char[strlen(text) + 1];
-	strcpy(tag_properties[total_properties], text);
-	int len = encoded_length(value);
-	tag_property_values[total_properties] = new char[len + 1];
-	encode_data(tag_property_values[total_properties], value);
-	total_properties++;
-	return 0;
-}
-
-// closer to the real deal
 
 static inline int xml_cmp(const char *np, const char *sp)
 {
@@ -749,7 +713,7 @@ static inline int xml_cmp(const char *np, const char *sp)
    return np - tp;
 }
 
-char *XMLTag::decode_data(char *bp, const char *sp, int n)
+char *FileXML::decode_data(char *bp, const char *sp, int n)
 {
    char *ret = bp;
    if( n < 0 ) n = strlen(sp);
@@ -787,7 +751,7 @@ char *XMLTag::decode_data(char *bp, const char *sp, int n)
 }
 
 
-char *XMLTag::encode_data(char *bp, const char *sp, int n)
+char *FileXML::encode_data(char *bp, const char *sp, int n)
 {
 	char *ret = bp;
 	if( n < 0 ) n = strlen(sp);
@@ -807,7 +771,7 @@ char *XMLTag::encode_data(char *bp, const char *sp, int n)
 	return ret;
 }
 
-long XMLTag::encoded_length(const char *sp, int n)
+long FileXML::encoded_length(const char *sp, int n)
 {
 	long len = 0;
 	if( n < 0 ) n = strlen(sp);
@@ -824,3 +788,18 @@ long XMLTag::encoded_length(const char *sp, int n)
 	}
 	return len;
 }
+
+char *FileXML::copy_data(char *bp, const char *sp, int n)
+{
+	int len = n < 0 ? strlen(sp) : n;
+	memmove(bp,sp,len);
+	bp[len] = 0;
+	return bp;
+}
+
+long FileXML::copy_length(const char *sp, int n)
+{
+	int len = n < 0 ? strlen(sp) : n;
+	return len;
+}
+

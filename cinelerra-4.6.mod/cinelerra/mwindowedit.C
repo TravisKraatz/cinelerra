@@ -501,11 +501,11 @@ int MWindow::copy(double start, double end)
 // File is now terminated and rewound
 
 //printf("MWindow::copy 1\n");
-	gui->get_clipboard()->to_clipboard(file.string, 
-		strlen(file.string), 
+	const char *file_string = file.string();
+	long file_length = strlen(file_string);
+	gui->get_clipboard()->to_clipboard(file_string, file_length,
 		SECONDARY_SELECTION);
-	gui->get_clipboard()->to_clipboard(file.string, 
-		strlen(file.string), 
+	gui->get_clipboard()->to_clipboard(file_string, file_length,
 		BC_PRIMARY_SELECTION);
 //printf("MWindow::copy\n%s\n", file.string);
 //printf("MWindow::copy 2\n");
@@ -521,11 +521,11 @@ int MWindow::copy_automation()
 		&file,
 		0,
 		1);
-	gui->get_clipboard()->to_clipboard(file.string, 
-		strlen(file.string), 
+	const char *file_string = file.string();
+	long file_length = strlen(file_string);
+	gui->get_clipboard()->to_clipboard(file_string, file_length,
 		BC_PRIMARY_SELECTION);
-	gui->get_clipboard()->to_clipboard(file.string, 
-		strlen(file.string), 
+	gui->get_clipboard()->to_clipboard(file_string, file_length,
 		SECONDARY_SELECTION);
 	return 0;
 }
@@ -538,11 +538,11 @@ int MWindow::copy_default_keyframe()
 		&file,
 		1,
 		0);
-	gui->get_clipboard()->to_clipboard(file.string,
-		strlen(file.string),
+	const char *file_string = file.string();
+	long file_length = strlen(file_string);
+	gui->get_clipboard()->to_clipboard(file_string, file_length,
 		BC_PRIMARY_SELECTION);
-	gui->get_clipboard()->to_clipboard(file.string,
-		strlen(file.string),
+	gui->get_clipboard()->to_clipboard(file_string, file_length,
 		SECONDARY_SELECTION);
 	return 0;
 }

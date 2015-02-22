@@ -1065,7 +1065,7 @@ void GraphicEQ::read_data(KeyFrame *keyframe)
 	FileXML input;
 	int result = 0;
 
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 	config.points.remove_all_objects();
 
 	while(!result)
@@ -1103,7 +1103,7 @@ void GraphicEQ::read_data(KeyFrame *keyframe)
 void GraphicEQ::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 
 	output.tag.set_title("GRAPHICEQ");
 	output.tag.set_property("WINDOW_SIZE", config.window_size);

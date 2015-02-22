@@ -1209,7 +1209,7 @@ LOAD_CONFIGURATION_MACRO(Spectrogram, SpectrogramConfig)
 void Spectrogram::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 
 	int result = 0;
 	while(!result)
@@ -1239,7 +1239,7 @@ void Spectrogram::read_data(KeyFrame *keyframe)
 void Spectrogram::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 
 	output.tag.set_title("SPECTROGRAM");
 	output.tag.set_property("LEVEL", (double)config.level);

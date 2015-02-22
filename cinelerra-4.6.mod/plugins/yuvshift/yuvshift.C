@@ -237,7 +237,7 @@ void YUVShiftEffect::update_gui()
 void YUVShiftEffect::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 	output.tag.set_title("YUVSHIFT");
 	output.tag.set_property("Y_DX", config.y_dx);
 	output.tag.set_property("Y_DY", config.y_dy);
@@ -252,7 +252,7 @@ void YUVShiftEffect::save_data(KeyFrame *keyframe)
 void YUVShiftEffect::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 	while(!input.read_tag())
 	{
 		if(input.tag.title_is("YUVSHIFT"))

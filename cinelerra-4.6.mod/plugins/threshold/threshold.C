@@ -205,7 +205,7 @@ int ThresholdMain::save_defaults()
 void ThresholdMain::save_data(KeyFrame *keyframe)
 {
 	FileXML file;
-	file.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	file.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 	file.tag.set_title("THRESHOLD");
 	file.tag.set_property("MIN", config.min);
 	file.tag.set_property("MAX", config.max);
@@ -223,7 +223,7 @@ void ThresholdMain::read_data(KeyFrame *keyframe)
 {
 	FileXML file;
 	const char *data = keyframe->get_data();
-	file.set_shared_string((char *)data, strlen(data));
+	file.set_shared_input((char *)data, strlen(data));
 	int result = 0;
 	while(!result)
 	{

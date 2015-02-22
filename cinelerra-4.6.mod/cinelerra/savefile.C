@@ -111,7 +111,7 @@ int Save::handle_event()
 		{
 			char string[BCTEXTLEN];
 			sprintf(string, _("\"%s\" %dC written"),
-				 mwindow->session->filename, (int)strlen(file.string));
+				 mwindow->session->filename, (int)strlen(file.string()));
 			mwindow->gui->show_message(string);
 		}
 		mwindow->session->changes_made = 0;
@@ -217,7 +217,7 @@ void SaveAs::run()
 	else
 	{
 		char string[BCTEXTLEN];
-		sprintf(string, _("\"%s\" %dC written"), filename, (int)strlen(file.string));
+		sprintf(string, _("\"%s\" %dC written"), filename, (int)strlen(file.string()));
 		mwindow->gui->lock_window("SaveAs::run 2");
 		mwindow->gui->show_message(string);
 		mwindow->gui->unlock_window();

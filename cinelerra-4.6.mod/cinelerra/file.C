@@ -2110,7 +2110,9 @@ int File::can_copy_from(Asset *asset,
 		FileXML xml;
 		asset->write(&xml, 1, "");
 		xml.terminate_string();
-		int buffer_size = strlen(xml.string) + 1 + 
+		const char *xml_string = xml.string();
+		long xml_length = strlen(xml_string);
+		int buffer_size = xml_length + 1 + 
 			sizeof(int64_t) +
 			sizeof(int) + 
 			sizeof(int);
@@ -2122,8 +2124,8 @@ int File::can_copy_from(Asset *asset,
 			sizeof(int64_t) +
 			sizeof(int) + 
 			sizeof(int), 
-			xml.string, 
-			strlen(xml.string) + 1);
+			xml_string, 
+			xml_length + 1);
 
 		file_fork->send_command(FileFork::CAN_COPY_FROM, 
 			buffer, 
@@ -2147,81 +2149,47 @@ int File::can_copy_from(Asset *asset,
 // Fill in queries about formats when adding formats here.
 
 
-int File::strtoformat(char *format)
+int File::strtoformat(const char *format)
 {
 	return strtoformat(0, format);
 }
 
-int File::strtoformat(ArrayList<PluginServer*> *plugindb, char *format)
+int File::strtoformat(ArrayList<PluginServer*> *plugindb, const char *format)
 {
 	if(!strcasecmp(format, _(AC3_NAME))) return FILE_AC3;
-	else
 	if(!strcasecmp(format, _(SCENE_NAME))) return FILE_SCENE;
-	else
 	if(!strcasecmp(format, _(WAV_NAME))) return FILE_WAV;
-	else
 	if(!strcasecmp(format, _(PCM_NAME))) return FILE_PCM;
-	else
 	if(!strcasecmp(format, _(AU_NAME))) return FILE_AU;
-	else
 	if(!strcasecmp(format, _(AIFF_NAME))) return FILE_AIFF;
-	else
 	if(!strcasecmp(format, _(SND_NAME))) return FILE_SND;
-	else
 	if(!strcasecmp(format, _(PNG_NAME))) return FILE_PNG;
-	else
 	if(!strcasecmp(format, _(PNG_LIST_NAME))) return FILE_PNG_LIST;
-	else
 	if(!strcasecmp(format, _(TIFF_NAME))) return FILE_TIFF;
-	else
 	if(!strcasecmp(format, _(TIFF_LIST_NAME))) return FILE_TIFF_LIST;
-	else
 	if(!strcasecmp(format, _(JPEG_NAME))) return FILE_JPEG;
-	else
 	if(!strcasecmp(format, _(JPEG_LIST_NAME))) return FILE_JPEG_LIST;
-	else
 	if(!strcasecmp(format, _(EXR_NAME))) return FILE_EXR;
-	else
 	if(!strcasecmp(format, _(EXR_LIST_NAME))) return FILE_EXR_LIST;
-	else
 	if(!strcasecmp(format, _(YUV_NAME))) return FILE_YUV;
-	else
 	if(!strcasecmp(format, _(FLAC_NAME))) return FILE_FLAC;
-	else
 	if(!strcasecmp(format, _(CR2_NAME))) return FILE_CR2;
-	else
 	if(!strcasecmp(format, _(CR2_LIST_NAME))) return FILE_CR2_LIST;
-	else
 	if(!strcasecmp(format, _(MPEG_NAME))) return FILE_MPEG;
-	else
 	if(!strcasecmp(format, _(AMPEG_NAME))) return FILE_AMPEG;
-	else
 	if(!strcasecmp(format, _(VMPEG_NAME))) return FILE_VMPEG;
-	else
 	if(!strcasecmp(format, _(TGA_NAME))) return FILE_TGA;
-	else
 	if(!strcasecmp(format, _(TGA_LIST_NAME))) return FILE_TGA_LIST;
-	else
 	if(!strcasecmp(format, _(MOV_NAME))) return FILE_MOV;
-	else
 	if(!strcasecmp(format, _(AVI_NAME))) return FILE_AVI;
-	else
 	if(!strcasecmp(format, _(AVI_LAVTOOLS_NAME))) return FILE_AVI_LAVTOOLS;
-	else
 	if(!strcasecmp(format, _(AVI_ARNE2_NAME))) return FILE_AVI_ARNE2;
-	else
 	if(!strcasecmp(format, _(AVI_ARNE1_NAME))) return FILE_AVI_ARNE1;
-	else
 	if(!strcasecmp(format, _(AVI_AVIFILE_NAME))) return FILE_AVI_AVIFILE;
-	else
 	if(!strcasecmp(format, _(OGG_NAME))) return FILE_OGG;
-	else
 	if(!strcasecmp(format, _(VORBIS_NAME))) return FILE_VORBIS;
-	else
 	if(!strcasecmp(format, _(RAWDV_NAME))) return FILE_RAWDV;
-	else
 	if(!strcasecmp(format, _(FFMPEG_NAME))) return FILE_FFMPEG;
-	else
 	if(!strcasecmp(format, _(DBASE_NAME))) return FILE_DB;
 
 	return 0;

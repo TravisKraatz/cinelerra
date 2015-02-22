@@ -299,7 +299,7 @@ void Reverb::save_data(KeyFrame *keyframe)
 //printf("Reverb::save_data 1\n");
 
 // cause xml file to store data directly in text
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 //printf("Reverb::save_data 1\n");
 
 	output.tag.set_title("REVERB");
@@ -329,7 +329,7 @@ void Reverb::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
 // cause xml file to read directly from text
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 	int result = 0;
 
 	result = input.read_tag();

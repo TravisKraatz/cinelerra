@@ -282,7 +282,7 @@ void BrightnessMain::save_data(KeyFrame *keyframe)
 	FileXML output;
 
 // cause data to be stored directly in text
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 	output.tag.set_title("BRIGHTNESS");
 	output.tag.set_property("BRIGHTNESS", config.brightness);
 	output.tag.set_property("CONTRAST",  config.contrast);
@@ -295,7 +295,7 @@ void BrightnessMain::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
 
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 
 	int result = 0;
 

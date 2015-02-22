@@ -625,7 +625,7 @@ int DeInterlaceMain::save_defaults()
 void DeInterlaceMain::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 	output.tag.set_title("DEINTERLACE");
 	output.tag.set_property("MODE", config.mode);
 	output.tag.set_property("DOMINANCE", config.dominance);
@@ -640,7 +640,7 @@ void DeInterlaceMain::save_data(KeyFrame *keyframe)
 void DeInterlaceMain::read_data(KeyFrame *keyframe)
 {
 	FileXML input;  char *data = keyframe->get_data();
-	input.set_shared_string(data, strlen(data));
+	input.set_shared_input(data, strlen(data));
 
 	while(!input.read_tag())
 	{

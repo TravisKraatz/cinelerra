@@ -504,7 +504,7 @@ int Asset::read(FileXML *file,
 			else
 			if(file->tag.title_is("FORMAT"))
 			{
-				char *string = file->tag.get_property("TYPE");
+				const char *string = file->tag.get_property("TYPE");
 				format = File::strtoformat(string);
 				use_header = 
 					file->tag.get_property("USE_HEADER", use_header);

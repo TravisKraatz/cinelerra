@@ -366,7 +366,7 @@ int _720to480Main::process_loop(VFrame *output)
 void _720to480Main::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 	output.tag.set_title("720TO480");
 	output.tag.set_property("FIRST_FIELD", config.first_field);
 	output.tag.set_property("DIRECTION", config.direction);
@@ -377,7 +377,7 @@ void _720to480Main::save_data(KeyFrame *keyframe)
 void _720to480Main::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 
 	while(!input.read_tag())
 	{

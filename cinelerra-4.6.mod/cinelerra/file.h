@@ -249,9 +249,9 @@ public:
 	static const char* get_prefix(int format);
 	static int supports_video(int format);   // returns 1 if the format supports video or audio
 	static int supports_audio(int format);
-	static int strtoformat(char *format);
+	static int strtoformat(const char *format);
 	static const char* formattostr(int format);
-	static int strtoformat(ArrayList<PluginServer*> *plugindb, char *format);
+	static int strtoformat(ArrayList<PluginServer*> *plugindb, const char *format);
 	static const char* formattostr(ArrayList<PluginServer*> *plugindb, int format);
 	static int strtobits(const char *bits);
 	static const char* bitstostr(int bits);

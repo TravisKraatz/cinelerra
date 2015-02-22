@@ -225,7 +225,7 @@ VFrame* SlideMain::new_picon()
 void SlideMain::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
-	output.set_shared_string(keyframe->get_data(), MESSAGESIZE);
+	output.set_shared_output(keyframe->get_data(), MESSAGESIZE);
 	output.tag.set_title("SLIDE");
 	output.tag.set_property("MOTION_DIRECTION", motion_direction);
 	output.tag.set_property("DIRECTION", direction);
@@ -237,7 +237,7 @@ void SlideMain::read_data(KeyFrame *keyframe)
 {
 	FileXML input;
 
-	input.set_shared_string(keyframe->get_data(), strlen(keyframe->get_data()));
+	input.set_shared_input(keyframe->get_data(), strlen(keyframe->get_data()));
 
 	while(!input.read_tag())
 	{
