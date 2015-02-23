@@ -22,6 +22,9 @@
 #ifndef KEYFRAME_H
 #define KEYFRAME_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "auto.h"
 #include "filexml.inc"
 #include "keyframes.inc"
@@ -47,7 +50,7 @@ public:
 	int operator==(Auto &that);
 	int operator==(KeyFrame &that);
 	void copy_data(KeyFrame *src);
-	void dump();
+	void dump(FILE *fp=stdout);
 	int identical(KeyFrame *src);
 // Generate pointers to parameters which are different than *src.
 // User must free nonzero return arguments.

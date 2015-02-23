@@ -248,16 +248,16 @@ int AttachmentPoint::gui_open()
 
 
 
-int AttachmentPoint::dump()
+int AttachmentPoint::dump(FILE *fp)
 {
 	if(this)
 	{
-		printf("    Attachmentpoint this=%p virtual_plugins=%d\n", this, new_virtual_plugins.total);
-		if(plugin_server) plugin_server->dump();
+		fprintf(fp,"    Attachmentpoint this=%p virtual_plugins=%d\n", this, new_virtual_plugins.total);
+		if(plugin_server) plugin_server->dump(fp);
 	}
 	else
 	{
-		printf("    No Plugin\n");
+		fprintf(fp,"    No Plugin\n");
 	}
 	return 0;
 }

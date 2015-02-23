@@ -70,7 +70,7 @@ public:
 
 
 	int delete_all();
-	int dump();
+	int dump(FILE *fp=stdout);
 
 // return the asset containing this path or create a new asset containing this path
 	Asset* update(const char *path);

@@ -22,6 +22,9 @@
 #ifndef EDL_H
 #define EDL_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "asset.inc"
 #include "assets.inc"
 #include "autoconf.inc"
@@ -47,7 +50,6 @@
 #include "theme.inc"
 #include "tracks.inc"
 #include "vedit.inc"
-
 
 // Loading and saving are built on load and copy except for automation:
 
@@ -140,7 +142,7 @@ public:
 	void update_assets(EDL *src);
 	void optimize();
 // Debug
-	int dump();
+	int dump(FILE *fp=stdout);
 	static int next_id();
 // Create a new folder if it doesn't exist already
 	void new_folder(const char *folder);

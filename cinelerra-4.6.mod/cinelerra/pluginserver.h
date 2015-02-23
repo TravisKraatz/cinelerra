@@ -25,6 +25,11 @@
 // inherited by plugins
 
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "arraylist.h"
 #include "attachmentpoint.inc"
 #include "edl.inc"
@@ -49,11 +54,6 @@
 #include "vframe.inc"
 #include "videodevice.inc"
 #include "virtualnode.inc"
-
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <unistd.h>
 
 
 
@@ -84,7 +84,7 @@ public:
 		int lad_index /* = -1 */);
 // close the plugin
 	int close_plugin();    
-	void dump();
+	void dump(FILE *fp=stdout);
 // Release any objects which are required after playback stops.
 	void render_stop();
 // Write entry into plugin table

@@ -566,13 +566,13 @@ void Tracks::update_y_pixels(Theme *theme)
 	}
 }
 
-int Tracks::dump()
+int Tracks::dump(FILE *fp)
 {
 	for(Track* current = first; current; current = NEXT)
 	{
-		printf("  Track: %p\n", current);
-		current->dump();
-		printf("\n");
+		fprintf(fp,"  Track: %p\n", current);
+		current->dump(fp);
+		fprintf(fp,"\n");
 	}
 	return 0;
 }

@@ -326,17 +326,17 @@ void Automation::get_extents(float *min,
 }
 
 
-void Automation::dump()
+void Automation::dump(FILE *fp)
 {
-	printf("   Automation: %p\n", this);
+	fprintf(fp,"   Automation: %p\n", this);
 
 
 	for(int i = 0; i < AUTOMATION_TOTAL; i++)
 	{
 		if(autos[i])
 		{
-			printf("    %s %p\n", xml_titles[i], autos[i]);
-			autos[i]->dump();
+			fprintf(fp,"    %s %p\n", xml_titles[i], autos[i]);
+			autos[i]->dump(fp);
 		}
 	}
 

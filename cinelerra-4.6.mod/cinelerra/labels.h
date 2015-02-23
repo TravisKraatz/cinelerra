@@ -22,6 +22,7 @@
 #ifndef LABEL_H
 #define LABEL_H
 
+#include <stdio.h>
 #include <stdint.h>
 
 #include "edl.inc"
@@ -66,7 +67,7 @@ public:
 	Labels(EDL *edl, const char *xml_tag);
 	virtual ~Labels();
 
-	void dump();
+	void dump(FILE *fp=stdout);
 
 	Labels& operator=(Labels &that);
 	void copy_from(Labels *labels);

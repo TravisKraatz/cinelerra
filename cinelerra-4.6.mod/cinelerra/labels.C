@@ -48,11 +48,11 @@ Labels::~Labels()
 	delete_all();
 }
 
-void Labels::dump()
+void Labels::dump(FILE *fp)
 {
 	for(Label *current = first; current; current = NEXT)
 	{
-		printf("  label: %f\n", current->position);
+		fprintf(fp,"  label: %f\n", current->position);
 	}
 }
 

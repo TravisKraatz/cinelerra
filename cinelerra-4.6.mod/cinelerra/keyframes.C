@@ -185,16 +185,16 @@ Auto* KeyFrames::new_auto()
 }
 
 
-void KeyFrames::dump()
+void KeyFrames::dump(FILE *fp)
 {
-	printf("    DEFAULT_KEYFRAME\n");
-	((KeyFrame*)default_auto)->dump();
-	printf("    KEYFRAMES total=%d\n", total());
+	fprintf(fp,"    DEFAULT_KEYFRAME\n");
+	((KeyFrame*)default_auto)->dump(fp);
+	fprintf(fp,"    KEYFRAMES total=%d\n", total());
 	for(KeyFrame *current = (KeyFrame*)first;
 		current;
 		current = (KeyFrame*)NEXT)
 	{
-		current->dump();
+		current->dump(fp);
 	}
 }
 

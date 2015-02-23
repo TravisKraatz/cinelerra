@@ -22,6 +22,9 @@
 #ifndef ATTACHMENTPOINT_H
 #define ATTACHMENTPOINT_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "arraylist.h"
 #include "filexml.inc"
 #include "floatauto.inc"
@@ -34,8 +37,6 @@
 #include "sharedlocation.h"
 #include "vframe.inc"
 #include "virtualnode.inc"
-
-#include <stdint.h>
 
 // Attachment points for Modules to attach plugins
 class AttachmentPoint
@@ -125,7 +126,7 @@ public:
 
 
 
-	int dump();
+	int dump(FILE *fp=stdout);
 
 };
 

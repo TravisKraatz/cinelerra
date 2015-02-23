@@ -22,11 +22,13 @@
 #ifndef FILEXML_H
 #define FILEXML_H
 
+#include <stdio.h>
+#include <stdint.h>
+#include <limits.h>
+
 #include "arraylist.h"
 #include "filexml.inc"
 #include "sizes.h"
-#include <stdio.h>
-#include <limits.h>
 
 #define MAX_TITLE 256
 

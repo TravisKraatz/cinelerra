@@ -1006,77 +1006,76 @@ float EDL::get_aspect_ratio()
 	return session->aspect_w / session->aspect_h;
 }
 
-int EDL::dump()
+int EDL::dump(FILE *fp)
 {
 	if(parent_edl)
-		printf("CLIP\n");
+		fprintf(fp,"CLIP\n");
 	else
-		printf("EDL\n");
-	printf("  clip_title: %s\n"
+		fprintf(fp,"EDL\n");
+	fprintf(fp,"  clip_title: %s\n"
 		"  parent_edl: %p\n", local_session->clip_title, parent_edl);
-	printf("  selectionstart %f\n  selectionend %f\n  loop_start %f\n  loop_end %f\n", 
+	fprintf(fp,"  selectionstart %f\n  selectionend %f\n  loop_start %f\n  loop_end %f\n", 
 		local_session->get_selectionstart(1), 
 		local_session->get_selectionend(1),
 		local_session->loop_start,
 		local_session->loop_end);
 	for(int i = 0; i < TOTAL_PANES; i++)
 	{
-		printf("  pane %d view_start=%lld track_start=%lld\n", 
-			i,
+		fprintf(fp,"  pane %d view_start=%lld track_start=%lld\n", i,
 			local_session->view_start[i],
 			local_session->track_start[i]);
 	}
 
 	if(!parent_edl)
 	{
-		printf("audio_channels: %d audio_tracks: %d sample_rate: " _LD "\n",
+		fprintf(fp,"audio_channels: %d audio_tracks: %d sample_rate: " _LD "\n",
 			session->audio_channels,
 			session->audio_tracks,
 			session->sample_rate);
-		printf("  video_channels: %d\n"
+		fprintf(fp,"  video_channels: %d\n"
 			"  video_tracks: %d\n"
 			"  frame_rate: %.2f\n"
 			"  frames_per_foot: %.2f\n"
-    		"  output_w: %d\n"
-    		"  output_h: %d\n"
-    		"  aspect_w: %f\n"
-    		"  aspect_h %f\n"
+    			"  output_w: %d\n"
+    			"  output_h: %d\n"
+    			"  aspect_w: %f\n"
+    			"  aspect_h %f\n"
 			"  color_model %d\n",
 				session->video_channels,
 				session->video_tracks,
 				session->frame_rate,
 				session->frames_per_foot,
-    			session->output_w,
-    			session->output_h,
-    			session->aspect_w,
-    			session->aspect_h,
+	    			session->output_w,
+    				session->output_h,
+    				session->aspect_w,
+    				session->aspect_h,
 				session->color_model);
 
-		printf(" CLIPS\n");
-		printf("  total: %d\n", clips.total);
+		fprintf(fp," CLIPS\n");
+		fprintf(fp,"  total: %d\n", clips.total);
 	
 		for(int i = 0; i < clips.total; i++)
 		{
-			printf("\n\n");
-			clips.values[i]->dump();
-			printf("\n\n");
+			fprintf(fp,"\n\n");
+			clips.values[i]->dump(fp);
+			fprintf(fp,"\n\n");
 		}
 
-		printf(" VWINDOW EDLS\n");
-		printf("  total: %d\n", total_vwindow_edls());
+		fprintf(fp," VWINDOW EDLS\n");
+		fprintf(fp,"  total: %d\n", total_vwindow_edls());
 		
 		for(int i = 0; i < total_vwindow_edls(); i++)
 		{
-			printf("   %s\n", get_vwindow_edl(i)->local_session->clip_title);
+			fprintf(fp,"   %s\n", get_vwindow_edl(i)->local_session->clip_title);
 		}
 	
-		printf(" ASSETS\n");
-		assets->dump();
+		fprintf(fp," ASSETS\n");
+		assets->dump(fp);
 	}
-	printf(" LABELS\n");
-	labels->dump();
-	printf(" TRACKS\n");
-	tracks->dump();
+	fprintf(fp," LABELS\n");
+	labels->dump(fp);
+	fprintf(fp," TRACKS\n");
+	tracks->dump(fp);
 //printf("EDL::dump 2\n");
 	return 0;
 }

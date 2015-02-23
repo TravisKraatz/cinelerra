@@ -22,6 +22,9 @@
 #ifndef UNDOSTACK_H
 #define UNDOSTACK_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "linklist.h"
 #include "stringfile.inc"
 
@@ -105,7 +108,7 @@ public:
 // move to the next undo entry for a redo
 	UndoStackItem* pull_next();
 
-	void dump();
+	void dump(FILE *fp=stdout);
 	
 	UndoStackItem* current;
 };

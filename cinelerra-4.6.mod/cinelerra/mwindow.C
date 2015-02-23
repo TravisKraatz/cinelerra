@@ -820,6 +820,7 @@ void MWindow::init_preferences()
 	session->load_defaults(defaults);
 	// set x11_host, screens, window_config
 	screens = session->set_default_x11_host();
+	BC_Signals::set_trap_hook(trap_hook, this);
 	BC_Signals::set_catch_segv(preferences->trap_sigsegv);
 	BC_Signals::set_catch_intr(preferences->trap_sigintr);
 }
@@ -3052,11 +3053,12 @@ void MWindow::remove_assets_from_disk()
 	remove_assets_from_project(1);
 }
 
-void MWindow::dump_plugins()
+void MWindow::dump_plugins(FILE *fp)
 {
 	for(int i = 0; i < plugindb->total; i++)
 	{
-		printf("audio=%d video=%d rt=%d multi=%d synth=%d transition=%d theme=%d %s\n",
+		fprintf(fp, "audio=%d video=%d rt=%d multi=%d"
+			" synth=%d transition=%d theme=%d %s\n",
 			plugindb->values[i]->audio,
 			plugindb->values[i]->video,
 			plugindb->values[i]->realtime,
@@ -3068,24 +3070,27 @@ void MWindow::dump_plugins()
 	}
 }
 
+void MWindow::dump_edl(FILE *fp)
+{
+	edl->dump(fp);
+}
+
+void MWindow::dump_undo(FILE *fp)
+{
+	undo->dump(fp);
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void MWindow::trap_hook(FILE *fp, void *vp)
+{
+	MWindow *mwindow = (MWindow *)vp;
+	fprintf(fp, "\nPLUGINS:\n");
+	mwindow->dump_plugins(fp);
+	fprintf(fp, "\nEDL:\n");
+	mwindow->dump_edl(fp);
+	fprintf(fp, "\nUNDO:\n");
+	mwindow->dump_undo(fp);
+}
 
 
 

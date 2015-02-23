@@ -22,8 +22,9 @@
 #ifndef BINARY_H
 #define BINARY_H
 
-#include "sizes.h"
 #include <stdio.h>
+
+#include "sizes.h"
 
 inline void putfourswap(int32_t number, FILE *file) {
   fputc(number, file);

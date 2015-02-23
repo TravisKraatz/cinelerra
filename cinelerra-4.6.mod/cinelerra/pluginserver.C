@@ -1266,12 +1266,8 @@ void PluginServer::sync_parameters()
 
 
 
-void PluginServer::dump()
+void PluginServer::dump(FILE *fp)
 {
-	printf("    PluginServer %d %p %s %s %d\n", 
-		__LINE__, 
-		this, 
-		path, 
-		title, 
-		realtime);
+	fprintf(fp,"    PluginServer %d %p %s %s %d\n", 
+		__LINE__, this, path, title, realtime);
 }

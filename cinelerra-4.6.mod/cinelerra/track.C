@@ -855,20 +855,20 @@ void Track::synchronize_params(Track *track)
 
 
 
-int Track::dump()
+int Track::dump(FILE *fp)
 {
-	printf("   Data type %d\n", data_type);
-	printf("   Title %s\n", title);
-	printf("   Edits:\n");
+	fprintf(fp,"   Data type %d\n", data_type);
+	fprintf(fp,"   Title %s\n", title);
+	fprintf(fp,"   Edits:\n");
 	for(Edit* current = edits->first; current; current = NEXT)
 	{
-		current->dump();
+		current->dump(fp);
 	}
-	automation->dump();
-	printf("   Plugin Sets: %d\n", plugin_set.total);
+	automation->dump(fp);
+	fprintf(fp,"   Plugin Sets: %d\n", plugin_set.total);
 
 	for(int i = 0; i < plugin_set.total; i++)
-		plugin_set.values[i]->dump();
+		plugin_set.values[i]->dump(fp);
 //printf("Track::dump 2\n");
 	return 0;
 }

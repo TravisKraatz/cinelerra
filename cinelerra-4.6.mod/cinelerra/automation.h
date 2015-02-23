@@ -22,6 +22,9 @@
 #ifndef AUTOMATION_H
 #define AUTOMATION_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "arraylist.h"
 #include "autoconf.inc"
 #include "automation.inc"
@@ -31,8 +34,6 @@
 #include "maxchannels.h"
 #include "module.inc"
 #include "track.inc"
-
-#include <stdint.h>
 
 class Automation
 {
@@ -51,7 +52,7 @@ public:
 		FileXML *xml, 
 		int default_only,
 		int active_only);
-	virtual void dump();
+	virtual void dump(FILE *fp);
 	virtual int direct_copy_possible(int64_t start, int direction);
 	virtual int direct_copy_possible_derived(int64_t start, int direction) { return 1; };
 // For paste automation only

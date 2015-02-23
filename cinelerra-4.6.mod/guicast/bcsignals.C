@@ -53,8 +53,11 @@ static bc_locktrace_t* new_bc_locktrace(void *ptr,
 }
 
 
-static struct sigaction old_segv, old_intr;
+static struct sigaction old_segv = {0, }, old_intr = {0, };
 static void handle_dump(int n, siginfo_t * info, void *sc);
+
+void *BC_Signals::trap_data = 0;
+void (*BC_Signals::trap_hook)(FILE *fp, void *data) = 0;
 bool BC_Signals::trap_sigsegv = false;
 bool BC_Signals::trap_sigintr = false;
 
@@ -62,6 +65,7 @@ static void uncatch_sig(int sig, struct sigaction &old)
 {
 	struct sigaction act;
 	sigaction(sig, &old, &act);
+	old.sa_handler = 0;
 }
 
 static void catch_sig(int sig, struct sigaction &old)
@@ -70,13 +74,19 @@ static void catch_sig(int sig, struct sigaction &old)
 	memset(&act, 0, sizeof(act));
 	act.sa_sigaction = handle_dump;
 	act.sa_flags = SA_SIGINFO;
-	sigaction(sig, &act, &old);
+	sigaction(sig, &act, (!old.sa_handler ? &old : 0));
 }
 
 static void uncatch_intr() { uncatch_sig(SIGINT, old_intr); }
 static void catch_intr() { catch_sig(SIGINT, old_intr); }
 static void uncatch_segv() { uncatch_sig(SIGSEGV, old_segv); }
 static void catch_segv() { catch_sig(SIGSEGV, old_segv); }
+
+void BC_Signals::set_trap_hook(void (*hook)(FILE *fp, void *vp), void *data)
+{
+	trap_data = data;
+	trap_hook = hook;
+}
 
 void BC_Signals::set_catch_segv(bool v) {
 	if( v == trap_sigsegv ) return;
@@ -411,7 +421,7 @@ void BC_Signals::dump_locks(FILE *fp)
 {
 // Dump lock table
 #ifdef TRACE_LOCKS
-	printf("signal_entry: lock table size=%d\n", lock_table.size);
+	fprintf(fp,"signal_entry: lock table size=%d\n", lock_table.size);
 	for(int i = 0; i < lock_table.size; i++)
 	{
 		bc_locktrace_t *table = (bc_locktrace_t*)lock_table.values[i];
@@ -789,10 +799,15 @@ static void handle_dump(int n, siginfo_t * info, void *sc)
 	}
 	else
 		fp = stdout;
-	Thread::dump_threads(fp);
-	BC_Signals::dump_traces(fp);
-	BC_Signals::dump_locks(fp);
-	BC_Signals::dump_buffers(fp);
+	fprintf(fp,"\nTHREADS:\n");  Thread::dump_threads(fp);
+	fprintf(fp,"\nTRACES:\n");   BC_Signals::dump_traces(fp);
+	fprintf(fp,"\nLOCKS:\n");    BC_Signals::dump_locks(fp);
+	fprintf(fp,"\nBUFFERS:\n");  BC_Signals::dump_buffers(fp);
+	if( BC_Signals::trap_hook ) {
+		fprintf(fp,"\nMAIN HOOK:\n");
+		BC_Signals::trap_hook(fp, BC_Signals::trap_data);
+	}
+	fprintf(fp,"\n\n");
 	if( fp != stdout ) fclose(fp);
 // must be root
 	if( getuid() != 0 ) return;

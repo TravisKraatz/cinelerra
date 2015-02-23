@@ -22,12 +22,13 @@
 #ifndef FILESNDFILE_H
 #define FILESNDFILE_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "bitspopup.inc"
 #include "filebase.h"
 #include "filesndfile.h"
 #include "sndfile.h"
-
-#include <stdio.h>
 
 // The following libsndfile files have to be modified to support VFS.
 // They need to use FILE * instead of file descriptors.

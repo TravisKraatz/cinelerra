@@ -99,15 +99,15 @@ UndoStackItem* UndoStack::pull_next()
 }
 
 
-void UndoStack::dump()
+void UndoStack::dump(FILE *fp)
 {
-	printf("UndoStack::dump\n");
+	fprintf(fp,"UndoStack::dump\n");
 	UndoStackItem *current = last;
 	int i = 0;
 // Dump most recent
 	while(current && i < 10)
 	{
-		printf("  %d %p %s %c\n", 
+		fprintf(fp,"  %d %p %s %c\n", 
 			i++, 
 			current, 
 			current->get_description(), 

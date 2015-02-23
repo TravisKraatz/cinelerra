@@ -24,6 +24,9 @@
 
 class PasteTransition;
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "edit.inc"
 #include "filexml.inc"
 #include "mwindow.inc"
@@ -93,7 +96,7 @@ public:
 // Update edit after attaching
 	int update_edit(int is_loading);
 	const char* default_title();
-	void dump();
+	void dump(FILE *fp);
 
 private:
 // Only used by operator= and copy constructor

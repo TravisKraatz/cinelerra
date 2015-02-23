@@ -21,6 +21,8 @@
 #ifndef ASSET_H
 #define ASSET_H
 
+#include <stdio.h>
+#include <stdint.h>
 
 #include "arraylist.h"
 #include "bcwindowbase.inc"
@@ -31,8 +33,6 @@
 #include "linklist.h"
 #include "pluginserver.inc"
 
-
-#include <stdint.h>
 
 
 class Asset : public Indexable, public ListItem<Asset>
@@ -45,7 +45,7 @@ public:
 	~Asset();
 
 	int init_values();
-	int dump();
+	int dump(FILE *fp=stdout);
 	void boundaries();
 
 	void copy_from(Asset *asset, int do_index);

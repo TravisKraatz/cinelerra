@@ -22,6 +22,8 @@
 #ifndef TRACKS_H
 #define TRACKS_H
 
+#include <stdio.h>
+#include <stdint.h>
 
 #include "autoconf.h"
 #include "cursor.inc"
@@ -140,7 +142,7 @@ public:
 	
 	
 	int change_channels(int oldchannels, int newchannels);
-	int dump();
+	int dump(FILE *fp);
 
 
 

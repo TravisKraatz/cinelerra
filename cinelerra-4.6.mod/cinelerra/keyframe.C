@@ -348,8 +348,8 @@ void KeyFrame::set_data(char *data)
 }
 
 
-void KeyFrame::dump()
+void KeyFrame::dump(FILE *fp)
 {
-	printf("     position: " _LD "\n", position);
-	printf("     data: %s\n", data);
+	fprintf(fp,"     position: " _LD "\n", position);
+	fprintf(fp,"     data: %s\n", data);
 }

@@ -358,23 +358,23 @@ int Edit::picon_h()
 }
 
 
-int Edit::dump()
+int Edit::dump(FILE *fp)
 {
-	printf("     EDIT %p\n", this); fflush(stdout);
-	printf("      nested_edl=%p %s asset=%p %s\n", 
+	fprintf(fp,"     EDIT %p\n", this); fflush(fp);
+	fprintf(fp,"      nested_edl=%p %s asset=%p %s\n", 
 		nested_edl, 
 		nested_edl ? nested_edl->path : "", 
 		asset,
 		asset ? asset->path : "");
-	fflush(stdout);
-	printf("      channel %d\n", channel);
+	fflush(fp);
+	fprintf(fp,"      channel %d\n", channel);
 	if(transition) 
 	{
-		printf("      TRANSITION %p\n", transition);
-		transition->dump();
+		fprintf(fp,"      TRANSITION %p\n", transition);
+		transition->dump(fp);
 	}
-	printf("      startsource " _LD " startproject " _LD " length " _LD "\n",
-		startsource, startproject, length); fflush(stdout);
+	fprintf(fp,"      startsource " _LD " startproject " _LD " length " _LD "\n",
+		startsource, startproject, length); fflush(fp);
 	return 0;
 }
 

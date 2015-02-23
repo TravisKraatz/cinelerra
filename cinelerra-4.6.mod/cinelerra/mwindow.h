@@ -21,6 +21,9 @@
 #ifndef MWINDOW_H
 #define MWINDOW_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "arraylist.h"
 #include "asset.inc"
 #include "assets.inc"
@@ -86,8 +89,6 @@
 #include "videowindow.inc"
 #include "vwindow.inc"
 #include "wavecache.inc"
-
-#include <stdint.h>
 
 // All entry points for commands except for window locking should be here.
 // This allows scriptability.
@@ -184,7 +185,6 @@ public:
 // Find the plugin whose title matches title and return it
 	static PluginServer* scan_plugindb(char *title,
 		int data_type);
-	void dump_plugins();
 	void stop_playback();
 
 
@@ -459,8 +459,10 @@ public:
 	int modify_pluginhandles();
 	void finish_modify_handles();
 
-	
-	
+	void dump_plugins(FILE *fp=stdout);
+	void dump_edl(FILE *fp=stdout);
+	void dump_undo(FILE *fp=stdout);
+	static void trap_hook(FILE *fp, void *vp);
 	
 	
 	

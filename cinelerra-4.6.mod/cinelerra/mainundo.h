@@ -22,13 +22,14 @@
 #ifndef MAINUNDO_H
 #define MAINUNDO_H
 
+#include <stdio.h>
+#include <stdint.h>
 
 #include "bctimer.inc"
 #include "filexml.inc"
 #include "mwindow.inc"
 #include "undostack.inc"
 
-#include <stdint.h>
 
 class MainUndo
 {
@@ -55,6 +56,7 @@ public:
 	int undo();
 	int redo();
 
+	void dump(FILE *fp=stdout);
 private:
 // Entry point for all update commands
 	void update_undo_entry(const char *description, 

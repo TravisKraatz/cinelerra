@@ -229,9 +229,9 @@ const char* Transition::default_title()
 	return "Transition";
 }
 
-void Transition::dump()
+void Transition::dump(FILE *fp)
 {
-	printf("       title: %s length: " _LD "\n", title, length);
+	fprintf(fp,"       title: %s length: " _LD "\n", title, length);
 }
 
 

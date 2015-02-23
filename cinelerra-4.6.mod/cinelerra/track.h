@@ -22,6 +22,9 @@
 #ifndef TRACK_H
 #define TRACK_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "arraylist.h"
 #include "asset.inc"
 #include "autoconf.inc"
@@ -47,8 +50,6 @@
 #include "trackcanvas.inc"
 #include "tracks.inc"
 #include "transition.inc"
-
-#include <stdint.h>
 
 // UNITS ARE SAMPLES FOR ALL
 
@@ -232,7 +233,7 @@ public:
 	int load_edits(FileXML *file);
 
 	virtual int change_channels(int oldchannels, int newchannels) { return 0; };
-	virtual int dump();
+	virtual int dump(FILE *fp);
 
 
 

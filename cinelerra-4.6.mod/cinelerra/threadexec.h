@@ -30,10 +30,12 @@
 
 // The reason we do this is that execvp and threading don't work together.
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "bcwindowbase.inc"
 #include "mutex.inc"
 #include "thread.h"
-#include <stdio.h>
 
 
 class ThreadExec : public Thread

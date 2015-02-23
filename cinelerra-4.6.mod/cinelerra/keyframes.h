@@ -22,6 +22,9 @@
 #ifndef KEYFRAMES_H
 #define KEYFRAMES_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "autos.h"
 #include "filexml.inc"
 #include "keyframe.inc"
@@ -53,7 +56,7 @@ public:
 	void update_parameter(KeyFrame *src);
 
 	Auto* new_auto();
-	void dump();
+	void dump(FILE *fp=stdout);
 };
 
 #endif

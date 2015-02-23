@@ -577,7 +577,7 @@ DumpEDL::DumpEDL(MWindow *mwindow)
 int DumpEDL::handle_event()
 {
 //printf("DumpEDL::handle_event 1\n");
-	mwindow->edl->dump();
+	mwindow->dump_edl();
 //printf("DumpEDL::handle_event 2\n");
 	return 1;
 }

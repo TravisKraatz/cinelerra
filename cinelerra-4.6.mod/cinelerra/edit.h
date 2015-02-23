@@ -22,6 +22,9 @@
 #ifndef EDIT_H
 #define EDIT_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "asset.inc"
 #include "edl.inc"
 #include "guicast.h"
@@ -191,7 +194,7 @@ public:
 		int64_t &left_sample, int64_t &right_sample, float view_start,
 		float zoom_units) { return 0; }
 	virtual int64_t get_source_end(int64_t default_);
-	int dump();
+	int dump(FILE *fp=stdout);
 	virtual int dump_derived() { return 0; }
 
 };

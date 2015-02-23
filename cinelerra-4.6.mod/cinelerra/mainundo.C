@@ -96,7 +96,7 @@ void MainUndo::update_undo_before(const char *description, void *creator)
 			undo_stack->total());
 
 // dump stack
-		undo_stack->dump();
+		dump();
 
 // Move up an entry to get back in sync
 //		return;
@@ -146,7 +146,7 @@ void MainUndo::update_undo_after(const char *description,
 			undo_stack->total());
 
 // dump stack
-		undo_stack->dump();
+		dump();
 // Not getting any update_undo_before to get back in sync, so just append 1 here
 //		return;
 	}
@@ -173,7 +173,7 @@ int MainUndo::undo()
 	mwindow->undo_commercial();
 
 //printf("MainUndo::undo 1\n");
-//undo_stack->dump();
+//dump();
 
 // Rewind to an after entry
 	if(current && !(undo_stack->number_of(current) % 2))
@@ -226,7 +226,7 @@ int MainUndo::undo()
 	}
 
 
-//undo_stack->dump();
+//dump();
 	reset_creators();
 	return 0;
 }
@@ -235,7 +235,7 @@ int MainUndo::redo()
 {
 	UndoStackItem *current = undo_stack->current;
 //printf("MainUndo::redo 1\n");
-//undo_stack->dump();
+//dump();
 
 // Get 1st entry
 	if(!current) current = undo_stack->first;
@@ -283,7 +283,7 @@ int MainUndo::redo()
 		}
 	}
 	reset_creators();
-//undo_stack->dump();
+//dump();
 	return 0;
 }
 
@@ -320,4 +320,8 @@ void MainUndo::reset_creators()
 }
 
 
+void MainUndo::dump(FILE *fp)
+{
+	undo_stack->dump(fp);
+}
 

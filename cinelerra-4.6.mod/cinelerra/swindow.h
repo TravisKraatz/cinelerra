@@ -1,12 +1,13 @@
 #ifndef __SWINDOW_H__
 #define __SWINDOW_H__
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "arraylist.h"
 #include "guicast.h"
 #include "mwindow.inc"
 #include "swindow.inc"
-
-#include <stdio.h>
 
 class SWindow : public Thread
 {

@@ -22,6 +22,9 @@
 #ifndef AUTOS_H
 #define AUTOS_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 // Base class for automation lists.
 // Units are the native units for the track data type.
 
@@ -102,7 +105,7 @@ public:
 
 
 
-	virtual void dump();
+	virtual void dump(FILE *fp);
 
 
 

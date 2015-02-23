@@ -25,9 +25,11 @@
 
 // Construct command arguments, fork a background process and wait for it.
 
-#include "bcwindowbase.inc"
-#include <pthread.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <pthread.h>
+
+#include "bcwindowbase.inc"
 
 class ThreadFork
 {

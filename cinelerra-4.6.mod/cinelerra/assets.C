@@ -233,11 +233,11 @@ int Assets::update_old_filename(char *old_filename, char *new_filename)
 }
 
 
-int Assets::dump()
+int Assets::dump(FILE *fp)
 {
 	for(Asset *current = first; current; current = NEXT)
 	{
-		current->dump();
+		current->dump(fp);
 	}
 	return 0;
 }

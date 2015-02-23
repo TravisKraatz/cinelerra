@@ -22,13 +22,15 @@
 #ifndef FILEAC3_H
 #define FILEAC3_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 extern "C" {
 #include "libavcodec/avcodec.h"
 };
 
 #include "filebase.h"
 #include "filempeg.inc"
-#include <stdio.h>
 
 
 class FileAC3 : public FileBase

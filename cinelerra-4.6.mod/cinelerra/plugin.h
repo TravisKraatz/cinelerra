@@ -22,6 +22,9 @@
 #ifndef PLUGIN_H
 #define PLUGIN_H
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "guicast.h"
 #include "edit.h"
 #include "edl.inc"
@@ -104,7 +107,7 @@ public:
 	void load(FileXML *file);
 // Shift in time
 	void shift(int64_t difference);
-	void dump();
+	void dump(FILE *fp=stdout);
 	KeyFrame* get_prev_keyframe(int64_t position,
 		int direction);
 	KeyFrame* get_next_keyframe(int64_t position, int direction);

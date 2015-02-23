@@ -577,17 +577,17 @@ void Plugin::shift(int64_t difference)
 		shift_keyframes(difference);
 }
 
-void Plugin::dump()
+void Plugin::dump(FILE *fp)
 {
-	printf("    PLUGIN: type=%d title=\"%s\" on=%d track=%d plugin=%d\n", 
+	fprintf(fp,"    PLUGIN: type=%d title=\"%s\" on=%d track=%d plugin=%d\n", 
 		plugin_type, 
 		title, 
 		on, 
 		shared_location.module, 
 		shared_location.plugin);
-	printf("    startproject " _LD " length " _LD "\n", startproject, length);
+	fprintf(fp,"    startproject " _LD " length " _LD "\n", startproject, length);
 
-	keyframes->dump();
+	keyframes->dump(fp);
 }
 
 

@@ -19,6 +19,10 @@
  * 
  */
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "autos.h"
 #include "clip.h"
 #include "format.inc"
@@ -28,8 +32,6 @@
 #include "filexml.h"
 #include "track.h"
 #include "transportque.inc"
-
-#include <string.h>
 
 
 Autos::Autos(EDL *edl, Track *track)
@@ -882,7 +884,7 @@ void Autos::get_extents(float *min,
 }
 
 
-void Autos::dump()
+void Autos::dump(FILE *fp)
 {
 }
 

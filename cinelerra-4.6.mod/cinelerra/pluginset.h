@@ -22,6 +22,7 @@
 #ifndef PLUGINSET_H
 #define PLUGINSET_H
 
+#include <stdio.h>
 #include <stdint.h>
 
 #include "edits.h"
@@ -75,7 +76,7 @@ public:
 	int get_number();
 	void save(FileXML *file);
 	void load(FileXML *file, uint32_t load_flags);
-	void dump();
+	void dump(FILE *fp=stdout);
 	int optimize();
 
 // Insert a new plugin

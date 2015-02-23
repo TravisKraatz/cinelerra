@@ -549,9 +549,9 @@ int PluginSet::optimize()
 
 
 
-void PluginSet::dump()
+void PluginSet::dump(FILE *fp)
 {
-	printf("   PLUGIN_SET:\n");
+	fprintf(fp,"   PLUGIN_SET:\n");
 	for(Plugin *current = (Plugin*)first; current; current =  (Plugin*)NEXT)
-		current->dump();
+		current->dump(fp);
 }

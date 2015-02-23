@@ -1046,29 +1046,29 @@ void Asset::update_index(Asset *asset)
 }
 
 
-int Asset::dump()
+int Asset::dump(FILE *fp)
 {
-	printf("  asset::dump\n");
-	printf("   this=%p path=%s\n", this, path);
-	printf("   index_status %d\n", index_state->index_status);
-	printf("   format %d\n", format);
-	printf("   audio_data %d channels %d samplerate %d bits %d"
+	fprintf(fp,"  asset::dump\n");
+	fprintf(fp,"   this=%p path=%s\n", this, path);
+	fprintf(fp,"   index_status %d\n", index_state->index_status);
+	fprintf(fp,"   format %d\n", format);
+	fprintf(fp,"   audio_data %d channels %d samplerate %d bits %d"
 		" byte_order %d signed %d header %d dither %d acodec %c%c%c%c\n",
 		audio_data, channels, sample_rate, bits, byte_order, signed_,
 		header, dither, acodec[0], acodec[1], acodec[2], acodec[3]);
-	printf("   audio_length " _LD "\n", audio_length);
-	printf("   video_data %d program %d layers %d framerate %f width %d"
+	fprintf(fp,"   audio_length " _LD "\n", audio_length);
+	fprintf(fp,"   video_data %d program %d layers %d framerate %f width %d"
 		" height %d vcodec %c%c%c%c aspect_ratio %f\n",
 		video_data, layers, program, frame_rate, width, height,
 		vcodec[0], vcodec[1], vcodec[2], vcodec[3], aspect_ratio);
-	printf("   video_length " _LD " \n", video_length);
-	printf("   ms_bitrate_tolerance=%d\n", ms_bitrate_tolerance);
-	printf("   ms_quantization=%d\n", ms_quantization);
-	printf("   ms_fix_bitrate=%d\n", ms_fix_bitrate);
-	printf("   ms_interlaced=%d\n", ms_interlaced);
-	printf("   h264_bitrate=%d\n", h264_bitrate);
-	printf("   h264_quantizer=%d\n", h264_quantizer);
-	printf("   h264_fix_bitrate=%d\n", h264_fix_bitrate);
+	fprintf(fp,"   video_length " _LD " \n", video_length);
+	fprintf(fp,"   ms_bitrate_tolerance=%d\n", ms_bitrate_tolerance);
+	fprintf(fp,"   ms_quantization=%d\n", ms_quantization);
+	fprintf(fp,"   ms_fix_bitrate=%d\n", ms_fix_bitrate);
+	fprintf(fp,"   ms_interlaced=%d\n", ms_interlaced);
+	fprintf(fp,"   h264_bitrate=%d\n", h264_bitrate);
+	fprintf(fp,"   h264_quantizer=%d\n", h264_quantizer);
+	fprintf(fp,"   h264_fix_bitrate=%d\n", h264_fix_bitrate);
 	return 0;
 }
 
