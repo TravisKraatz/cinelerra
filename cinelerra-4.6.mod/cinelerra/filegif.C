@@ -30,6 +30,14 @@
 #include <string.h>
 
 
+#ifndef GIFUBAR
+#define GIF_ERR
+#else
+static int gif_err = 0;
+#define GIF_ERR ,&gif_err
+#define GifErrorString(s) Gif##ErrorString(gif_err)
+#endif
+
 #ifndef GIFLIB_MAJOR
 const char *gifErrorString()
 {
@@ -127,7 +135,7 @@ int FileGIF::read_frame(VFrame *output, VFrame *input)
 
 	GifFileType *gif_file;
 	GifRowType *gif_buffer;
-	gif_file = DGifOpen(this, input_func);
+	gif_file = DGifOpen(this, input_func GIF_ERR);
 
 
 	if(gif_file == 0)
