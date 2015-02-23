@@ -9,7 +9,7 @@ CFLAGS += -I../../$(AVC_DIR) -I../../$(LIBRAW_DIR)
 
 $(OUTPUT_THEME): $(OBJS) $(THEME_DATA)
 	$(LDLINKER) -o $(OUTPUT_THEME) $(OBJS) $(THEME_DATA)
-	strip $(OUTPUT_THEME)
+	$(if $(findstring -g,$(CFLAGS)),,strip $(OUTPUT_THEME))
 
 
 

@@ -6,8 +6,8 @@ OUTPUT_THEME = $(PLUGIN_DIR)/microtheme.plugin
 
 OUTPUT_THEME: $(OBJS)
 	$(LDLINKER) -o $(OUTPUT_THEME) $(OBJS)
-	strip $(OUTPUT_THEME)
 	../../cinelerra/$(OBJDIR)/bootstrap $(OUTPUT_THEME) data/*.png
+	$(if $(findstring -g,$(CFLAGS)),,strip $(OUTPUT_THEME))
 
 include ../../plugin_config
 

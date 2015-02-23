@@ -12,7 +12,7 @@ CFLAGS += -I$(AVC_DIR) -I$(LIBRAW_DIR) -I$(JPEG_DIR)
 
 $(OUTPUT_THEME): $(OBJS) $(THEME_DATA)
 	$(LDLINKER) -o $(OUTPUT_THEME) $(OBJS) $(THEME_DATA)
-	$(if $(findstring -g,$(CFLAGS)),,strip $(OUTPUT))
+	$(if $(findstring -g,$(CFLAGS)),,strip $(OUTPUT_THEME))
 
 
 
