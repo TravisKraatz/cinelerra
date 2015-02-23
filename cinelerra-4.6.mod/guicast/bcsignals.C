@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <execinfo.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +34,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
+#include <sys/types.h>
 
 BC_Signals* BC_Signals::global_signals = 0;
 static int signal_done = 0;
@@ -56,6 +58,7 @@ static bc_locktrace_t* new_bc_locktrace(void *ptr,
 static struct sigaction old_segv = {0, }, old_intr = {0, };
 static void handle_dump(int n, siginfo_t * info, void *sc);
 
+const char *BC_Signals::trap_path = 0;
 void *BC_Signals::trap_data = 0;
 void (*BC_Signals::trap_hook)(FILE *fp, void *data) = 0;
 bool BC_Signals::trap_sigsegv = false;
@@ -81,6 +84,11 @@ static void uncatch_intr() { uncatch_sig(SIGINT, old_intr); }
 static void catch_intr() { catch_sig(SIGINT, old_intr); }
 static void uncatch_segv() { uncatch_sig(SIGSEGV, old_segv); }
 static void catch_segv() { catch_sig(SIGSEGV, old_segv); }
+
+void BC_Signals::set_trap_path(const char *path)
+{
+	trap_path = path;
+}
 
 void BC_Signals::set_trap_hook(void (*hook)(FILE *fp, void *vp), void *data)
 {
@@ -788,17 +796,29 @@ static void handle_dump(int n, siginfo_t * info, void *sc)
 	fprintf(stderr,"** %s at %p in pid %d, tid %d\n",
 		n==SIGSEGV? "segv" : n==SIGINT? "intr" : "trap",
 		(void*)c->IP, pid, tid);
-	char fn[256];
-	snprintf(fn, sizeof(fn), "/tmp/cinelerra_%d.dmp", pid);
-	FILE *fp = fopen(fn,"w");
+	FILE *fp = 0;
+	char fn[PATH_MAX];
+	if( BC_Signals::trap_path ) {
+		snprintf(fn, sizeof(fn), BC_Signals::trap_path, pid);
+		fp = fopen(fn,"w");
+	}
 	if( fp ) {
 		fprintf(stderr,"writing debug data to %s\n", fn);
 		fprintf(fp,"** %s at %p in pid %d, tid %d\n",
 			n==SIGSEGV? "segv" : n==SIGINT? "intr" : "trap",
 			(void*)c->IP, pid, tid);
 	}
-	else
+	else {
+		strcpy(fn, "stdout");
 		fp = stdout;
+	}
+	time_t t;  time(&t);
+	fprintf(fp,"created on %s", ctime(&t));
+	struct passwd *pw = getpwuid(getuid());
+	if( pw ) {
+		fprintf(fp,"        by %d:%d %s(%s)\n",
+			pw->pw_uid, pw->pw_gid, pw->pw_name, pw->pw_gecos);
+	}
 	fprintf(fp,"\nTHREADS:\n");  Thread::dump_threads(fp);
 	fprintf(fp,"\nTRACES:\n");   BC_Signals::dump_traces(fp);
 	fprintf(fp,"\nLOCKS:\n");    BC_Signals::dump_locks(fp);
