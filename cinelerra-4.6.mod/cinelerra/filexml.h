@@ -134,7 +134,6 @@ public:
 	int append_text(const char *text);
 	int append_data(const char *text, long len);
 	int append_text(const char *text, long len);
- 	int encode_text(const char *text);
 
 	char* read_text();
 	int read_data_until(const char *tag_end, char *out, int len);

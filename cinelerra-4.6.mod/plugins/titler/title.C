@@ -719,9 +719,9 @@ void TitleOutlineEngine::init_packages()
 	if( !mask_h ) return;	
 	int py1 = 0, py2 = 0;
 	int pkgs = get_total_packages();
-	for( int i=0; i<pkgs; ++i, py1=py2 ) {
+	for( int i=0; i<pkgs; py1=py2 ) {
 		TitleOutlinePackage *pkg = (TitleOutlinePackage*)get_package(i);
-		py2 = (i * mask_h)/ pkgs;
+		py2 = (++i * mask_h)/ pkgs;
 		pkg->y1 = py1;  pkg->y2 = py2;
 	}
 }
@@ -988,9 +988,9 @@ void TitleTranslate::init_packages()
 	int out_h = out_y2 - out_y1;
 	int py1 = 0, py2 = 0;
 	int pkgs = get_total_packages();
-	for( int i=0; i<pkgs; ++i, py1=py2 ) {
+	for( int i=0; i<pkgs; py1=py2 ) {
 		TitleTranslatePackage *pkg = (TitleTranslatePackage*)get_package(i);
-		py2 = (i*out_h) / pkgs;
+		py2 = (++i*out_h) / pkgs;
 		pkg->y1 = py1;  pkg->y2 = py2;
 	}
 //printf("TitleTranslate::init_packages 2\n");
