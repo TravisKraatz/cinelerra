@@ -358,15 +358,7 @@ void BluebananaMain::save_nonauto(){
       if(!result &&
          !input.tag.title_is("BLUEBANANA_NONAUTO") &&
          !input.tag.title_is("/BLUEBANANA_NONAUTO")){
-
-        /* lazy and potentially brittle, but perhaps no less so than
-           using the default keyframe for nonauto data to begin
-           with.  If this breaks, go to brute force parsing. */
-        output.tag.reset_tag();
-        XMLTag swap = output.tag;
-        output.tag = input.tag;
-        input.tag=swap;
-        output.append_tag();
+        input.tag.write_tag(&output);
         output.append_newline();
       }
     }

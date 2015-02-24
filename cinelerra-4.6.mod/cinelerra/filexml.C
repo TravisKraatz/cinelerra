@@ -62,9 +62,9 @@ XMLBuffer::XMLBuffer(long buf_size, const char *buf, int del)
 {	// writing
 	bfr = (unsigned char *)buf;
 	bsz = buf_size;
-	outp = bfr+bsz;
 	inp = bfr;
-	lmt = inp+1;
+	outp = bfr+bsz;
+	lmt = outp+1;
 	isz = bsz;
 	destroy = del;
 }
@@ -90,6 +90,8 @@ unsigned char *&XMLBuffer::demand(long len)
 
 int XMLBuffer::write(const char *bp, int len)
 {
+	if( !destroy && lmt-inp < len ) len = lmt-inp;
+	if( len <= 0 ) return 0;
 	unsigned char *sp = demand(otell()+len);
 	memmove(inp,bp,len);
 	inp += len;
@@ -135,17 +137,6 @@ XMLTag::~XMLTag()
 {
 	properties.remove_all_objects();
 	delete [] string;
-}
-
-char *&XMLTag::demand(int len)
-{
-	if( len > avail ) {
-		char *np = new char[len+=BCSTRLEN];
-		if( used > 0 ) memcpy(np, string, used);
-		delete [] string;  string = np;
-		string[used] = 0;  avail = len;
-	}
-	return string;
 }
 
 const char *XMLTag::get_property(const char *property, char *value)

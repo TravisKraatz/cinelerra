@@ -861,88 +861,87 @@ int BC_Resources::init_fontconfig(const char *search_path)
 //	FT_Face freetype_face = 0;
 //	FT_Init_FreeType(&freetype_library);
 
-	char current_dir[BCTEXTLEN];
+	char line[BCTEXTLEN], current_dir[BCTEXTLEN];
 	current_dir[0] = 0;
 
-	while(!feof(in)) {
-		char string[BCTEXTLEN], string2[BCTEXTLEN];
-		(void)fgets(string, BCTEXTLEN, in);
-		if(!strlen(string)) break;
+	while( !feof(in) && fgets(line, BCTEXTLEN, in) ) {
+		if(!strlen(line)) break;
 
-		char *in_ptr = string;
+		char *in_ptr = line;
 		char *out_ptr;
 
 // Get current directory
-		if(string[0] == '/') {
+		if(line[0] == '/') {
 			get_str(current_dir, "\n", in_ptr,1);
 			for( int i=strlen(current_dir); --i>=0 && current_dir[i]!='/'; )
 				current_dir[i] = 0;
 			continue;
 		}
 
-//printf("TitleMain::build_fonts %s\n", string);
+//printf("TitleMain::build_fonts %s\n", line);
 		BC_FontEntry *entry = new BC_FontEntry;
+		char string[BCTEXTLEN];
 // Path
-		get_str(string2, "\n", in_ptr, in_ptr[0]!=' ' || in_ptr[1]!='-');
-		entry->path = cstrcat(2, current_dir, string2);
+		get_str(string, "\n", in_ptr, in_ptr[0]!=' ' || in_ptr[1]!='-');
+		entry->path = cstrcat(2, current_dir, string);
 // Foundary
 		skip_str(" -", in_ptr);
-		get_str(string2, " -\n", in_ptr, 1);
-		if( !string2[0] ) { delete entry;  continue; }
-		entry->foundry = cstrdup(string2);
+		get_str(string, " -\n", in_ptr, 1);
+		if( !string[0] ) { delete entry;  continue; }
+		entry->foundry = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 // Family
-		get_str(string2, "-\n", in_ptr, 1);
-		if( !string2[0] ) { delete entry;  continue; }
-		entry->family = cstrdup(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		if( !string[0] ) { delete entry;  continue; }
+		entry->family = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 // Weight
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->weight = cstrdup(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->weight = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 // Slant
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->slant = cstrdup(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->slant = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 // SWidth
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->swidth = cstrdup(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->swidth = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 // Adstyle
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->adstyle = cstrdup(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->adstyle = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 // pixelsize
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->pixelsize = atol(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->pixelsize = atol(string);
 		if(*in_ptr == '-') in_ptr++;
 // pointsize
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->pointsize = atol(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->pointsize = atol(string);
 		if(*in_ptr == '-') in_ptr++;
 // xres
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->xres = atol(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->xres = atol(string);
 		if(*in_ptr == '-') in_ptr++;
 // yres
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->yres = atol(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->yres = atol(string);
 		if(*in_ptr == '-') in_ptr++;
 // spacing
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->spacing = cstrdup(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->spacing = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 // avg_width
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->avg_width = atol(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->avg_width = atol(string);
 		if(*in_ptr == '-') in_ptr++;
 // registry
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->registry = cstrdup(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->registry = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 // encoding
-		get_str(string2, "-\n", in_ptr, 1);
-		entry->encoding = cstrdup(string2);
+		get_str(string, "-\n", in_ptr, 1);
+		entry->encoding = cstrdup(string);
 		if(*in_ptr == '-') in_ptr++;
 
 // Add to list
@@ -951,8 +950,8 @@ int BC_Resources::init_fontconfig(const char *search_path)
 // 		if(!load_freetype_face(freetype_library,
 // 			freetype_face, entry->path) )
 // Fix parameters
-		sprintf(string, "%s (%s)", entry->family, entry->foundry);
-		entry->displayname = cstrdup(string);
+		sprintf(line, "%s (%s)", entry->family, entry->foundry);
+		entry->displayname = cstrdup(line);
 
 		if(!strcasecmp(entry->weight, "demibold") ||
 		    !strcasecmp(entry->weight, "bold"))

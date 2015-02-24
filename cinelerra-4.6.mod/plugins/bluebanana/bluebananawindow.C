@@ -1928,6 +1928,8 @@ BluebananaWindow::BluebananaWindow(BluebananaMain *plugin)
  : PluginClientWindow(plugin,1000,1000,0,1,1)
 {
   do_render=0;
+  windowx = get_x();
+  windowy = get_y();
   this->plugin = plugin;
   config_refcount=1; // suppress pushing config during startup
   config_change=0;

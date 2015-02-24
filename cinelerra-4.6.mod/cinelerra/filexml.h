@@ -38,12 +38,6 @@ class XMLBuffer
 	unsigned char *inp, *outp, *bfr, *lmt;
 	int destroy;
 
-	void nib(int v) { v &=0x0f;  next(v<10?v+'0':v+'a'-10); }
-	void nibs(int v, int n) { while(--n>=0) nib(v>>(4*n)); }
-	int uesc(int v) { next('\\');  next(v);  return 2; }
-	int unibs(int ch, int v, int n) {
-		next('\\');  next(ch);  nibs(v,2*n);  return 2+2*n;
-	}
 	unsigned char *&demand(long len);
 public:
 	XMLBuffer(long buf_size=0x1000, long max_size=LONG_MAX, int del=1);
@@ -86,15 +80,11 @@ class XMLTag
 	};
 	bool ws(char ch) { return ch==' ' || ch=='\n'; }
 
-	int write_tag(FileXML *xml);
-	int read_tag(FileXML *xml);
-	friend class FileXML;
 public:
 	XMLTag();
 	~XMLTag();
 
 	int reset_tag();
-	char *&demand(int len);
 
 	int title_is(const char *title);
 	char *get_title();
@@ -116,6 +106,9 @@ public:
 	int set_property(const char *text, int64_t value);
 	int set_property(const char *text, float value);
 	int set_property(const char *text, double value);
+
+	int write_tag(FileXML *xml);
+	int read_tag(FileXML *xml);
 
 	char title[MAX_TITLE];
 	ArrayList<Property*> properties;
