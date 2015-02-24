@@ -52,8 +52,7 @@ XMLBuffer::XMLBuffer(const char *buf, long buf_size, int del)
 	bfr = (unsigned char *)buf;
 	bsz = buf_size;
 	outp = bfr;
-	inp = bfr+bsz;
-	lmt = inp+1;
+	lmt = inp = bfr+bsz;
 	isz = bsz;
 	destroy = del;
 }
@@ -63,8 +62,7 @@ XMLBuffer::XMLBuffer(long buf_size, const char *buf, int del)
 	bfr = (unsigned char *)buf;
 	bsz = buf_size;
 	inp = bfr;
-	outp = bfr+bsz;
-	lmt = outp+1;
+	lmt = outp = bfr+bsz;
 	isz = bsz;
 	destroy = del;
 }
