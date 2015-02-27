@@ -109,7 +109,8 @@ int Condition::timed_lock(int microseconds, const char *location)
 		result = pthread_cond_timedwait(&cond, &mutex, &timeout);
 	}
 
-	if( result ) result = result == ETIMEDOUT ? 1 : -1;
+	if( result )
+		result = result == ETIMEDOUT ? 1 : -1;
 
 #else
 	struct timeval timeout;
@@ -134,11 +135,12 @@ int Condition::timed_lock(int microseconds, const char *location)
 	UNSET_LOCK2
 #endif
 //printf("Condition::timed_lock 2 %d %s %s\n", result, title, location);
-	if(is_binary)
-		value = 0;
-	else
-		--value;
-
+	if( !result ) {
+		if(is_binary)
+			value = 0;
+		else
+			--value;
+	}
 	pthread_mutex_unlock(&mutex);
 	return result;
 }

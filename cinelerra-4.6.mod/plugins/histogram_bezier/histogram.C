@@ -531,7 +531,7 @@ float HistogramMain::calculate_linear(float input,
 
 float HistogramMain::calculate_smooth(float input, int subscript)
 {
-	float x_f = (input - MIN_INPUT) * HISTOGRAM_SLOTS / FLOAT_RANGE;
+	float x_f = (input - HIST_MIN_INPUT) * HISTOGRAM_SLOTS / FLOAT_RANGE;
 	int x_i1 = (int)x_f;
 	int x_i2 = x_i1 + 1;
 	CLAMP(x_i1, 0, HISTOGRAM_SLOTS - 1);
@@ -612,7 +612,7 @@ void HistogramMain::calculate_automatic(VFrame *data)
 			total += accum[j];
 			if(total >= threshold)
 			{
-				max_level = (float)j / HISTOGRAM_SLOTS * FLOAT_RANGE + MIN_INPUT;
+				max_level = (float)j / HISTOGRAM_SLOTS * FLOAT_RANGE + HIST_MIN_INPUT;
 				break;
 			}
 		}
@@ -624,7 +624,7 @@ void HistogramMain::calculate_automatic(VFrame *data)
 			total += accum[j];
 			if(total >= threshold)
 			{
-				min_level = (float)j / HISTOGRAM_SLOTS * FLOAT_RANGE + MIN_INPUT;
+				min_level = (float)j / HISTOGRAM_SLOTS * FLOAT_RANGE + HIST_MIN_INPUT;
 				break;
 			}
 		}
@@ -712,7 +712,7 @@ void HistogramMain::tabulate_curve(int subscript, int use_value)
 // Make linear curve
 	for(i = 0; i < HISTOGRAM_SLOTS; i++)
 	{
-		float input = (float)i / HISTOGRAM_SLOTS * FLOAT_RANGE + MIN_INPUT;
+		float input = (float)i / HISTOGRAM_SLOTS * FLOAT_RANGE + HIST_MIN_INPUT;
 		current_linear[i] = calculate_linear(input, subscript, use_value);
 	}
 

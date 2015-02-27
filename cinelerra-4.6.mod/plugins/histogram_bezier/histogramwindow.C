@@ -126,8 +126,8 @@ int HistogramWindow::create_objects()
 	canvas_w = get_w() - x - x;
 	canvas_h = get_h() - y - 170;
 	title1_x = x;
-	title2_x = x + (int)(canvas_w * -MIN_INPUT / FLOAT_RANGE);
-	title3_x = x + (int)(canvas_w * (1.0 - MIN_INPUT) / FLOAT_RANGE);
+	title2_x = x + (int)(canvas_w * -HIST_MIN_INPUT / FLOAT_RANGE);
+	title3_x = x + (int)(canvas_w * (1.0 - HIST_MIN_INPUT) / FLOAT_RANGE);
 	title4_x = x + (int)(canvas_w);
 	add_subwindow(canvas = new HistogramCanvas(plugin,
 		this,
@@ -287,7 +287,7 @@ void HistogramWindow::draw_canvas_overlay()
 		float input = (float)i / 
 				canvas_w * 
 				FLOAT_RANGE + 
-				MIN_INPUT;
+				HIST_MIN_INPUT;
 		float output = plugin->calculate_smooth(input, plugin->mode);
 
 		int y2 = canvas_h - (int)(output * canvas_h);
@@ -303,7 +303,7 @@ void HistogramWindow::draw_canvas_overlay()
 	int number = 0;
 	while(current)
 	{
-		int x = (int)((current->x - MIN_INPUT) * canvas_w / FLOAT_RANGE);
+		int x = (int)((current->x - HIST_MIN_INPUT) * canvas_w / FLOAT_RANGE);
 		int y = (int)(canvas_h - current->y * canvas_h);
 		if(number == plugin->current_point)
 			canvas->draw_box(x - BOX_SIZE / 2, y - BOX_SIZE / 2, BOX_SIZE, BOX_SIZE);
@@ -315,8 +315,8 @@ void HistogramWindow::draw_canvas_overlay()
 	{	
 		int x1,x2,y1,y2;
 		canvas->set_color(0x0000ff);
-		x2 = (int)((current->x + current->xoffset_right - MIN_INPUT) * canvas_w / FLOAT_RANGE);
-		x1 = (int)((current->x + current->xoffset_left - MIN_INPUT) * canvas_w / FLOAT_RANGE);
+		x2 = (int)((current->x + current->xoffset_right - HIST_MIN_INPUT) * canvas_w / FLOAT_RANGE);
+		x1 = (int)((current->x + current->xoffset_left - HIST_MIN_INPUT) * canvas_w / FLOAT_RANGE);
 		y2 = (int)(canvas_h - (current->y + current->xoffset_right * current->gradient) * canvas_h);
 		y1 = (int)(canvas_h - (current->y + current->xoffset_left * current->gradient) * canvas_h);
 /*		x2 = x + (title3_x - title2_x)/20;
@@ -432,7 +432,7 @@ int HistogramCanvas::button_press_event()
 			int dragID = 0;
 			while(current)
 			{
-				int x = (int)((current->x - MIN_INPUT) * gui->canvas_w / FLOAT_RANGE);
+				int x = (int)((current->x - HIST_MIN_INPUT) * gui->canvas_w / FLOAT_RANGE);
 				int y = (int)(gui->canvas_h - current->y * gui->canvas_h);
 
 /* Check for click on main point */
@@ -452,7 +452,7 @@ int HistogramCanvas::button_press_event()
 				  break;
 
 				int xright = 
-				  (int)((current->x + current->xoffset_right - MIN_INPUT) * gui->canvas_w / FLOAT_RANGE);
+				  (int)((current->x + current->xoffset_right - HIST_MIN_INPUT) * gui->canvas_w / FLOAT_RANGE);
 				int yright = 
 				  (int)(gui->canvas_h - (current->y + current->xoffset_right * current->gradient) * 
 				  gui->canvas_h);
@@ -473,7 +473,7 @@ int HistogramCanvas::button_press_event()
 				
 /* Check for click on left handle */
 				int xleft = 
-				  (int)((current->x + current->xoffset_left - MIN_INPUT) * gui->canvas_w / FLOAT_RANGE);
+				  (int)((current->x + current->xoffset_left - HIST_MIN_INPUT) * gui->canvas_w / FLOAT_RANGE);
 				int yleft = 
 				  (int)(gui->canvas_h - (current->y + current->xoffset_left * current->gradient) * 
 				  gui->canvas_h);
@@ -500,7 +500,7 @@ int HistogramCanvas::button_press_event()
 				float current_x = (float)get_cursor_x() * 
 					FLOAT_RANGE / 
 					get_w() + 
-					MIN_INPUT;
+					HIST_MIN_INPUT;
 				float current_y = 1.0 - 
 					(float)get_cursor_y() / 
 					get_h();
@@ -573,7 +573,7 @@ int HistogramCanvas::cursor_motion_event()
 			(float)(get_cursor_x() - plugin->point_x_offset) * 
 			FLOAT_RANGE / 
 			get_w() + 
-			MIN_INPUT;
+			HIST_MIN_INPUT;
 		float current_y = 1.0 - 
 			(float)(get_cursor_y() - plugin->point_y_offset) / 
 			get_h();
@@ -682,7 +682,7 @@ HistogramSlider::HistogramSlider(HistogramMain *plugin,
 
 int HistogramSlider::input_to_pixel(float input)
 {
-	return (int)((input - MIN_INPUT) / FLOAT_RANGE * get_w());
+	return (int)((input - HIST_MIN_INPUT) / FLOAT_RANGE * get_w());
 }
 
 int HistogramSlider::button_press_event()
@@ -739,8 +739,8 @@ int HistogramSlider::cursor_motion_event()
 {
 	if(operation != NONE)
 	{
-		float value = (float)get_cursor_x() / get_w() * FLOAT_RANGE + MIN_INPUT;
-		CLAMP(value, MIN_INPUT, MAX_INPUT);
+		float value = (float)get_cursor_x() / get_w() * FLOAT_RANGE + HIST_MIN_INPUT;
+		CLAMP(value, HIST_MIN_INPUT, HIST_MAX_INPUT);
 
 		switch(operation)
 		{
@@ -898,8 +898,8 @@ HistogramOutputText::HistogramOutputText(HistogramMain *plugin,
 	float *output)
  : BC_TumbleTextBox(gui, 
 		output ? (float)*output : 0.0,
-		(float)MIN_INPUT,
-		(float)MAX_INPUT,
+		(float)HIST_MIN_INPUT,
+		(float)HIST_MAX_INPUT,
 		x, 
 		y, 
 		60)
@@ -937,8 +937,8 @@ HistogramInputText::HistogramInputText(HistogramMain *plugin,
 	int do_x)
  : BC_TumbleTextBox(gui, 
 		0.0,
-		(float)MIN_INPUT,
-		(float)MAX_INPUT,
+		(float)HIST_MIN_INPUT,
+		(float)HIST_MAX_INPUT,
 		x, 
 		y, 
 		60)

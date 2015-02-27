@@ -632,6 +632,78 @@ LoadPackage* TitleEngine::new_package()
 	return new TitlePackage;
 }
 
+void TitleTranslateUnit::translation_array_f(transfer_table_f* &table,
+	float out_x1,
+	float out_x2,
+	float in_x1,
+	float in_x2,
+	int in_total,
+	int out_total,
+	int &out_x1_int,
+	int &out_x2_int)
+{
+	int out_w_int;
+	//float offset = out_x1 - in_x1;
+
+	out_x1_int = (int)out_x1;
+	out_x2_int = MIN((int)ceil(out_x2), out_total);
+	out_w_int = out_x2_int - out_x1_int;
+
+	table = new transfer_table_f[out_w_int];
+	bzero(table, sizeof(transfer_table_f) * out_w_int);
+
+	float in_x = in_x1;
+	for(int out_x = out_x1_int; out_x < out_x2_int; out_x++)
+	{
+		transfer_table_f *entry = &table[out_x - out_x1_int];
+
+		entry->in_x1 = (int)in_x;
+		entry->in_x2 = (int)in_x + 1;
+
+// Get fraction of output pixel to fill
+		entry->output_fraction = 1;
+
+		if(out_x1 > out_x)
+		{
+			entry->output_fraction -= out_x1 - out_x;
+		}
+
+		if(out_x2 < out_x + 1)
+		{
+			entry->output_fraction = (out_x2 - out_x);
+		}
+
+// Advance in_x until out_x_fraction is filled
+		float out_x_fraction = entry->output_fraction;
+		float in_x_fraction = floor(in_x + 1) - in_x;
+
+		if(out_x_fraction <= in_x_fraction)
+		{
+			entry->in_fraction1 = out_x_fraction;
+			entry->in_fraction2 = 0.0;
+			in_x += out_x_fraction;
+		}
+		else
+		{
+			entry->in_fraction1 = in_x_fraction;
+			in_x += out_x_fraction;
+			entry->in_fraction2 = in_x - floor(in_x);
+		}
+
+// Clip in_x and zero out fraction.  This doesn't work for YUV.
+		if(entry->in_x2 >= in_total)
+		{
+			entry->in_x2 = in_total - 1;
+			entry->in_fraction2 = 0.0;
+		}
+
+		if(entry->in_x1 >= in_total)
+		{
+			entry->in_x1 = in_total - 1;
+			entry->in_fraction1 = 0.0;
+		}
+	}
+}
 
 
 
@@ -971,13 +1043,13 @@ void TitleTranslate::init_packages()
 
 	float x1 = plugin->text_x1 + plugin->extent.x1;
 	float x2 = plugin->text_x1 + plugin->extent.x2;
-	TranslateUnit::translation_array_f(x_table, x1, x2, 0,
+	TitleTranslateUnit::translation_array_f(x_table, x1, x2, 0,
 		plugin->mask_w, plugin->mask_w,
 		output_w, out_x1_int, out_x2_int);
 
 	float y1 = plugin->text_y1 + plugin->extent.y1;
 	float y2 = plugin->text_y1 + plugin->extent.y2;
-	TranslateUnit::translation_array_f(y_table, y1, y2, 0,
+	TitleTranslateUnit::translation_array_f(y_table, y1, y2, 0,
 		plugin->mask_h, plugin->mask_h,
 		output_h, out_y1_int, out_y2_int);
 

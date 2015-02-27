@@ -71,10 +71,10 @@ void HistogramConfig::boundaries()
 {
 	for(int i = 0; i < HISTOGRAM_MODES; i++)
 	{
-		CLAMP(low_input[i], MIN_INPUT, MAX_INPUT);
-		CLAMP(high_input[i], MIN_INPUT, MAX_INPUT);
-		CLAMP(low_output[i], MIN_INPUT, MAX_INPUT);
-		CLAMP(high_output[i], MIN_INPUT, MAX_INPUT);
+		CLAMP(low_input[i], HIST_MIN_INPUT, HIST_MAX_INPUT);
+		CLAMP(high_input[i], HIST_MIN_INPUT, HIST_MAX_INPUT);
+		CLAMP(low_output[i], HIST_MIN_INPUT, HIST_MAX_INPUT);
+		CLAMP(high_output[i], HIST_MIN_INPUT, HIST_MAX_INPUT);
 		CLAMP(gamma[i], MIN_GAMMA, MAX_GAMMA);
 		low_output[i] = Units::quantize(low_output[i], PRECISION);
 		high_output[i] = Units::quantize(high_output[i], PRECISION);

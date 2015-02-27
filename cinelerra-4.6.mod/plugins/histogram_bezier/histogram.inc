@@ -39,10 +39,10 @@
 #define FLOAT_RANGE 1.2
 // Minimum value in percentage
 #define HISTOGRAM_MIN -10
-#define MIN_INPUT -0.1
+#define HIST_MIN_INPUT -0.1
 // Maximum value in percentage
 #define HISTOGRAM_MAX 110
-#define MAX_INPUT 1.1
+#define HIST_MAX_INPUT 1.1
 
 #define PRECISION 0.001
 #define DIGITS 3

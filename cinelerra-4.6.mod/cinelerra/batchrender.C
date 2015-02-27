@@ -1725,7 +1725,8 @@ void CreateDVD_DiskSpace::update()
 }
 
 CreateDVD_TmpPath::CreateDVD_TmpPath(CreateDVD_GUI *gui, int x, int y, int w)
- : BC_TextBox(x, y, w, 1, 0, gui->thread->tmp_path, 1, MEDIUMFONT)
+ : BC_TextBox(x, y, w, 1, -sizeof(gui->thread->tmp_path),
+		gui->thread->tmp_path, 1, MEDIUMFONT)
 {
         this->gui = gui;
 }

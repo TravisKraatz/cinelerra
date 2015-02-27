@@ -395,7 +395,7 @@ void HistogramMain::calculate_automatic(VFrame *data)
 			total += accum[j];
 			if(total >= threshold)
 			{
-				max_level = (float)j / HISTOGRAM_SLOTS * FLOAT_RANGE + MIN_INPUT;
+				max_level = (float)j / HISTOGRAM_SLOTS * FLOAT_RANGE + HIST_MIN_INPUT;
 				break;
 			}
 		}
@@ -407,7 +407,7 @@ void HistogramMain::calculate_automatic(VFrame *data)
 			total += accum[j];
 			if(total >= threshold)
 			{
-				min_level = (float)j / HISTOGRAM_SLOTS * FLOAT_RANGE + MIN_INPUT;
+				min_level = (float)j / HISTOGRAM_SLOTS * FLOAT_RANGE + HIST_MIN_INPUT;
 				break;
 			}
 		}

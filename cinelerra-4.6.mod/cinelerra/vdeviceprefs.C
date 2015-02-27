@@ -740,6 +740,7 @@ const char *VScalingEquation::interpolation_to_string(int type)
 	case CUBIC_CUBIC:	return "BiCubic / BiCubic";
 	case CUBIC_LINEAR:	return "BiCubic / BiLinear";
 	case LINEAR_LINEAR:	return "BiLinear / BiLinear";
+	case LANCZOS_LANCZOS:	return "Lanczos / Lanczos";
 	}
 	return "Unknown";
 }
@@ -747,8 +748,9 @@ const char *VScalingEquation::interpolation_to_string(int type)
 void VScalingEquation::create_objects()
 {
 	add_item(new VScalingItem(this, NEAREST_NEIGHBOR));
-	//add_item(new VScalingItem(this, CUBIC_CUBIC));
+	add_item(new VScalingItem(this, CUBIC_CUBIC));
 	add_item(new VScalingItem(this, CUBIC_LINEAR));
 	add_item(new VScalingItem(this, LINEAR_LINEAR));
+	add_item(new VScalingItem(this, LANCZOS_LANCZOS));
 }
 
