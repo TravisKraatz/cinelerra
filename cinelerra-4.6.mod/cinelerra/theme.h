@@ -298,6 +298,7 @@ public:
 	int window_border;
 	int widget_border;
 	int clock_bg_color;
+	int use_commercials;
 
 // Bitmaps
 	VFrame *about_bg;

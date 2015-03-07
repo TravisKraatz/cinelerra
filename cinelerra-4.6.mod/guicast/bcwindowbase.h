@@ -236,6 +236,8 @@ public:
 // Must be called at the beginning of any opengl routine to make sure
 // the context is current.
 // No locking is performed.
+	Visual *glx_visual();
+	GLXContext glx_get_context();
 	void enable_opengl();
 	void disable_opengl();
 	void flip_opengl();
@@ -763,6 +765,8 @@ private:
 #ifdef HAVE_GL
 // The first context to be created and the one whose texture id
 // space is shared with the other contexts.
+	GLXFBConfig fb_config;
+	GLXWindow glx_win;
 	GLXContext gl_win_context;
 #endif
 	int window_lock;

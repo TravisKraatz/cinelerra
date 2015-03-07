@@ -325,14 +325,8 @@ IntAuto* VModePatch::get_keyframe(MWindow *mwindow, VPatchGUI *patch)
 
 void VModePatch::create_objects()
 {
-	add_item(new VModePatchItem(this, mode_to_text(TRANSFER_NORMAL), TRANSFER_NORMAL));
-	add_item(new VModePatchItem(this, mode_to_text(TRANSFER_ADDITION), TRANSFER_ADDITION));
-	add_item(new VModePatchItem(this, mode_to_text(TRANSFER_SUBTRACT), TRANSFER_SUBTRACT));
-	add_item(new VModePatchItem(this, mode_to_text(TRANSFER_MULTIPLY), TRANSFER_MULTIPLY));
-	add_item(new VModePatchItem(this, mode_to_text(TRANSFER_DIVIDE), TRANSFER_DIVIDE));
-	add_item(new VModePatchItem(this, mode_to_text(TRANSFER_REPLACE), TRANSFER_REPLACE));
-	add_item(new VModePatchItem(this, mode_to_text(TRANSFER_MAX), TRANSFER_MAX));
-	add_item(new VModePatchItem(this, mode_to_text(TRANSFER_MIN), TRANSFER_MIN));
+	for( int mode=0; mode<TRANSFER_TYPES; ++mode )
+		add_item(new VModePatchItem(this, mode_to_text(mode), mode));
 }
 
 void VModePatch::update(int mode)
@@ -348,49 +342,33 @@ void VModePatch::update(int mode)
 
 const char* VModePatch::mode_to_text(int mode)
 {
-	switch(mode)
-	{
-		case TRANSFER_NORMAL:
-			return _("Normal");
-			break;
-
-		case TRANSFER_REPLACE:
-			return _("Replace");
-			break;
-
-		case TRANSFER_ADDITION:
-			return _("Addition");
-			break;
-
-		case TRANSFER_SUBTRACT:
-			return _("Subtract");
-			break;
-
-		case TRANSFER_MULTIPLY:
-			return _("Multiply");
-			break;
-
-		case TRANSFER_DIVIDE:
-			return _("Divide");
-			break;
-
-		case TRANSFER_MAX:
-			return _("Max");
-			break;
-
-		case TRANSFER_MIN:
-			return _("Min");
-			break;
-
-		default:
-			return _("Normal");
-			break;
+	switch(mode) {
+		case TRANSFER_NORMAL:		return _("Normal");
+		case TRANSFER_ADDITION:		return _("Addition");
+		case TRANSFER_SUBTRACT:		return _("Subtract");
+		case TRANSFER_MULTIPLY:		return _("Multiply");
+		case TRANSFER_DIVIDE:  		return _("Divide");
+		case TRANSFER_REPLACE:		return _("Replace");
+		case TRANSFER_MAX:   		return _("Max");
+		case TRANSFER_MIN:   		return _("Min");
+		case TRANSFER_AVERAGE:		return _("Average");
+		case TRANSFER_DARKEN:		return _("Darken");
+		case TRANSFER_LIGHTEN:		return _("Lighten");
+		case TRANSFER_DST:		return _("Dst");
+		case TRANSFER_DST_ATOP:		return _("DstAtop");
+		case TRANSFER_DST_IN:		return _("DstIn");
+		case TRANSFER_DST_OUT:		return _("DstOut");
+		case TRANSFER_DST_OVER:		return _("DstOver");
+		case TRANSFER_SRC:		return _("Src");
+		case TRANSFER_SRC_ATOP:		return _("SrcAtop");
+		case TRANSFER_SRC_IN:		return _("SrcIn");
+		case TRANSFER_SRC_OUT:		return _("SrcOut");
+		case TRANSFER_SRC_OVER:		return _("SrcOver");
+		case TRANSFER_OR:		return _("Or");
+		case TRANSFER_XOR:		return _("Xor");
 	}
-	return "";
+	return _("Normal");
 }
-
-
-
 
 
 

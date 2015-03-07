@@ -468,17 +468,6 @@ void SUV::initialize()
 
 	new_image_set("zoombar_menu", 3, "zoompopup_up.png", "zoompopup_hi.png", "zoompopup_dn.png");
 	new_image_set("zoombar_tumbler", 4, "zoomtumble_up.png", "zoomtumble_hi.png", "zoomtumble_bottom.png", "zoomtumble_top.png");
-
-	new_image_set("mode_popup", 3, "mode_up.png", "mode_hi.png", "mode_dn.png");
-	new_image("mode_add", "mode_add.png");
-	new_image("mode_divide", "mode_divide.png");
-	new_image("mode_multiply", "mode_multiply.png");
-	new_image("mode_normal", "mode_normal.png");
-	new_image("mode_replace", "mode_replace.png");
-	new_image("mode_subtract", "mode_subtract.png");
-	new_image("mode_max", "mode_max.png");
-	new_image("mode_min", "mode_min.png");
-
 	new_image_set("plugin_on", 5, "plugin_on.png", "plugin_onhi.png", "plugin_onselect.png", "plugin_ondn.png", "plugin_onselecthi.png");
 	new_image_set("plugin_show", 5, "plugin_show.png", "plugin_showhi.png", "plugin_showselect.png", "plugin_showdn.png", "plugin_showselecthi.png");
 

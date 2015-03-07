@@ -482,12 +482,13 @@ void BC_Pixmap::enable_opengl()
 
 		static int framebuffer_attributes[] = 
 		{
-        	GLX_RENDER_TYPE, GLX_RGBA_BIT,
+	        	GLX_RENDER_TYPE, GLX_RGBA_BIT,
 			GLX_DRAWABLE_TYPE, GLX_PIXMAP_BIT,
-			GLX_DOUBLEBUFFER, 1, // 0,
-        	GLX_RED_SIZE, 1,
-        	GLX_GREEN_SIZE, 1,
-        	GLX_BLUE_SIZE, 1,
+			GLX_DOUBLEBUFFER, True, // False,
+			GLX_RED_SIZE, 1,
+			GLX_GREEN_SIZE, 1,
+			GLX_BLUE_SIZE, 1,
+			GLX_ALPHA_SIZE, 1,
 			None
 		};
 		XVisualInfo *visinfo = 0;

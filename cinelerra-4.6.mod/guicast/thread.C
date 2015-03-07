@@ -110,7 +110,7 @@ Thread::Thread(int synchronous, int realtime, int autodelete)
 	this->realtime = realtime != 0;
 	this->autodelete = autodelete != 0;
 	tid = (pthread_t)-1;
-	started = finished = false;
+	finished = false;
 	cancelled = false;
 	cancel_enabled = false;
 }
@@ -157,7 +157,6 @@ void Thread::start()
 	if( synchronous && exists() )
 		join();
 
-	started = true;
 	finished = false;
 	cancelled = false;
 	owner = get_self();
@@ -274,7 +273,7 @@ bool Thread::exists()
 
 bool Thread::running()
 {
-	return started & ~finished;
+	return exists() & ~finished;
 }
 
 int Thread::set_synchronous(int value)

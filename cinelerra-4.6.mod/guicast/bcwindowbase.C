@@ -320,7 +320,7 @@ int BC_WindowBase::initialize()
 	is_hourglass = 0;
 	is_transparent = 0;
 #ifdef HAVE_LIBXXF86VM
-    vm_switched = 0;
+	vm_switched = 0;
 #endif
 	smallfont_xft = 0;
 	bold_largefont_xft = 0;
@@ -344,8 +344,11 @@ int BC_WindowBase::initialize()
 	cursor_timer = new Timer;
 	event_thread = 0;
 #ifdef HAVE_GL
+	fb_config = 0;
+	glx_win = 0;
 	gl_win_context = 0;
 #endif
+
 	return 0;
 }
 
@@ -452,7 +455,7 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		root_w = get_root_w(0);
 		root_h = get_root_h(0);
 
-		vis = DefaultVisual(display, screen);
+		vis = glx_visual(); // updates fb_config
 		default_depth = DefaultDepth(display, screen);
 
 		client_byte_order = (*(const u_int32_t*)"a   ") & 0x00000001;
@@ -485,10 +488,7 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		init_cursors();
 
 // Create the window
-		mask = CWEventMask |
-				CWBackPixel |
-				CWColormap |
-				CWCursor;
+		mask = CWEventMask | CWBackPixel | CWColormap | CWCursor;
 
 		attr.event_mask = DEFAULT_EVENT_MASKS |
 			StructureNotifyMask |
@@ -499,19 +499,13 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		attr.colormap = cmap;
 		attr.cursor = get_cursor_struct(ARROW_CURSOR);
 
-		win = XCreateWindow(display,
-			rootwin,
-			this->x,
-			this->y,
-			this->w,
-			this->h,
-			0,
-			top_level->default_depth,
-			InputOutput,
-			vis,
-			mask,
-			&attr);
-
+		win = XCreateWindow(display, rootwin,
+			this->x, this->y, this->w, this->h, 0,
+			top_level->default_depth, InputOutput,
+			vis, mask, &attr);
+#if HAVE_GL
+		glx_win = glXCreateWindow(display, fb_config, win, 0);
+#endif
 		XGetNormalHints(display, win, &size_hints);
 
 		size_hints.flags = PSize | PMinSize | PMaxSize;
@@ -2011,19 +2005,11 @@ void BC_WindowBase::init_cursors()
 	char cursor_data[] = { 0,0,0,0, 0,0,0,0 };
 	Colormap colormap = DefaultColormap(display, screen);
 	Pixmap pixmap_bottom = XCreateBitmapFromData(display,
-		rootwin,
-		cursor_data,
-		8,
-		8);
+		rootwin, cursor_data, 8, 8);
 	XColor black, dummy;
     XAllocNamedColor(display, colormap, "black", &black, &dummy);
 	transparent_cursor = XCreatePixmapCursor(display,
-		pixmap_bottom,
-		pixmap_bottom,
-		&black,
-		&black,
-		0,
-		0);
+		pixmap_bottom, pixmap_bottom, &black, &black, 0, 0);
 //	XDefineCursor(display, win, transparent_cursor);
 	XFreePixmap(display, pixmap_bottom);
 }
@@ -2092,7 +2078,8 @@ int BC_WindowBase::init_colors()
 			break;
 
 		default:
- 			cmap = DefaultColormap(display, screen);
+ 			//cmap = DefaultColormap(display, screen);
+ 			cmap = XCreateColormap(display, rootwin, vis, AllocNone );
 			break;
 	}
 	return 0;
@@ -2535,11 +2522,7 @@ void BC_WindowBase::set_line_width(int value)
 	if(line_dashes > 0)
 	{
 		const char dashes = line_dashes;
-		XSetDashes(top_level->display,
-			top_level->gc,
-    		0,
-    		&dashes,
-    		1);
+		XSetDashes(top_level->display, top_level->gc, 0, &dashes, 1);
 	}
 
 // XGCValues gcvalues;
@@ -3464,7 +3447,7 @@ int BC_WindowBase::get_screen_w(int lock_display, int screen)
 			result = width;
 	}
 	else
-		result = info->width;
+		result = info->x_org + info->width;
 	if(lock_display) unlock_window();
 	return result;
 }
@@ -3473,7 +3456,7 @@ int BC_WindowBase::get_screen_h(int lock_display, int screen)
 {
 	if(lock_display) lock_window("BC_WindowBase::get_screen_h");
 	XineramaScreenInfo *info = top_level->get_xinerama_info(screen);
-	int result = info ? info->height : get_root_h(0);
+	int result = info ? info->y_org + info->height : get_root_h(0);
 	if(lock_display) unlock_window();
 	return result;
 }
@@ -3682,24 +3665,12 @@ int BC_WindowBase::get_relative_cursor_x()
 	unsigned int temp_mask;
 	Window temp_win;
 
-	XQueryPointer(top_level->display,
-	   top_level->win,
-	   &temp_win,
-	   &temp_win,
-       &abs_x,
-	   &abs_y,
-	   &win_x,
-	   &win_y,
+	XQueryPointer(top_level->display, top_level->win,
+	   &temp_win, &temp_win, &abs_x, &abs_y, &win_x, &win_y,
 	   &temp_mask);
 
-	XTranslateCoordinates(top_level->display,
-			top_level->rootwin,
-			win,
-			abs_x,
-			abs_y,
-			&x,
-			&y,
-			&temp_win);
+	XTranslateCoordinates(top_level->display, top_level->rootwin,
+	   win, abs_x, abs_y, &x, &y, &temp_win);
 
 	return x;
 }
@@ -3710,24 +3681,12 @@ int BC_WindowBase::get_relative_cursor_y()
 	unsigned int temp_mask;
 	Window temp_win;
 
-	XQueryPointer(top_level->display,
-	   top_level->win,
-	   &temp_win,
-	   &temp_win,
-       &abs_x,
-	   &abs_y,
-	   &win_x,
-	   &win_y,
+	XQueryPointer(top_level->display, top_level->win,
+	   &temp_win, &temp_win, &abs_x, &abs_y, &win_x, &win_y,
 	   &temp_mask);
 
 	XTranslateCoordinates(top_level->display,
-			top_level->rootwin,
-			win,
-			abs_x,
-			abs_y,
-			&x,
-			&y,
-			&temp_win);
+	   top_level->rootwin, win, abs_x, abs_y, &x, &y, &temp_win);
 
 	return y;
 }
@@ -3739,14 +3698,8 @@ int BC_WindowBase::get_abs_cursor_x(int lock_window)
 	Window temp_win;
 
 	if(lock_window) this->lock_window("BC_WindowBase::get_abs_cursor_x");
-	XQueryPointer(top_level->display,
-		top_level->win,
-		&temp_win,
-		&temp_win,
-		&abs_x,
-		&abs_y,
-		&win_x,
-		&win_y,
+	XQueryPointer(top_level->display, top_level->win,
+		&temp_win, &temp_win, &abs_x, &abs_y, &win_x, &win_y,
 		&temp_mask);
 	if(lock_window) this->unlock_window();
 	return abs_x;
@@ -3759,14 +3712,8 @@ int BC_WindowBase::get_abs_cursor_y(int lock_window)
 	Window temp_win;
 
 	if(lock_window) this->lock_window("BC_WindowBase::get_abs_cursor_y");
-	XQueryPointer(top_level->display,
-	 	top_level->win,
-		&temp_win,
-		&temp_win,
-        &abs_x,
-		&abs_y,
-		&win_x,
-		&win_y,
+	XQueryPointer(top_level->display, top_level->win,
+		&temp_win, &temp_win, &abs_x, &abs_y, &win_x, &win_y,
 		&temp_mask);
 	if(lock_window) this->unlock_window();
 	return abs_y;
@@ -3776,8 +3723,7 @@ int BC_WindowBase::match_window(Window win)
 {
 	if (this->win == win) return 1;
 	int result = 0;
-	for(int i = 0; i < subwindows->total; i++)
-	{
+	for(int i = 0; i < subwindows->total; i++) {
 		result = subwindows->values[i]->match_window(win);
 		if (result) return result;
 	}
@@ -3793,16 +3739,9 @@ int BC_WindowBase::get_cursor_over_window()
 	unsigned int temp_mask;
 	Window root_return, child_return;
 
-	if (!XQueryPointer(display,
-		win,
-		&root_return,
-		&child_return,
-		&abs_x,
-		&abs_y,
-		&win_x,
-		&win_y,
-		&temp_mask))
-		return 0;
+	if (!XQueryPointer(display, win,
+		&root_return, &child_return, &abs_x, &abs_y,
+		&win_x, &win_y, &temp_mask)) return 0;
 
 // printf("BC_WindowBase::get_cursor_over_window %d %s 0x%x 0x%x\n",
 // __LINE__,

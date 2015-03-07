@@ -1142,6 +1142,10 @@ void MWindow::set_brender_start()
 }
 
 
+int MWindow::has_commercials()
+{
+	return theme->use_commercials;
+}
 
 void MWindow::init_commercials()
 {

@@ -90,85 +90,41 @@ VFrame::VFrame(VFrame &frame)
 {
 	reset_parameters(1);
 	params = new BC_Hash;
-	allocate_data(0,
-		-1,
-		0,
-		0,
-		0,
-		frame.w,
-		frame.h,
-		frame.color_model,
-		frame.bytes_per_line);
+	allocate_data(0, -1, 0, 0, 0, frame.w, frame.h,
+		frame.color_model, frame.bytes_per_line);
 	memcpy(data, frame.data, bytes_per_line * h);
 	copy_stacks(&frame);
 }
 
-VFrame::VFrame(int w,
-	int h,
-	int color_model,
-	long bytes_per_line)
+VFrame::VFrame(int w, int h, int color_model, long bytes_per_line)
 {
 	reset_parameters(1);
 	params = new BC_Hash;
-	allocate_data(data,
-		-1,
-		0,
-		0,
-		0,
-		w,
-		h,
-		color_model,
-		bytes_per_line);
+	allocate_data(data, -1, 0, 0, 0, w, h,
+		color_model, bytes_per_line);
 }
 
-VFrame::VFrame(unsigned char *data,
-	int shmid,
-	int w,
-	int h,
-	int color_model,
-	long bytes_per_line)
+VFrame::VFrame(unsigned char *data, int shmid, int w, int h,
+	int color_model, long bytes_per_line)
 {
 	reset_parameters(1);
 	params = new BC_Hash;
-	allocate_data(data,
-		shmid,
-		0,
-		0,
-		0,
-		w,
-		h,
-		color_model,
-		bytes_per_line);
+	allocate_data(data, shmid, 0, 0, 0, w, h,
+		color_model, bytes_per_line);
 }
 
-VFrame::VFrame(unsigned char *data,
-		int shmid,
-		long y_offset,
-		long u_offset,
-		long v_offset,
-		int w,
-		int h,
-		int color_model,
-		long bytes_per_line)
+VFrame::VFrame(unsigned char *data, int shmid,
+		long y_offset, long u_offset, long v_offset,
+		int w, int h, int color_model, long bytes_per_line)
 {
 	reset_parameters(1);
 	params = new BC_Hash;
-	allocate_data(data,
-		shmid,
-		y_offset,
-		u_offset,
-		v_offset,
-		w,
-		h,
-		color_model,
-		bytes_per_line);
+	allocate_data(data, shmid, y_offset, u_offset, v_offset, w, h,
+		color_model, bytes_per_line);
 }
 
-VFrame::VFrame(BC_Bitmap *bitmap,
-		int w,
-		int h,
-		int color_model,
-		long bytes_per_line)
+VFrame::VFrame(BC_Bitmap *bitmap, int w, int h,
+		 int color_model, long bytes_per_line)
 {
 	reset_parameters(1);
 	params = new BC_Hash;
@@ -191,14 +147,6 @@ VFrame::VFrame()
 	params = new BC_Hash;
 	this->color_model = BC_COMPRESSED;
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -459,36 +407,24 @@ void VFrame::create_row_pointers()
 	}
 }
 
-int VFrame::allocate_data(unsigned char *data,
-	int shmid,
-	long y_offset,
-	long u_offset,
-	long v_offset,
-	int w,
-	int h,
-	int color_model,
-	long bytes_per_line)
+int VFrame::allocate_data(unsigned char *data, int shmid,
+		long y_offset, long u_offset, long v_offset, int w, int h,
+		int color_model, long bytes_per_line)
 {
 	this->w = w;
 	this->h = h;
 	this->color_model = color_model;
 	this->bytes_per_pixel = calculate_bytes_per_pixel(color_model);
 	this->y_offset = this->u_offset = this->v_offset = 0;
-	if(shmid == 0)
-	{
+//	if(shmid == 0) {
 //		printf("VFrame::allocate_data %d shmid == 0\n", __LINE__, shmid);
-	}
+//	}
 
-	if(bytes_per_line >= 0)
-	{
-		this->bytes_per_line = bytes_per_line;
-	}
-	else
-		this->bytes_per_line = this->bytes_per_pixel * w;
+	this->bytes_per_line = bytes_per_line >= 0 ?
+		bytes_per_line : this->bytes_per_pixel * w;
 
 // Allocate data + padding for MMX
-	if(data)
-	{
+	if(data) {
 //printf("VFrame::allocate_data %d %p\n", __LINE__, this->data);
 		memory_type = VFrame::SHARED;
 		this->data = data;
@@ -497,9 +433,7 @@ int VFrame::allocate_data(unsigned char *data,
 		this->u_offset = u_offset;
 		this->v_offset = v_offset;
 	}
-	else
-	if(shmid >= 0)
-	{
+	else if(shmid >= 0) {
 		memory_type = VFrame::SHMGET;
 		this->data = (unsigned char*)shmat(shmid, NULL, 0);
 //printf("VFrame::allocate_data %d shmid=%d data=%p\n", __LINE__, shmid, this->data);
@@ -508,20 +442,13 @@ int VFrame::allocate_data(unsigned char *data,
 		this->u_offset = u_offset;
 		this->v_offset = v_offset;
 	}
-	else
-	{
+	else {
 		memory_type = VFrame::PRIVATE;
-		int size = calculate_data_size(this->w,
-			this->h,
-			this->bytes_per_line,
-			this->color_model);
-		if(BC_WindowBase::get_resources()->use_vframe_shm() && use_shm)
-		{
-			this->shmid = shmget(IPC_PRIVATE,
-				size,
-				IPC_CREAT | 0777);
-			if(this->shmid < 0)
-			{
+		int size = calculate_data_size(this->w, this->h,
+			this->bytes_per_line, this->color_model);
+		if(BC_WindowBase::get_resources()->use_vframe_shm() && use_shm) {
+			this->shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0777);
+			if(this->shmid < 0) {
 				printf("VFrame::allocate_data %d could not allocate shared memory\n", __LINE__);
 			}
 
@@ -532,8 +459,7 @@ int VFrame::allocate_data(unsigned char *data,
 // This causes it to automatically delete when the program exits.
 			shmctl(this->shmid, IPC_RMID, 0);
 		}
-		else
-		{
+		else {
 // Have to use malloc for libpng
 			this->data = (unsigned char *)malloc(size);
 		}
@@ -1404,12 +1330,7 @@ void VFrame::dump()
 {
 	printf("VFrame::dump %d this=%p\n", __LINE__, this);
 	printf("    w=%d h=%d colormodel=%d rows=%p use_shm=%d shmid=%d\n",
-		w,
-		h,
-		color_model,
-		rows,
-		use_shm,
-		shmid);
+		w, h, color_model, rows, use_shm, shmid);
 }
 
 int VFrame::filefork_size()

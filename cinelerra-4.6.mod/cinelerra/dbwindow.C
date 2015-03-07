@@ -30,6 +30,18 @@ DbWindow(MWindow *mwindow)
 	gui = 0;
 }
 
+DbWindow::MDb::MDb(DbWindow *d)
+ : Garbage("DbWindow::MDb"), dwin(d)
+{
+	if( !d->mwindow->has_commercials() ) return;
+	 openDb();  detachDb();
+}
+
+DbWindow::MDb::~MDb()
+{
+	closeDb();
+}
+
 DbWindow::~DbWindow()
 {
 	stop();

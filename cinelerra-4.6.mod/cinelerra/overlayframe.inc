@@ -24,16 +24,31 @@
 
 // Modes
 
-#define TRANSFER_TYPES 7
+#define TRANSFER_TYPES 23
 
-#define TRANSFER_NORMAL       0
-#define TRANSFER_ADDITION     1
-#define TRANSFER_SUBTRACT     2
-#define TRANSFER_MULTIPLY     3
-#define TRANSFER_DIVIDE       4
-#define TRANSFER_REPLACE      5
-#define TRANSFER_MAX          6
-#define TRANSFER_MIN          7
+#define TRANSFER_NORMAL		0
+#define TRANSFER_ADDITION	1
+#define TRANSFER_SUBTRACT	2
+#define TRANSFER_MULTIPLY	3
+#define TRANSFER_DIVIDE		4
+#define TRANSFER_REPLACE	5
+#define TRANSFER_MAX		6
+#define TRANSFER_MIN		7
+#define TRANSFER_AVERAGE	8
+#define TRANSFER_DARKEN		9
+#define TRANSFER_LIGHTEN	10
+#define TRANSFER_DST		11
+#define TRANSFER_DST_ATOP	12
+#define TRANSFER_DST_IN		13
+#define TRANSFER_DST_OUT	14
+#define TRANSFER_DST_OVER	15
+#define TRANSFER_SRC		16
+#define TRANSFER_SRC_ATOP	17
+#define TRANSFER_SRC_IN		18
+#define TRANSFER_SRC_OUT	19
+#define TRANSFER_SRC_OVER	20
+#define TRANSFER_OR		21
+#define TRANSFER_XOR		22
 
 // Interpolation types
 

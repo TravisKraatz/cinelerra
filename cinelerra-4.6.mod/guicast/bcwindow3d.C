@@ -28,45 +28,80 @@
 
 // OpenGL functions in BC_WindowBase
 
+Visual *BC_WindowBase::glx_visual()
+{
+	Visual *visual = DefaultVisual(display, screen);
+#ifdef HAVE_GL
+	int fb_attrs[] = {
+		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+		GLX_RENDER_TYPE, GLX_RGBA_BIT,
+		GLX_DOUBLEBUFFER, True, // False,
+		//GLX_DEPTH_SIZE, 1,
+		//GLX_ACCUM_RED_SIZE, 1,
+		//GLX_ACCUM_GREEN_SIZE, 1,
+		//GLX_ACCUM_BLUE_SIZE, 1,
+		//GLX_ACCUM_ALPHA_SIZE, 1,
+		GLX_RED_SIZE, 1,
+		GLX_GREEN_SIZE, 1,
+		GLX_BLUE_SIZE, 1,
+		GLX_ALPHA_SIZE, 1,
+		None
+	};
+
+	Display *dpy = top_level->get_display();
+	int scr = top_level->get_screen();
+	int n = 0;
+
+	GLXFBConfig *fb_configs = glXChooseFBConfig(dpy, scr, fb_attrs, &n);
+	if( !n || !fb_configs ) { // fallback to single buffered
+		if( fb_configs ) XFree(fb_configs);
+		fb_attrs[5] = False;  // GLX_DOUBLEBUFFER, False
+		fb_configs = glXChooseFBConfig(dpy, scr, fb_attrs, &n);
+	}
+	if( !n || !fb_configs ) { // college try
+		if( fb_configs ) XFree(fb_configs);
+		fb_configs = glXChooseFBConfig(dpy, scr, None, &n);
+	}
+	if( n && fb_configs ) {
+		fb_config = fb_configs[0];
+		XVisualInfo *vis_info = glXGetVisualFromFBConfig(dpy, fb_config);
+		if( vis_info ) {
+			visual = vis_info->visual;
+			XFree(vis_info);
+		}
+	}
+	else
+		printf("get_glx_context %d: glXChooseFBConfig failed\n", __LINE__);
+	if( fb_configs ) XFree(fb_configs);
+#endif
+	return visual;
+}
+
+GLXContext BC_WindowBase::glx_get_context()
+{
+#ifdef HAVE_GL
+	if( !gl_win_context && top_level->fb_config )
+		gl_win_context = glXCreateNewContext(
+			top_level->get_display(), top_level->fb_config,
+			GLX_RGBA_TYPE, 0, True);
+	if( !gl_win_context )
+		printf("get_glx_context %d: glXCreateNewContext failed\n", __LINE__);
+	return gl_win_context;
+#endif
+}
+
 void BC_WindowBase::enable_opengl()
 {
 #ifdef HAVE_GL
-	XVisualInfo viproto;
-	XVisualInfo *visinfo;
-	int nvi;
-
-	top_level->sync_display();
-
-	get_synchronous()->is_pbuffer = 0;
-	if(!gl_win_context)
-	{
-		viproto.screen = top_level->screen;
-		visinfo = XGetVisualInfo(top_level->display,
-    		VisualScreenMask,
-    		&viproto,
-    		&nvi);
-
-		gl_win_context = glXCreateContext(top_level->display,
-			visinfo,
-			0,
-			1);
+	GLXContext gl_context = glx_get_context();
+	if( !gl_context ) {
+		printf("BC_WindowBase::enable_opengl %d: no glx context\n", __LINE__);
+		exit(1);
 	}
-
-
-//	if(video_is_on())
-//	{
-// Make the front buffer's context current.  Pixmaps don't work.
-		get_synchronous()->current_window = this;
-		glXMakeCurrent(top_level->display,
-			win,
-			gl_win_context);
-// 	}
-// 	else
-// 	{
-// 		get_synchronous()->current_window = this;
-// 		pixmap->enable_opengl();
-// 	}
-
+	top_level->sync_display();
+	get_synchronous()->is_pbuffer = 0;
+	get_synchronous()->current_window = this;
+	glXMakeCurrent(top_level->display, win, gl_context);
 #endif
 }
 
@@ -83,7 +118,7 @@ void BC_WindowBase::disable_opengl()
 void BC_WindowBase::flip_opengl()
 {
 #ifdef HAVE_GL
-	glXSwapBuffers(top_level->display, win);
+	glXSwapBuffers(top_level->display, glx_win);
 	glFlush();
 #endif
 }

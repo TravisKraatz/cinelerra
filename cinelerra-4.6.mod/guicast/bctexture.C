@@ -61,16 +61,12 @@ void BC_Texture::clear_objects()
 }
 
 void BC_Texture::new_texture(BC_Texture **texture,
-	int w,
-	int h,
-	int colormodel)
+	int w, int h, int colormodel)
 {
-	if(!(*texture))
-	{
+	if(!(*texture)) {
 		(*texture) = new BC_Texture(w, h, colormodel);
 	}
-	else
-	{
+	else {
 		(*texture)->create_texture(w, h, colormodel);
 	}
 }
@@ -89,20 +85,13 @@ void BC_Texture::create_texture(int w, int h, int colormodel)
 	int new_h = calculate_texture_size(h, &max_texture_size);
 	int new_components = BC_CModels::components(colormodel);
 
-
-	if(new_w < w || new_h < h)
-	{
+	if(new_w < w || new_h < h) {
 		printf("BC_Texture::create_texture frame size %dx%d bigger than maximum texture %dx%d.\n",
-			w,
-			h,
-			max_texture_size,
-			max_texture_size);
+			w, h, max_texture_size, max_texture_size);
 	}
 
 // Delete existing texture
-	if(texture_id >= 0 &&
-		(new_h != texture_h ||
-		new_w != texture_w ||
+	if(texture_id >= 0 && (new_h != texture_h || new_w != texture_w ||
 		new_components != texture_components ||
 		BC_WindowBase::get_synchronous()->current_window->get_id() != window_id))
 	{
@@ -122,56 +111,34 @@ void BC_Texture::create_texture(int w, int h, int colormodel)
 	texture_components = new_components;
 
 // Get matching texture
-	if(texture_id < 0)
-	{
+	if(texture_id < 0) {
 		texture_id = BC_WindowBase::get_synchronous()->get_texture(
-			texture_w,
-			texture_h,
-			texture_components);
+			texture_w, texture_h, texture_components);
 // A new VFrame has no window_id, so it must read it from the matching texture.
 		if(texture_id >= 0)
 			window_id = BC_WindowBase::get_synchronous()->current_window->get_id();
 	}
 
-
 // No matching texture exists.
 // Create new texture with the proper dimensions
-	if(texture_id < 0)
-	{
+	if(texture_id < 0) {
 		glGenTextures(1, (GLuint*)&texture_id);
 		glBindTexture(GL_TEXTURE_2D, (GLuint)texture_id);
 		glEnable(GL_TEXTURE_2D);
 		if(texture_components == 4)
-			glTexImage2D(GL_TEXTURE_2D,
-				0,
-				4,
-				texture_w,
-    			texture_h,
-				0,
-				GL_RGBA,
-				GL_UNSIGNED_BYTE,
-    			0);
+			glTexImage2D(GL_TEXTURE_2D, 0, 4, texture_w, texture_h,
+				0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 		else
-			glTexImage2D(GL_TEXTURE_2D,
-				0,
-				3,
-				texture_w,
-    			texture_h,
-				0,
-				GL_RGB,
-				GL_UNSIGNED_BYTE,
-    			0);
+			glTexImage2D(GL_TEXTURE_2D, 0, 3, texture_w, texture_h,
+				0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 
 		window_id = BC_WindowBase::get_synchronous()->current_window->get_id();
 		BC_WindowBase::get_synchronous()->put_texture(texture_id,
-			texture_w,
-			texture_h,
-			texture_components);
+			texture_w, texture_h, texture_components);
 //printf("BC_Texture::new_texture created texture_id=%d window_id=%d w=%d h=%d\n",
 // texture_id, window_id, texture_w, texture_h);
 	}
-	else
-	{
+	else {
 		glBindTexture(GL_TEXTURE_2D, (GLuint)texture_id);
 		glEnable(GL_TEXTURE_2D);
 	}

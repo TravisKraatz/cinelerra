@@ -45,27 +45,18 @@
 
 
 BC_FileBoxRecent::BC_FileBoxRecent(BC_FileBox *filebox, int x, int y)
- : BC_ListBox(x,
-	y,
-	250,
-	filebox->get_text_height(MEDIUMFONT) * FILEBOX_HISTORY_SIZE +
+ : BC_ListBox(x, y, 250,
+		filebox->get_text_height(MEDIUMFONT) * FILEBOX_HISTORY_SIZE +
 		BC_ScrollBar::get_span(SCROLL_HORIZ) +
-		LISTBOX_MARGIN * 2,
-	LISTBOX_TEXT,
-	&filebox->recent_dirs,
-	0,
-	0,
-	1,
-	0,
-	1)
+		LISTBOX_MARGIN * 2, LISTBOX_TEXT, &filebox->recent_dirs,
+		0, 0, 1, 0, 1)
 {
 	this->filebox = filebox;
 }
 
 int BC_FileBoxRecent::handle_event()
 {
-	if(get_selection(0, 0) >= 0)
-	{
+	if(get_selection(0, 0) >= 0) {
 		filebox->submit_dir(get_selection(0, 0)->get_text());
 	}
 	return 1;
@@ -82,20 +73,12 @@ int BC_FileBoxRecent::handle_event()
 
 
 BC_FileBoxListBox::BC_FileBoxListBox(int x, int y, BC_FileBox *filebox)
- : BC_ListBox(x,
- 			y,
- 			filebox->get_listbox_w(),
-			filebox->get_listbox_h(y),
- 			filebox->get_display_mode(),
- 			filebox->list_column,
-			filebox->column_titles,
-			filebox->column_width,
-			filebox->columns,
-			0,
-			0,
-			filebox->select_multiple ? LISTBOX_MULTIPLE : LISTBOX_SINGLE,
-			ICON_LEFT,
-			0)
+ : BC_ListBox(x, y, filebox->get_listbox_w(), filebox->get_listbox_h(y),
+		filebox->get_display_mode(), filebox->list_column,
+		filebox->column_titles, filebox->column_width,
+		filebox->columns, 0, 0,
+		filebox->select_multiple ? LISTBOX_MULTIPLE : LISTBOX_SINGLE,
+		ICON_LEFT, 0)
 {
 	this->filebox = filebox;
 	set_sort_column(filebox->sort_column);
@@ -118,8 +101,7 @@ int BC_FileBoxListBox::selection_changed()
 	BC_ListBoxItem *item = get_selection(
 		filebox->column_of_type(FILEBOX_NAME), 0);
 
-	if(item)
-	{
+	if(item) {
 		char path[BCTEXTLEN];
 		strcpy(path, item->get_text());
 		filebox->textbox->update(path);
@@ -476,25 +458,13 @@ int BC_FileBoxReload::handle_event()
 
 
 
-BC_FileBox::BC_FileBox(int x,
-		int y,
-		const char *init_path,
-		const char *title,
-		const char *caption,
-		int show_all_files,
-		int want_directory,
-		int multiple_files,
-		int h_padding)
- : BC_Window(title,
- 	x,
-	y,
+BC_FileBox::BC_FileBox(int x, int y, const char *init_path,
+		const char *title, const char *caption, int show_all_files,
+		int want_directory, int multiple_files, int h_padding)
+ : BC_Window(title, x, y,
  	BC_WindowBase::get_resources()->filebox_w,
 	BC_WindowBase::get_resources()->filebox_h,
-	10,
-	10,
-	1,
-	0,
-	1)
+	10, 10, 1, 0, 1)
 {
 	fs = new FileSystem;
 // 	if(want_directory)
@@ -655,33 +625,38 @@ void BC_FileBox::create_objects()
 	x = 10;
 	y += directory_title_margin + 3;
 
-	add_subwindow(recent_popup = new BC_FileBoxRecent(this,
-		x,
-		y));
+	add_subwindow(recent_popup = new BC_FileBoxRecent(this, x, y));
 	add_subwindow(directory_title = new BC_FileBoxDirectoryText(x, y, this));
-	directory_title->reposition_window(
-		x,
-		y,
-		get_w() - recent_popup->get_w() -  20,
-		1);
+	directory_title->reposition_window(x, y,
+		get_w() - recent_popup->get_w() -  20, 1);
 	recent_popup->reposition_window(
-		x + directory_title->get_w(),
-		y,
-		directory_title->get_w(),
-		200);
+		x + directory_title->get_w(), y,
+		directory_title->get_w(), 200);
 
 	x = 10;
 	y += directory_title->get_h() + 5;
-	listbox = 0;
 
+	int newest_id = 0, newest = -1;
+	for(int i = 0; i < FILEBOX_HISTORY_SIZE; i++) {
+		if( !resources->filebox_history[i].path[0] ) continue;
+		if( resources->filebox_history[i].id > newest_id ) {
+			newest_id = resources->filebox_history[i].id;
+			newest = i;
+		}
+	}
+	if( newest >= 0 ) {
+		strcpy(directory, resources->filebox_history[newest].path);
+		fs->change_dir(directory, 0);
+		directory_title->update(fs->get_current_dir());
+	}
+
+	listbox = 0;
 	create_listbox(x, y, get_display_mode());
 	y += listbox->get_h() + 10;
 	add_subwindow(textbox = new BC_FileBoxTextBox(x, y, this));
 	y += textbox->get_h() + 10;
 
-
-	if(!want_directory)
-	{
+	if(!want_directory) {
 		add_subwindow(filter_text = new BC_FileBoxFilterText(x, y, this));
 		add_subwindow(filter_popup =
 			new BC_FileBoxFilterMenu(x + filter_text->get_w(), y, this));;
@@ -1258,20 +1233,15 @@ void BC_FileBox::update_history()
 // 	strcpy(resources->filebox_history[new_slot], directory);
 
 	create_history();
-	recent_popup->update(&recent_dirs,
-		0,
-		0,
-		1);
+	recent_popup->update(&recent_dirs, 0, 0, 1);
 }
 
 void BC_FileBox::create_history()
 {
 	BC_Resources *resources = get_resources();
 	recent_dirs.remove_all_objects();
-	for(int i = 0; i < FILEBOX_HISTORY_SIZE; i++)
-	{
-		if(resources->filebox_history[i].path[0])
-		{
+	for(int i = 0; i < FILEBOX_HISTORY_SIZE; i++) {
+		if(resources->filebox_history[i].path[0]) {
 			recent_dirs.append(new BC_ListBoxItem(resources->filebox_history[i].path));
 		}
 	}

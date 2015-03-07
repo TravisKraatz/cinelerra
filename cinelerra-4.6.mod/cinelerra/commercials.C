@@ -72,8 +72,10 @@ closeDb()
 int Commercials::
 openDb()
 {
+	if( !mwindow->has_commercials() )
+		return -1;
         if( !mdb->is_open() && mdb->openDb() ) {
-                printf("Commercials::openDb failed\n");
+		printf("Commercials::openDb failed\n");
                 return -1;
         }
         return 0;
@@ -83,6 +85,8 @@ int Commercials::
 resetDb()
 {
 	mdb->closeDb();
+	if( !mwindow->has_commercials() )
+		return -1;
 	return mdb->resetDb();
 }
 

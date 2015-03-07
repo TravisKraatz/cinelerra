@@ -94,93 +94,60 @@ void VFrame::to_texture()
 
 // Must be here so user can create textures without copying data by setting
 // opengl_state to TEXTURE.
-	BC_Texture::new_texture(&texture,
-		get_w(),
-		get_h(),
-		get_color_model());
+	BC_Texture::new_texture(&texture, get_w(), get_h(), get_color_model());
 
 // Determine what to do based on state
-	switch(opengl_state)
-	{
-		case VFrame::TEXTURE:
-			return;
+	switch(opengl_state) {
+	case VFrame::TEXTURE:
+		return;
 
-		case VFrame::SCREEN:
-			if((get_w() % 4) || (get_h() % 4))
-			{
-				printf("VFrame::to_texture w=%d h=%d\n", get_w(), get_h());
-				return;
-			}
-			if(pbuffer)
-			{
-				enable_opengl();
-				screen_to_texture();
-			}
-			opengl_state = VFrame::TEXTURE;
+	case VFrame::SCREEN:
+		if((get_w() % 4) || (get_h() % 4)) {
+			printf("VFrame::to_texture w=%d h=%d\n", get_w(), get_h());
 			return;
+		}
+		if(pbuffer) {
+			enable_opengl();
+			screen_to_texture();
+		}
+		opengl_state = VFrame::TEXTURE;
+		return;
 	}
 
 //printf("VFrame::to_texture %d\n", texture_id);
+	GLenum type, format;
+	switch(color_model) {
+	case BC_RGB888:
+	case BC_YUV888:
+		type = GL_UNSIGNED_BYTE;
+		format = GL_RGB;
+		break;
 
-	switch(color_model)
-	{
-		case BC_RGB888:
-		case BC_YUV888:
-			glTexSubImage2D(GL_TEXTURE_2D,
-				0,
-				0,
-				0,
-				get_w(),
-				get_h(),
-				GL_RGB,
-				GL_UNSIGNED_BYTE,
-				get_rows()[0]);
-			break;
+	case BC_RGBA8888:
+	case BC_YUVA8888:
+		type = GL_UNSIGNED_BYTE;
+		format = GL_RGBA;
+		break;
 
-		case BC_RGBA8888:
-		case BC_YUVA8888:
-			glTexSubImage2D(GL_TEXTURE_2D,
-				0,
-				0,
-				0,
-				get_w(),
-				get_h(),
-				GL_RGBA,
-				GL_UNSIGNED_BYTE,
-				get_rows()[0]);
-			break;
+	case BC_RGB_FLOAT:
+		type = GL_FLOAT;
+		format = GL_RGB;
+		break;
 
-		case BC_RGB_FLOAT:
-			glTexSubImage2D(GL_TEXTURE_2D,
-				0,
-				0,
-				0,
-				get_w(),
-				get_h(),
-				GL_RGB,
-				GL_FLOAT,
-				get_rows()[0]);
-			break;
+	case BC_RGBA_FLOAT:
+		format = GL_RGBA;
+		type = GL_FLOAT;
+		break;
 
-		case BC_RGBA_FLOAT:
-			glTexSubImage2D(GL_TEXTURE_2D,
-				0,
-				0,
-				0,
-				get_w(),
-				get_h(),
-				GL_RGBA,
-				GL_FLOAT,
-				get_rows()[0]);
-			break;
-
-		default:
-			fprintf(stderr,
-				"VFrame::to_texture: unsupported color model %d.\n",
-				color_model);
-			break;
+	default:
+		fprintf(stderr,
+			"VFrame::to_texture: unsupported color model %d.\n",
+			color_model);
+		return;
 	}
 
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, get_w(), get_h(),
+		format, type, get_rows()[0]);
 	opengl_state = VFrame::TEXTURE;
 #endif
 }
@@ -273,14 +240,9 @@ void VFrame::screen_to_texture(int x, int y, int w, int h)
 		glReadBuffer(BC_WindowBase::get_synchronous()->is_pbuffer ?
 			GL_FRONT : GL_BACK);
 #endif
-		glCopyTexSubImage2D(GL_TEXTURE_2D,
-			0,
-			0,
-			0,
-			x >= 0 ? x : 0,
-			y >= 0 ? y : 0,
-			w >= 0 ? w : get_w(),
-			h >= 0 ? h : get_h());
+		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+			x >= 0 ? x : 0, y >= 0 ? y : 0,
+			w >= 0 ? w : get_w(), h >= 0 ? h : get_h());
 	}
 #endif
 }
@@ -353,21 +315,14 @@ void VFrame::init_screen(int w, int h)
 	glLoadIdentity();
 	float near = 1;
 	float far = 100;
-	float frustum_ratio = near / ((near + far) / 2);
- 	float near_h = (float)h *
-		frustum_ratio;
-	float near_w = (float)w *
-		frustum_ratio;
-	glFrustum(-near_w / 2,
-		near_w / 2,
-		-near_h / 2,
-		near_h / 2,
-		near,
-		far);
+	float frustum_ratio = near / ((near + far)/2);
+ 	float near_h = (float)h * frustum_ratio;
+	float near_w = (float)w * frustum_ratio;
+	glFrustum(-near_w/2, near_w/2, -near_h/2, near_h/2, near, far);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 // Shift down and right so 0,0 is the top left corner
-	glTranslatef(-w / 2, h / 2, 0.0);
+	glTranslatef(-w/2, h/2, 0.0);
 	glTranslatef(0.0, 0.0, -(far + near) / 2);
 
 	glDisable(GL_DEPTH_TEST);
@@ -377,7 +332,8 @@ void VFrame::init_screen(int w, int h)
 	glDisable(GL_COLOR_MATERIAL);
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_NORMALIZE);
-	glAlphaFunc(GL_GREATER, 0);
+	glAlphaFunc(GL_ALWAYS, 0);
+	glDisable(GL_ALPHA_TEST);
 	glDisable(GL_LIGHTING);
 
 	const GLfloat zero[] = { 0, 0, 0, 0 };

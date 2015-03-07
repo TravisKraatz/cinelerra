@@ -44,6 +44,8 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+
 
 
 // Shaders
@@ -69,12 +71,12 @@ static const char *yuva_to_yuv_frag =
 	"void main()\n"
 	"{\n"
 	"	vec4 yuva = texture2D(tex, gl_TexCoord[0].st);\n"
-	"   float a = yuva.a;\n"
-	"   float anti_a = 1.0 - a;\n"
+	"	float a = yuva.a;\n"
+	"	float anti_a = 1.0 - a;\n"
 	"	yuva.r *= a;\n"
-	"   yuva.g = yuva.g * a + 0.5 * anti_a;\n"
-	"   yuva.b = yuva.b * a + 0.5 * anti_a;\n"
-	"   yuva.a = 1.0;\n"
+	"	yuva.g = yuva.g * a + 0.5 * anti_a;\n"
+	"	yuva.b = yuva.b * a + 0.5 * anti_a;\n"
+	"	yuva.a = 1.0;\n"
 	"	gl_FragColor = yuva;\n"
 	"}\n";
 
@@ -88,9 +90,9 @@ static const char *yuva_to_rgb_frag =
  	"		1,       1,        1, \n"
  	"		0,       -0.34414, 1.77200, \n"
  	"		1.40200, -0.71414, 0);\n"
-	"   yuva.rgb = yuv_to_rgb_matrix * yuva.rgb;\n"
-	"   yuva.rgb *= yuva.a;\n"
-	"   yuva.a = 1.0;\n"
+	"	yuva.rgb = yuv_to_rgb_matrix * yuva.rgb;\n"
+	"	yuva.rgb *= yuva.a;\n"
+	"	yuva.a = 1.0;\n"
 	"	gl_FragColor = yuva;\n"
 	"}\n";
 
@@ -103,8 +105,8 @@ static const char *rgb_to_yuv_frag =
  	"		0.29900, -0.16874, 0.50000, \n"
  	"		0.58700, -0.33126, -0.41869, \n"
  	"		0.11400, 0.50000,  -0.08131);\n"
-	"   rgba.rgb = rgb_to_yuv_matrix * rgba.rgb;\n"
-	"   rgba.rgb += vec3(0, 0.5, 0.5);\n"
+	"	rgba.rgb = rgb_to_yuv_matrix * rgba.rgb;\n"
+	"	rgba.rgb += vec3(0, 0.5, 0.5);\n"
 	"	gl_FragColor = rgba;\n"
 	"}\n";
 
@@ -115,7 +117,7 @@ static const char *rgba_to_rgb_frag =
 	"{\n"
 	"	vec4 rgba = texture2D(tex, gl_TexCoord[0].st);\n"
 	"	rgba.rgb *= rgba.a;\n"
-	"   rgba.a = 1.0;\n"
+	"	rgba.a = 1.0;\n"
 	"	gl_FragColor = rgba;\n"
 	"}\n";
 
@@ -128,108 +130,314 @@ static const char *rgba_to_yuv_frag =
  	"		0.29900, -0.16874, 0.50000, \n"
  	"		0.58700, -0.33126, -0.41869, \n"
  	"		0.11400, 0.50000,  -0.08131);\n"
-	"   rgba.rgb *= rgba.a;\n"
-	"   rgba.a = 1.0;\n"
-	"   rgba.rgb = rgb_to_yuv_matrix * rgba.rgb;\n"
-	"   rgba.rgb += vec3(0, 0.5, 0.5);\n"
+	"	rgba.rgb *= rgba.a;\n"
+	"	rgba.a = 1.0;\n"
+	"	rgba.rgb = rgb_to_yuv_matrix * rgba.rgb;\n"
+	"	rgba.rgb += vec3(0, 0.5, 0.5);\n"
 	"	gl_FragColor = rgba;\n"
 	"}\n";
 
+static const char *rgba_to_rgb_flatten = 
+	"void main() {\n"
+	"	gl_FragColor.rgb *= gl_FragColor.a;\n"
+	"	gl_FragColor.a = 1.0;\n"
+	"}\n";
+
+// NORMAL
+static const char *blend_normal_frag = 
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = canvas * (1.0 - gl_FragColor.a) + gl_FragColor * gl_FragColor.a;\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// ADDITION
 static const char *blend_add_frag = 
 	"uniform sampler2D tex2;\n"
 	"uniform vec2 tex2_dimensions;\n"
-	"void main()\n"
-	"{\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
 	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
-	"	vec3 opacity = vec3(gl_FragColor.a, gl_FragColor.a, gl_FragColor.a);\n"
-	"	vec3 transparency = vec3(1.0, 1.0, 1.0) - opacity;\n"
-	"	gl_FragColor.rgb += canvas.rgb;\n"
-	"	gl_FragColor.rgb *= opacity;\n"
-	"	gl_FragColor.rgb += canvas.rgb * transparency;\n"
-	"	gl_FragColor.a = max(gl_FragColor.a, canvas.a);\n"
+	"	vec4 result = canvas + gl_FragColor;\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
 	"}\n";
 
-static const char *blend_max_frag = 
-	"uniform sampler2D tex2;\n"
-	"uniform vec2 tex2_dimensions;\n"
-	"void main()\n"
-	"{\n"
-	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
-	"	vec3 opacity = vec3(gl_FragColor.a, gl_FragColor.a, gl_FragColor.a);\n"
-	"	vec3 transparency = vec3(1.0, 1.0, 1.0) - opacity;\n"
-	"	gl_FragColor.r = max(canvas.r, gl_FragColor.r);\n"
-	"	gl_FragColor.g = max(canvas.g, gl_FragColor.g);\n"
-	"	gl_FragColor.b = max(canvas.b, gl_FragColor.b);\n"
-	"	gl_FragColor.rgb *= opacity;\n"
-	"	gl_FragColor.rgb += canvas.rgb * transparency;\n"
-	"	gl_FragColor.a = max(gl_FragColor.a, canvas.a);\n"
-	"}\n";
-
-static const char *blend_min_frag = 
-	"uniform sampler2D tex2;\n"
-	"uniform vec2 tex2_dimensions;\n"
-	"void main()\n"
-	"{\n"
-	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
-	"	vec3 opacity = vec3(gl_FragColor.a, gl_FragColor.a, gl_FragColor.a);\n"
-	"	vec3 transparency = vec3(1.0, 1.0, 1.0) - opacity;\n"
-	"	gl_FragColor.r = min(canvas.r, gl_FragColor.r);\n"
-	"	gl_FragColor.g = min(canvas.g, gl_FragColor.g);\n"
-	"	gl_FragColor.b = min(canvas.b, gl_FragColor.b);\n"
-	"	gl_FragColor.rgb *= opacity;\n"
-	"	gl_FragColor.rgb += canvas.rgb * transparency;\n"
-	"	gl_FragColor.a = min(gl_FragColor.a, canvas.a);\n"
-	"}\n";
-
+// SUBTRACT
 static const char *blend_subtract_frag = 
 	"uniform sampler2D tex2;\n"
 	"uniform vec2 tex2_dimensions;\n"
-	"void main()\n"
-	"{\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
 	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
-	"	vec3 opacity = vec3(gl_FragColor.a, gl_FragColor.a, gl_FragColor.a);\n"
-	"	vec3 transparency = vec3(1.0, 1.0, 1.0) - opacity;\n"
-	"	gl_FragColor.rgb = canvas.rgb - gl_FragColor.rgb;\n"
-	"	gl_FragColor.rgb *= opacity;\n"
-	"	gl_FragColor.rgb += canvas.rgb * transparency;\n"
-	"	gl_FragColor.a = max(gl_FragColor.a, canvas.a);\n"
+	"	vec4 result = gl_FragColor - canvas;\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
 	"}\n";
 
+// MULTIPLY
 static const char *blend_multiply_frag = 
 	"uniform sampler2D tex2;\n"
 	"uniform vec2 tex2_dimensions;\n"
-	"void main()\n"
-	"{\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
 	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
-	"	vec3 opacity = vec3(gl_FragColor.a, gl_FragColor.a, gl_FragColor.a);\n"
-	"	vec3 transparency = vec3(1.0, 1.0, 1.0) - opacity;\n"
-	"	gl_FragColor.rgb *= canvas.rgb;\n"
-	"	gl_FragColor.rgb *= opacity;\n"
-	"	gl_FragColor.rgb += canvas.rgb * transparency;\n"
-	"	gl_FragColor.a = max(gl_FragColor.a, canvas.a);\n"
+	"	vec4 result = canvas * gl_FragColor;\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
 	"}\n";
 
+// DIVIDE
 static const char *blend_divide_frag = 
 	"uniform sampler2D tex2;\n"
 	"uniform vec2 tex2_dimensions;\n"
-	"void main()\n"
-	"{\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
 	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
-	"	vec3 opacity = vec3(gl_FragColor.a, gl_FragColor.a, gl_FragColor.a);\n"
-	"	vec3 transparency = vec3(1.0, 1.0, 1.0) - opacity;\n"
-	"	vec3 result = canvas.rgb / gl_FragColor.rgb;\n"
-	"	if(!gl_FragColor.r) result.r = 1.0;\n"
-	"	if(!gl_FragColor.g) result.g = 1.0;\n"
-	"	if(!gl_FragColor.b) result.b = 1.0;\n"
-	"	result *= opacity;\n"
-	"	result += canvas.rgb * transparency;\n"
-	"	gl_FragColor = vec4(result, max(gl_FragColor.a, canvas.a));\n"
+	"	vec4 result = gl_FragColor / canvas;\n"
+	"	if(!canvas.r) result.r = 1.0;\n"
+	"	if(!canvas.g) result.g = 1.0;\n"
+	"	if(!canvas.b) result.b = 1.0;\n"
+	"	if(!canvas.a) result.a = 1.0;\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
 	"}\n";
 
-static const char *multiply_alpha_frag = 
-	"void main()\n"
-	"{\n"
-	"	gl_FragColor.rgb *= vec3(gl_FragColor.a, gl_FragColor.a, gl_FragColor.a);\n"
+// REPLACE
+static const char *blend_replace_frag = 
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"}\n";
+
+// MAX
+static const char *blend_max_frag = 
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = max(canvas, gl_FragColor);\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// MIN
+static const char *blend_min_frag = 
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = min(canvas, gl_FragColor);\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// AVERAGE
+static const char *blend_average_frag = 
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = (canvas + gl_FragColor) * 0.5;\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// DARKEN
+static const char *blend_darken_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = vec4(canvas.rgb * (1.0 - gl_FragColor.a) +"
+			" gl_FragColor.rgb * (1.0 - canvas.a) +"
+			" min(canvas.rgb, gl_FragColor.rgb), "
+			" canvas.a + gl_FragColor.a - canvas.a * gl_FragColor.a);\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// LIGHTEN
+static const char *blend_lighten_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = vec4(canvas.rgb * (1.0 - gl_FragColor.a) +"
+			" gl_FragColor.rgb * (1.0 - canvas.a) +"
+			" max(canvas.rgb, gl_FragColor.rgb), "
+			" canvas.a + gl_FragColor.a - canvas.a * gl_FragColor.a);\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// DST
+static const char *blend_dst_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+//	"	gl_FragColor.a *= alpha;\n"
+//	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+//	"	vec4 result = canvas;\n"
+//	"	gl_FragColor = mix(result, canvas, alpha);\n"
+	"	gl_FragColor = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"}\n";
+
+// DST_ATOP
+static const char *blend_dst_atop_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = vec4(canvas.rgb * gl_FragColor.a + "
+			"(1.0 - canvas.a) * gl_FragColor.rgb, gl_FragColor.a);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// DST_IN
+static const char *blend_dst_in_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = canvas * gl_FragColor.a;\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// DST_OUT
+static const char *blend_dst_out_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = canvas * (1.0 - gl_FragColor.a);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// DST_OVER
+static const char *blend_dst_over_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = vec4(canvas.rgb + (1.0 - canvas.a) * gl_FragColor.rgb, "
+			" gl_FragColor.a + canvas.a - gl_FragColor.a * canvas.a);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// SRC
+static const char *blend_src_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = gl_FragColor;\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// SRC_ATOP
+static const char *blend_src_atop_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = vec4(gl_FragColor.rgb * canvas.a + "
+			"canvas.rgb * (1.0 - gl_FragColor.a), canvas.a);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// SRC_IN 
+static const char *blend_src_in_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = gl_FragColor * canvas.a;\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// SRC_OUT
+static const char *blend_src_out_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = gl_FragColor * (1.0 - canvas.a);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// SRC_OVER
+static const char *blend_src_over_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = vec4(gl_FragColor.rgb + (1.0 - gl_FragColor.a) * canvas.rgb, "
+				"gl_FragColor.a + canvas.a - gl_FragColor.a * canvas.a);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// OR
+static const char *blend_or_frag = 
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = canvas + gl_FragColor - canvas * gl_FragColor;\n"
+	"	result = clamp(result, 0.0, 1.0);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
+	"}\n";
+
+// XOR
+static const char *blend_xor_frag =
+	"uniform sampler2D tex2;\n"
+	"uniform vec2 tex2_dimensions;\n"
+	"uniform float alpha;\n"
+	"void main() {\n"
+	"	gl_FragColor.a *= alpha;\n"
+	"	vec4 canvas = texture2D(tex2, gl_FragCoord.xy / tex2_dimensions);\n"
+	"	vec4 result = vec4(gl_FragColor.rgb * (1.0 - canvas.a) + "
+			"(1.0 - gl_FragColor.a) * canvas.rgb, "
+			"gl_FragColor.a + canvas.a - 2.0 * gl_FragColor.a * canvas.a);\n"
+	"	gl_FragColor = mix(canvas, result, alpha);\n"
 	"}\n";
 
 static const char *read_texture_frag = 
@@ -257,7 +465,7 @@ static const char *multiply_mask3_frag =
 	"void main()\n"
 	"{\n"
 	"	gl_FragColor = texture2D(tex, gl_TexCoord[0].st);\n"
-	"   float a = texture2D(tex1, gl_TexCoord[0].st / vec2(scale, scale)).r;\n"
+	"	float a = texture2D(tex1, gl_TexCoord[0].st / vec2(scale, scale)).r;\n"
 	"	gl_FragColor.rgb *= vec3(a, a, a);\n"
 	"}\n";
 
@@ -268,7 +476,7 @@ static const char *multiply_yuvmask3_frag =
 	"void main()\n"
 	"{\n"
 	"	gl_FragColor = texture2D(tex, gl_TexCoord[0].st);\n"
-	"   float a = texture2D(tex1, gl_TexCoord[0].st / vec2(scale, scale)).r;\n"
+	"	float a = texture2D(tex1, gl_TexCoord[0].st / vec2(scale, scale)).r;\n"
 	"	gl_FragColor.gb -= vec2(0.5, 0.5);\n"
 	"	gl_FragColor.rgb *= vec3(a, a, a);\n"
 	"	gl_FragColor.gb += vec2(0.5, 0.5);\n"
@@ -349,6 +557,10 @@ Playback3D::Playback3D(MWindow *mwindow)
 {
 	this->mwindow = mwindow;
 	temp_texture = 0;
+	//Enabling OpenGL debug output on nVidia drivers
+	//glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+	//glEnable(GL_DEBUG_OUTPUT);
+	//glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 }
 
 Playback3D::~Playback3D()
@@ -699,14 +911,9 @@ void Playback3D::draw_output(Playback3DCommand *command)
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
 
-		command->frame->draw_texture(command->in_x1, 
-			command->in_y1,
-			command->in_x2,
-			command->in_y2,
-			command->out_x1,
-			command->out_y1,
-			command->out_x2,
-			command->out_y2,
+		command->frame->draw_texture(
+			command->in_x1, command->in_y1, command->in_x2, command->in_y2,
+			command->out_x1, command->out_y1, command->out_x2, command->out_y2,
 			1);
 
 
@@ -851,10 +1058,8 @@ void Playback3D::do_camera_sync(Playback3DCommand *command)
 // command->out_x2,
 // (float)command->input->get_h() - command->out_y2);
 		command->input->draw_texture(
-			command->in_x1, 
-			command->in_y2, 
-			command->in_x2, 
-			command->in_y1, 
+			command->in_x1, command->in_y2, 
+			command->in_x2, command->in_y1, 
 			command->out_x1,
 			(float)command->frame->get_h() - command->out_y1,
 			command->out_x2,
@@ -867,21 +1072,11 @@ void Playback3D::do_camera_sync(Playback3DCommand *command)
 	command->canvas->unlock_canvas();
 }
 
-void Playback3D::overlay(Canvas *canvas,
-	VFrame *input, 
-	float in_x1, 
-	float in_y1, 
-	float in_x2, 
-	float in_y2, 
-	float out_x1, 
-	float out_y1, 
-	float out_x2, 
-	float out_y2, 
-	float alpha,        // 0 - 1
-	int mode,
-	int interpolation_type,
-	VFrame *output,
-	int is_nested)
+void Playback3D::overlay(Canvas *canvas, VFrame *input, 
+	float in_x1, float in_y1, float in_x2, float in_y2, 
+	float out_x1, float out_y1, float out_x2, float out_y2, 
+	float alpha, int mode, int interpolation_type,
+	VFrame *output, int is_nested)
 {
 	Playback3DCommand command;
 	command.command = Playback3DCommand::OVERLAY;
@@ -906,60 +1101,84 @@ void Playback3D::overlay(Canvas *canvas,
 void Playback3D::overlay_sync(Playback3DCommand *command)
 {
 #ifdef HAVE_GL
+// To do these operations, we need to copy the input buffer to a texture
+// and blend 2 textures in a shader
+	static const char * const overlay_shaders[TRANSFER_TYPES] = {
+		blend_normal_frag,	// TRANSFER_NORMAL
+		blend_add_frag,		// TRANSFER_ADDITION
+		blend_subtract_frag,	// TRANSFER_SUBTRACT
+		blend_multiply_frag,	// TRANSFER_MULTIPLY
+		blend_divide_frag,	// TRANSFER_DIVIDE
+		blend_replace_frag,	// TRANSFER_REPLACE
+		blend_max_frag,		// TRANSFER_MAX
+		blend_min_frag,		// TRANSFER_MIN
+		blend_average_frag,	// TRANSFER_AVERAGE
+		blend_darken_frag,	// TRANSFER_DARKEN
+		blend_lighten_frag,	// TRANSFER_LIGHTEN
+		blend_dst_frag,		// TRANSFER_DST
+		blend_dst_atop_frag,	// TRANSFER_DST_ATOP
+		blend_dst_in_frag,	// TRANSFER_DST_IN
+		blend_dst_out_frag,	// TRANSFER_DST_OUT
+		blend_dst_over_frag,	// TRANSFER_DST_OVER
+		blend_src_frag,		// TRANSFER_SRC
+		blend_src_atop_frag,	// TRANSFER_SRC_ATOP
+		blend_src_in_frag,	// TRANSFER_SRC_IN
+		blend_src_out_frag,	// TRANSFER_SRC_OUT
+		blend_src_over_frag,	// TRANSFER_SRC_OVER
+		blend_or_frag,		// TRANSFER_OR
+		blend_xor_frag		// TRANSFER_XOR
+	};
+
 	command->canvas->lock_canvas("Playback3D::overlay_sync");
-	if(command->canvas->get_canvas())
-	{
+	if(command->canvas->get_canvas()) {
 		BC_WindowBase *window = command->canvas->get_canvas();
-	    window->lock_window("Playback3D::overlay_sync");
+		window->lock_window("Playback3D::overlay_sync");
 // Make sure OpenGL is enabled first.
 		window->enable_opengl();
+	 	window->update_video_cursor();
 
-		window->update_video_cursor();
+		glColor4f(1, 1, 1, 1);
+		glDisable(GL_BLEND);
 
-
+		if(command->frame) {
 // Render to PBuffer
-		if(command->frame)
-		{
 			command->frame->enable_opengl();
 			command->frame->set_opengl_state(VFrame::SCREEN);
 			canvas_w = command->frame->get_w();
 			canvas_h = command->frame->get_h();
 		}
-		else
+		else {
 // Render to canvas
-		{
 			canvas_w = window->get_w();
 			canvas_h = window->get_h();
 		}
 
-		glColor4f(1, 1, 1, 1);
 
 //printf("Playback3D::overlay_sync 1 %d\n", command->input->get_opengl_state());
-		switch(command->input->get_opengl_state())
-		{
+		switch(command->input->get_opengl_state()) {
 // Upload texture and composite to screen
-			case VFrame::RAM:
-				command->input->to_texture();
-				break;
+		case VFrame::RAM:
+			command->input->to_texture();
+			break;
 // Just composite texture to screen
-			case VFrame::TEXTURE:
-				break;
+		case VFrame::TEXTURE:
+			break;
 // read from PBuffer to texture, then composite texture to screen
-			case VFrame::SCREEN:
-				command->input->enable_opengl();
-				command->input->screen_to_texture();
-				if(command->frame)
-					command->frame->enable_opengl();
-				else
-					window->enable_opengl();
-				break;
-			default:
-				printf("Playback3D::overlay_sync unknown state\n");
-				break;
+		case VFrame::SCREEN:
+			command->input->enable_opengl();
+			command->input->screen_to_texture();
+			if(command->frame)
+				command->frame->enable_opengl();
+			else
+				window->enable_opengl();
+			break;
+		default:
+			printf("Playback3D::overlay_sync unknown state\n");
+			break;
 		}
 
 
-		const char *shader_stack[3] = { 0, 0, 0 };
+		const char *shader_stack[4] = { 0, 0, 0, 0, };
 		int total_shaders = 0;
 
 		VFrame::init_screen(canvas_w, canvas_h);
@@ -969,84 +1188,60 @@ void Playback3D::overlay_sync(Playback3DCommand *command)
 
 // Convert colormodel to RGB if not nested.
 // The color model setting in the output frame is ignored.
-		if(!command->is_nested)
-		{
-			switch(command->input->get_color_model())
-			{
-				case BC_YUV888:
-				case BC_YUVA8888:
-					shader_stack[total_shaders++] = yuv_to_rgb_frag;
-					break;
+		if( command->is_nested <= 0 ) {  // not nested
+			switch(command->input->get_color_model()) {
+			case BC_YUV888:
+			case BC_YUVA8888:
+				shader_stack[total_shaders++] = yuv_to_rgb_frag;
+				break;
 			}
 		}
 
-// Change blend operation
-		switch(command->mode)
-		{
-			case TRANSFER_NORMAL:
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-				break;
+// get the shaders
+#define add_shader(s) \
+  if(!total_shaders) shader_stack[total_shaders++] = read_texture_frag; \
+  shader_stack[total_shaders++] = s
 
-			case TRANSFER_REPLACE:
+		switch(command->mode) {
+		case TRANSFER_REPLACE:
 // This requires overlaying an alpha multiplied image on a black screen.
-				glDisable(GL_BLEND);
-				if(command->input->get_texture_components() == 4)
-				{
-					if(!total_shaders) shader_stack[total_shaders++] = read_texture_frag;
-					shader_stack[total_shaders++] = multiply_alpha_frag;
-				}
-				break;
-
-// To do these operations, we need to copy the input buffer to a texture
-// and blend 2 textures in another shader
-			case TRANSFER_ADDITION:
-				enable_overlay_texture(command);
-				if(!total_shaders) shader_stack[total_shaders++] = read_texture_frag;
-				shader_stack[total_shaders++] = blend_add_frag;
-				break;
-			case TRANSFER_SUBTRACT:
-				enable_overlay_texture(command);
-				if(!total_shaders) shader_stack[total_shaders++] = read_texture_frag;
-				shader_stack[total_shaders++] = blend_subtract_frag;
-				break;
-			case TRANSFER_MULTIPLY:
-				enable_overlay_texture(command);
-				if(!total_shaders) shader_stack[total_shaders++] = read_texture_frag;
-				shader_stack[total_shaders++] = blend_multiply_frag;
-				break;
-			case TRANSFER_MAX:
-				enable_overlay_texture(command);
-				if(!total_shaders) shader_stack[total_shaders++] = read_texture_frag;
-				shader_stack[total_shaders++] = blend_max_frag;
-				break;
-			case TRANSFER_MIN:
-				enable_overlay_texture(command);
-				if(!total_shaders) shader_stack[total_shaders++] = read_texture_frag;
-				shader_stack[total_shaders++] = blend_min_frag;
-				break;
-			case TRANSFER_DIVIDE:
-				enable_overlay_texture(command);
-				if(!total_shaders) shader_stack[total_shaders++] = read_texture_frag;
-				shader_stack[total_shaders++] = blend_divide_frag;
-				break;
+			if( command->input->get_texture_components() != 4 ) break;
+			add_shader(overlay_shaders[command->mode]);
+			break;
+		default:
+			enable_overlay_texture(command);
+			add_shader(overlay_shaders[command->mode]);
+			break;
 		}
 
+// if to flatten alpha
+		if( command->is_nested < 0 ) {
+			switch(command->input->get_color_model()) {
+// yuv has already been converted to rgb
+			case BC_YUVA8888:
+			case BC_RGBA_FLOAT:
+			case BC_RGBA8888:
+				add_shader(rgba_to_rgb_flatten);
+				break;
+			}
+		}
+
+// run the shaders
 		unsigned int frag_shader = 0;
-		if(shader_stack[0]) 
-		{
+		if(shader_stack[0]) {
 			frag_shader = VFrame::make_shader(0,
-				shader_stack[0],
-				shader_stack[1],
-				0);
+				shader_stack[0], shader_stack[1],
+				shader_stack[2], shader_stack[3], 0);
 
 			glUseProgram(frag_shader);
-
 
 // Set texture unit of the texture
 			glUniform1i(glGetUniformLocation(frag_shader, "tex"), 0);
 // Set texture unit of the temp texture
 			glUniform1i(glGetUniformLocation(frag_shader, "tex2"), 1);
+// Set alpha
+			int variable = glGetUniformLocation(frag_shader, "alpha");
+			glUniform1f(variable, command->alpha);
 // Set dimensions of the temp texture
 			if(temp_texture)
 				glUniform2f(glGetUniformLocation(frag_shader, "tex2_dimensions"), 
@@ -1057,39 +1252,19 @@ void Playback3D::overlay_sync(Playback3DCommand *command)
 			glUseProgram(0);
 
 
-
-
-
-
 // printf("Playback3D::overlay_sync %f %f %f %f %f %f %f %f\n",
-// command->in_x1,
-// command->in_y1,
-// command->in_x2,
-// command->in_y2,
-// command->out_x1,
-// command->out_y1,
-// command->out_x2,
-// command->out_y2);
+// command->in_x1, command->in_y1, command->in_x2, command->in_y2,
+// command->out_x1, command->out_y1, command->out_x2, command->out_y2);
 
-
-
-		command->input->draw_texture(command->in_x1, 
-			command->in_y1,
-			command->in_x2,
-			command->in_y2,
-			command->out_x1,
-			command->out_y1,
-			command->out_x2,
-			command->out_y2,
+		command->input->draw_texture(
+			command->in_x1, command->in_y1, command->in_x2, command->in_y2,
+			command->out_x1, command->out_y1, command->out_x2, command->out_y2,
 // Don't flip vertical if nested
-			!command->is_nested);
-
+			command->is_nested > 0 ? 0 : 1);
 		glUseProgram(0);
 
-
 // Delete temp texture
-		if(temp_texture)
-		{
+		if(temp_texture) {
 			delete temp_texture;
 			temp_texture = 0;
 			glActiveTexture(GL_TEXTURE1);
@@ -1098,14 +1273,11 @@ void Playback3D::overlay_sync(Playback3DCommand *command)
 		glActiveTexture(GL_TEXTURE0);
 		glDisable(GL_TEXTURE_2D);
 
-
-
 		window->unlock_window();
 	}
 	command->canvas->unlock_canvas();
 #endif
 }
-
 
 void Playback3D::enable_overlay_texture(Playback3DCommand *command)
 {
@@ -1113,22 +1285,13 @@ void Playback3D::enable_overlay_texture(Playback3DCommand *command)
 	glDisable(GL_BLEND);
 
 	glActiveTexture(GL_TEXTURE1);
-	BC_Texture::new_texture(&temp_texture,
-		canvas_w, 
-		canvas_h, 
+	BC_Texture::new_texture(&temp_texture, canvas_w, canvas_h, 
 		command->input->get_color_model());
 	temp_texture->bind(1);
 
 // Read canvas into texture
 	glReadBuffer(GL_BACK);
-	glCopyTexSubImage2D(GL_TEXTURE_2D,
-		0,
-		0,
-		0,
-		0,
-		0,
-		canvas_w,
-		canvas_h);
+	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, canvas_w, canvas_h);
 #endif
 }
 
@@ -1622,9 +1785,7 @@ void Playback3D::do_fade_sync(Playback3DCommand *command)
 			case BC_RGBA8888:
 			case BC_RGBA_FLOAT:
 			case BC_YUVA8888:
-				frag_shader = VFrame::make_shader(0,
-					fade_rgba_frag,
-					0);
+				frag_shader = VFrame::make_shader(0, fade_rgba_frag, 0);
 				break;
 
 			case BC_RGB888:
@@ -1635,9 +1796,7 @@ void Playback3D::do_fade_sync(Playback3DCommand *command)
 
 
 			case BC_YUV888:
-				frag_shader = VFrame::make_shader(0,
-					fade_yuv_frag,
-					0);
+				frag_shader = VFrame::make_shader(0, fade_yuv_frag, 0);
 				break;
 		}
 

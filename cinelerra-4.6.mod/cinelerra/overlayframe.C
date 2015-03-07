@@ -34,21 +34,40 @@
 #include "units.h"
 #include "vframe.h"
 
-// Easy abstraction of the float and int types.  Most of these are never used
-// but GCC expects them.
-static inline int mabs(int32_t v) { return abs(v); }
-static inline int mabs(uint32_t v) { return v; } 
-static inline int mabs(int64_t v) { return llabs(v); }
-static inline int mabs(uint64_t v) { return v; }
-static inline float mabs(float v) { return fabsf(v); }
-#define MABS(typ, v) mabs((typ)(v))
+static inline int   mabs(int32_t v) { return abs(v); }
+static inline int   mabs(int64_t v) { return llabs(v); }
+static inline float mabs(float v)   { return fabsf(v); }
 
-static inline int mclip(int32_t v, int32_t l, int32_t h) { return v < l ? l : v > h ? h : v; }
-static inline int mclip(uint32_t v, uint32_t l, uint32_t h) { return v > h ? h : v; }
-static inline int mclip(int64_t v, int64_t l, int64_t h) { return v < l ? l : v > h ? h : v; }
-static inline int mclip(uint64_t v, uint32_t l, uint32_t h) { return v > h ? h : v; }
-static inline float mclip(float v, float l, float h) { return v < l ? l : v > h ? h : v; }
-#define MCLIP(typ, v, l, h) mclip((typ)(v), (typ)l, (typ)h)
+static inline int32_t aclip(int32_t v, int mx) {
+	return v < 0 ? 0 : v > mx ? mx : v;
+}
+static inline int64_t aclip(int64_t v, int mx) {
+	return v < 0 ? 0 : v > mx ? mx : v;
+}
+static inline float   aclip(float v, float mx) {
+	return v < 0 ? 0 : v > mx ? mx : v;
+}
+static inline float   aclip(float v, int mx) {
+	return v < 0 ? 0 : v > mx ? mx : v;
+}
+static inline int   aclip(int v, float mx) {
+	return v < 0 ? 0 : v > mx ? mx : v;
+}
+static inline int32_t cclip(int32_t v, int mx) {
+	return v > (mx/=2) ? mx : v < (mx=(-mx-1)) ? mx : v;
+}
+static inline int64_t cclip(int64_t v, int mx) {
+	return v > (mx/=2) ? mx : v < (mx=(-mx-1)) ? mx : v;
+}
+static inline float   cclip(float v, float mx) {
+	return v > (mx/=2) ? mx : v < (mx=(-mx)) ? mx : v;
+}
+static inline float   cclip(float v, int mx) {
+	return v > (mx/=2) ? mx : v < (mx=(-mx-1)) ? mx : v;
+}
+static inline int   cclip(int v, float mx) {
+	return v > (mx/=2) ? mx : v < (mx=(-mx-1)) ? mx : v;
+}
 
 /*
  * New resampler code; replace the original somehwat blurry engine
@@ -207,7 +226,7 @@ int OverlayFrame::overlay(VFrame *output, VFrame *input,
 
 	if(in_x1 < 0) in_x1 = 0;
 	if(in_y1 < 0) in_y1 = 0;
-	if(in_x2 > input->get_w()) in_y2 = input->get_w();
+	if(in_x2 > input->get_w()) in_x2 = input->get_w();
 	if(in_y2 > input->get_h()) in_y2 = input->get_h();
 	if(out_x1 < 0) out_x1 = 0;
 	if(out_y1 < 0) out_y1 = 0;
@@ -293,14 +312,15 @@ int OverlayFrame::overlay(VFrame *output, VFrame *input,
 		float temp_x2 = temp_x1 + (in_y2 - in_y1);
 		int temp_w = ceil(temp_x2);
 
-		if(temp_frame && (temp_frame->get_w() != temp_w ||
-				temp_frame->get_h() != temp_h)) {
+		if( temp_frame &&
+		   (temp_frame->get_color_model() != input->get_color_model() ||
+                    temp_frame->get_w() != temp_w || temp_frame->get_h() != temp_h) ) {
 			delete temp_frame;
 			temp_frame = 0;
 		}
 
 		if(!temp_frame) {
-			temp_frame = new VFrame(0, temp_w, temp_h,
+			temp_frame = new VFrame(0, -1, temp_w, temp_h,
 				input->get_color_model(), -1);
 		}
 
@@ -341,130 +361,196 @@ int OverlayFrame::overlay(VFrame *output, VFrame *input,
 	return 0;
 }
 
+// NORMAL	[Sa * Sa + Da * (1 - Sa), Sc * Sa + Dc * (1 - Sa)])
+#define ALPHA_NORMAL(mx, Sa, Da) ((Sa * Sa + Da * (mx - Sa)) / mx)
+#define COLOR_NORMAL(mx, Sc, Sa, Dc, Da) ((Sc * Sa + Dc * (mx - Sa)) / mx)
+#define CHROMA_NORMAL COLOR_NORMAL
 
-// Verification:
+// ADDITION	[(Sa + Da), (Sc + Dc)]
+#define ALPHA_ADDITION(mx, Sa, Da) (Sa + Da)
+#define COLOR_ADDITION(mx, Sc, Sa, Dc, Da) (Sc + Dc)
+#define CHROMA_ADDITION(mx, Sc, Sa, Dc, Da) (Sc + Dc)
 
-// (255 * 255 + 0 * 0) / 255 = 255
-// (255 * 127 + 255 * (255 - 127)) / 255 = 255
+// SUBTRACT	[(Sa - Da), (Sc - Dc)]
+#define ALPHA_SUBTRACT(mx, Sa, Da) (Sa - Da)
+#define COLOR_SUBTRACT(mx, Sc, Sa, Dc, Da) (Sc - Dc)
+#define CHROMA_SUBTRACT(mx, Sc, Sa, Dc, Da) (Sc - Dc)
 
-// (65535 * 65535 + 0 * 0) / 65535 = 65535
-// (65535 * 32767 + 65535 * (65535 - 32767)) / 65535 = 65535
+// MULTIPLY	[(Sa * Da), Sc * Dc]
+#define ALPHA_MULTIPLY(mx, Sa, Da) ((Sa * Da) / mx)
+#define COLOR_MULTIPLY(mx, Sc, Sa, Dc, Da) ((Sc * Dc) / mx)
+#define CHROMA_MULTIPLY(mx, Sc, Sa, Dc, Da) ((Sc * Dc) / mx)
 
-/*
-Src		s	0	s
-Atop		0	d	s
-Over		s	d	s
-In		0	0	s
-Out		s	0	0
-Dest		0	d	d
-DestAtop	s	0	d
-DestOver	s	d	d
-DestIn		0	0	d
-DestOut		0	d	0
-Clear		0	0	0
-Xor		s	d	0
+// DIVIDE	[(Sa / Da), (Sc / Dc)]
+#define ALPHA_DIVIDE(mx, Sa, Da) (Da ? ((Sa * mx) / Da) : mx)
+#define COLOR_DIVIDE(mx, Sc, Sa, Dc, Da) (Dc ? ((Sc * mx) / Dc) : mx)
+#define CHROMA_DIVIDE(mx, Sc, Sa, Dc, Da) (Dc ? ((Sc * mx) / Dc) : mx)
 
-ADD  		Saturate(S + D)  
-CLEAR  		[0, 0]  
-DARKEN  	[Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + min(Sc, Dc)]  
-DST  		[Da, Dc]  
-DST_ATOP  	[Sa, Sa * Dc + Sc * (1 - Da)]  
-DST_IN  	[Sa * Da, Sa * Dc]  
-DST_OUT  	[Da * (1 - Sa), Dc * (1 - Sa)]  
-DST_OVER  	[Sa + (1 - Sa)*Da, Rc = Dc + (1 - Da)*Sc]  
-LIGHTEN  	[Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + max(Sc, Dc)]  
-MULTIPLY  	[Sa * Da, Sc * Dc]  
-OVERLAY  	 
-SCREEN  	[Sa + Da - Sa * Da, Sc + Dc - Sc * Dc]  
-SRC  		[Sa, Sc]  
-SRC_ATOP  	[Da, Sc * Da + (1 - Sa) * Dc]  
-SRC_IN  	[Sa * Da, Sc * Da]  
-SRC_OUT  	[Sa * (1 - Da), Sc * (1 - Da)]  
-SRC_OVER  	[Sa + (1 - Sa)*Da, Rc = Sc + (1 - Sa)*Dc]  
-XOR  		[Sa + Da - 2 * Sa * Da, Sc * (1 - Da) + (1 - Sa) * Dc]   
-*/
+// REPLACE	[Sa, Sc] (fade = 1)
+#define ALPHA_REPLACE(mx, Sa, Da) Sa
+#define COLOR_REPLACE(mx, Sc, Sa, Dc, Da) Sc
+#define CHROMA_REPLACE COLOR_REPLACE
 
-#define BLEND_DIVIDE(typ, in, out, mx) \
- ((t = (in) ? ((typ)(out) * (mx)) / (in) : (mx)), \
-  MCLIP(typ, t, 0, mx))
-#define CHROMA_DIVIDE(typ, in, out, mx) \
- (MABS(typ,in) > MABS(typ,out) ? (in) : (out))
+// MAX		[max(Sa, Da), MAX(Sc, Dc)]
+#define ALPHA_MAX(mx, Sa, Da) (Sa > Da ? Sa : Da)
+#define COLOR_MAX(mx, Sc, Sa, Dc, Da) (Sc > Dc ? Sc : Dc)
+#define CHROMA_MAX(mx, Sc, Sa, Dc, Da) (Sc > Dc ? Sc : Dc)
 
-#define BLEND_MULTIPLY(typ, in, out, mx) \
- (((typ)(in) * (out)) / (mx))
-#define CHROMA_MULTIPLY(typ, in, out, mx) \
- (MABS(typ,in) > MABS(typ,out) ? (in) : (out))
+// MIN		[min(Sa, Da), MIN(Sc, Dc)]
+#define ALPHA_MIN(mx, Sa, Da) (Sa < Da ? Sa : Da)
+#define COLOR_MIN(mx, Sc, Sa, Dc, Da) (Sc < Dc ? Sc : Dc)
+#define CHROMA_MIN(mx, Sc, Sa, Dc, Da) (Sc < Dc ? Sc : Dc)
 
-#define BLEND_SUBTRACT(typ, in, out, mx) \
- ((t = (typ)(out) - (in)), MCLIP(typ, t, 0, mx))
-#define CHROMA_SUBTRACT(typ, in, out, mx) \
- ((t = (typ)(out) - (in)), MCLIP(typ, t, -mx, mx))
+// AVERAGE	[(Sa + Da) * 0.5, (Sc + Dc) * 0.5]
+#define ALPHA_AVERAGE(mx, Sa, Da) ((Sa + Da) / 2)
+#define COLOR_AVERAGE(mx, Sc, Sa, Dc, Da) ((Sc + Dc) / 2)
+#define CHROMA_AVERAGE COLOR_AVERAGE
 
-#define BLEND_ADDITION(typ, in, out, mx) \
- ((t = (typ)(out) + (in)), MCLIP(typ, t, 0, mx))
-#define CHROMA_ADDITION(typ, in, out, mx) \
- ((t = (typ)(out) + (in)), MCLIP(typ, t, -mx, mx))
+// DARKEN  	[Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + min(Sc, Dc)]  
+#define ALPHA_DARKEN(mx, Sa, Da) (Sa + Da - (Sa * Da) / mx)
+#define COLOR_DARKEN(mx, Sc, Sa, Dc, Da) ((Sc * (mx - Da) + Dc * (mx - Sa)) / mx + (Sc < Dc ? Sc : Dc))
+#define CHROMA_DARKEN COLOR_DARKEN
 
-#define BLEND_MIN(typ, in, out, mx) \
- ((in) < (out) ? (in) : (out))
-#define CHROMA_MIN(typ, in, out, mx) \
- (MABS(typ,in) < MABS(typ,out) ? (in) : (out))
+// LIGHTEN  	[Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + max(Sc, Dc)]  
+#define ALPHA_LIGHTEN(mx, Sa, Da) (Sa + Da - Sa * Da / mx)
+#define COLOR_LIGHTEN(mx, Sc, Sa, Dc, Da) ((Sc * (mx - Da) + Dc * (mx - Sa)) / mx + (Sc > Dc ? Sc : Dc))
+#define CHROMA_LIGHTEN COLOR_LIGHTEN
 
-#define BLEND_MAX(typ, in, out, mx) \
- ((in) > (out) ? (in) : (out))
-#define CHROMA_MAX(typ, in, out, mx) \
- (MABS(typ,in) > MABS(typ,out) ? (in) : (out))
+// DST  	[Da, Dc]  
+#define ALPHA_DST(mx, Sa, Da) Da
+#define COLOR_DST(mx, Sc, Sa, Dc, Da) Dc
+#define CHROMA_DST COLOR_DST
 
-#define BLEND_NORMAL(typ, in, out, mx) \
- (in)
-#define CHROMA_NORMAL(typ, in, out, mx) \
- (in)
+// DST_ATOP  	[Sa, Sc * (1 - Da) + Dc * Sa]
+#define ALPHA_DST_ATOP(mx, Sa, Da) Sa
+#define COLOR_DST_ATOP(mx, Sc, Sa, Dc, Da) ((Sc * (mx - Da) + Dc * Sa) / mx)
+#define CHROMA_DST_ATOP COLOR_DST_ATOP
+
+// DST_IN  	[Da * Sa, Dc * Sa]  
+#define ALPHA_DST_IN(mx, Sa, Da) ((Da * Sa) / mx)
+#define COLOR_DST_IN(mx, Sc, Sa, Dc, Da) ((Dc * Sa) / mx)
+#define CHROMA_DST_IN COLOR_DST_IN
+
+// DST_OUT  	[Da * (1 - Sa), Dc * (1 - Sa)]  
+#define ALPHA_DST_OUT(mx, Sa, Da) (Da * (mx - Sa) / mx)
+#define COLOR_DST_OUT(mx, Sc, Sa, Dc, Da) (Dc * (mx - Sa) / mx)
+#define CHROMA_DST_OUT COLOR_DST_OUT
+
+// DST_OVER  	[Sa * (1 - Da) + Da, Sc * (1 - Da) + Dc]  
+#define ALPHA_DST_OVER(mx, Sa, Da) ((Sa * (mx - Da)) / mx + Da)
+#define COLOR_DST_OVER(mx, Sc, Sa, Dc, Da) (Sc * (mx - Da)/ mx + Dc)
+#define CHROMA_DST_OVER COLOR_DST_OVER
+
+// SRC  		[Sa, Sc]  
+#define ALPHA_SRC(mx, Sa, Da) Sa
+#define COLOR_SRC(mx, Sc, Sa, Dc, Da) Sc
+#define CHROMA_SRC COLOR_SRC
+
+// SRC_ATOP  	[Da, Sc * Da + Dc * (1 - Sa)]  
+#define ALPHA_SRC_ATOP(mx, Sa, Da) Da
+#define COLOR_SRC_ATOP(mx, Sc, Sa, Dc, Da) ((Sc * Da + Dc * (mx - Sa)) / mx)
+#define CHROMA_SRC_ATOP COLOR_SRC_ATOP
+
+// SRC_IN  	[Sa * Da, Sc * Da]  
+#define ALPHA_SRC_IN(mx, Sa, Da) ((Sa * Da) / mx)
+#define COLOR_SRC_IN(mx, Sc, Sa, Dc, Da) (Sc * Da / mx)
+#define CHROMA_SRC_IN COLOR_SRC_IN
+
+// SRC_OUT  	[Sa * (1 - Da), Sc * (1 - Da)]  
+#define ALPHA_SRC_OUT(mx, Sa, Da) (Sa * (mx - Da) / mx)
+#define COLOR_SRC_OUT(mx, Sc, Sa, Dc, Da) (Sc * (mx - Da) / mx)
+#define CHROMA_SRC_OUT COLOR_SRC_OUT
+
+// SRC_OVER  	[Sa + Da * (1 - Sa), Sc + (1 - Sa) * Dc]  
+#define ALPHA_SRC_OVER(mx, Sa, Da) (Sa + Da * (mx - Sa) / mx)
+#define COLOR_SRC_OVER(mx, Sc, Sa, Dc, Da) (Sc + Dc * (mx - Sa) / mx)
+#define CHROMA_SRC_OVER COLOR_SRC_OVER
+
+// OR  	[Sa + Da - Sa * Da, Sc + Dc - Sc * Dc]   
+#define ALPHA_OR(mx, Sa, Da) (Sa + Da - (Sa * Da) / mx)
+#define COLOR_OR(mx, Sc, Sa, Dc, Da) (Sc + Dc - (Sc * Dc) / mx)
+#define CHROMA_OR COLOR_OR
+
+// XOR  	[Sa * (1 - Da) + Da * (1 - Sa), Sc * (1 - Da) + Dc * (1 - Sa)]   
+#define ALPHA_XOR(mx, Sa, Da) ((Sa * (mx - Da) + Da * (mx - Sa)) / mx)
+#define COLOR_XOR(mx, Sc, Sa, Dc, Da) ((Sc * (mx - Da) + Dc * (mx - Sa)) / mx)
+#define CHROMA_XOR COLOR_XOR
 
 
-#define ALPHA3_BLEND(FN, typ, inp, out, mx, ofs) \
-  typ inp0 = (typ)(inp)[0], out0 = (typ)(out)[0]; \
-  typ inp1 = (typ)(inp)[1] - (ofs), inp2 = (typ)(inp)[2] - (ofs); \
-  typ out1 = (typ)(out)[1] - (ofs), out2 = (typ)(out)[2] - (ofs); \
-  r = BLEND_##FN(typ, inp0, out0, mx); \
-  if(ofs) { \
-    g = CHROMA_##FN(typ, inp1, out1, (mx+1)/2); \
-    b = CHROMA_##FN(typ, inp2, out2, (mx+1)/2); \
+#define ALPHA3_BLEND(FN, typ, inp, out, mx, ofs, rnd) \
+  typ inp0 = (typ)inp[0], inp1 = (typ)inp[1] - ofs; \
+  typ inp2 = (typ)inp[2] - ofs, inp3 = fade * mx + rnd; \
+  typ out0 = (typ)out[0], out1 = (typ)out[1] - ofs; \
+  typ out2 = (typ)out[2] - ofs, out3 = mx; \
+  r = aclip(COLOR_##FN(mx, inp0, inp3, out0, out3), mx); \
+  if( ofs ) { \
+    g = cclip(CHROMA_##FN(mx, inp1, inp3, out1, out3), mx); \
+    b = cclip(CHROMA_##FN(mx, inp2, inp3, out2, out3), mx); \
   } \
   else { \
-    g = BLEND_##FN(typ, inp1, out1, mx); \
-    b = BLEND_##FN(typ, inp2, out2, mx); \
-  } \
-  r = (r * opcty + out0 * trnsp) / amax; \
-  g = (g * opcty + out1 * trnsp) / amax + (ofs); \
-  b = (b * opcty + out2 * trnsp) / amax + (ofs)
-
-#define ALPHA3_STORE(out, comp, alfa, mx) \
-  (out)[0] = r;  (out)[1] = g;  (out)[2] = b; \
-  if( comp == 4 ) { \
-    (out)[3] = ((out)[3] + (((mx) - (out)[3]) * (alfa)) / (mx)); \
+    g = aclip(COLOR_##FN(mx, inp1, inp3, out1, out3), mx); \
+    b = aclip(COLOR_##FN(mx, inp2, inp3, out2, out3), mx); \
   }
 
-#define XBLEND_3(FN, temp_type, type, max, components, chroma_offset) { \
-	temp_type amax = components == 3 ? (max) : (temp_type)(max)*(max); \
-	temp_type opacity = alpha * max + 0.5; \
+#define ALPHA4_BLEND(FN, typ, inp, out, mx, ofs, rnd) \
+  typ inp0 = (typ)inp[0], inp1 = (typ)inp[1] - ofs; \
+  typ inp2 = (typ)inp[2] - ofs, inp3 = (typ)inp[3] * fade + rnd; \
+  typ out0 = (typ)out[0], out1 = (typ)out[1] - ofs; \
+  typ out2 = (typ)out[2] - ofs, out3 = out[3]; \
+  r = aclip(COLOR_##FN(mx, inp0, inp3, out0, out3), mx); \
+  if( ofs ) { \
+    g = cclip(CHROMA_##FN(mx, inp1, inp3, out1, out3), mx); \
+    b = cclip(CHROMA_##FN(mx, inp2, inp3, out2, out3), mx); \
+  } \
+  else { \
+    g = aclip(COLOR_##FN(mx, inp1, inp3, out1, out3), mx); \
+    b = aclip(COLOR_##FN(mx, inp2, inp3, out2, out3), mx); \
+  } \
+  a = aclip(ALPHA_##FN(mx, inp3, out3), mx); \
+
+#define ALPHA_STORE(out, ofs, mx) \
+  out[0] = r; \
+  out[1] = g + ofs; \
+  out[2] = b + ofs
+
+#define ALPHA3_STORE(out, ofs, mx) \
+  if( trnsp ) { \
+    r = (r * opcty + out0 * trnsp) / mx; \
+    g = (g * opcty + out1 * trnsp) / mx; \
+    b = (b * opcty + out2 * trnsp) / mx; \
+  } \
+  ALPHA_STORE(out, ofs, mx)
+
+#define ALPHA4_STORE(out, ofs, mx) \
+  if( trnsp ) { \
+    r = (r * opcty + out0 * trnsp) / mx; \
+    g = (g * opcty + out1 * trnsp) / mx; \
+    b = (b * opcty + out2 * trnsp) / mx; \
+    a = (a * opcty + out3 * trnsp) / mx; \
+  } \
+  ALPHA_STORE(out, ofs, mx); \
+  out[3] = a
+
+#define XBLEND(FN, temp_type, type, max, components, chroma_offset, round) { \
+	temp_type opcty = alpha * max + round, trnsp = max - opcty; \
 	type** output_rows = (type**)output->get_rows(); \
 	type** input_rows = (type**)input->get_rows(); \
 	ix *= components;  ox *= components; \
  \
 	for(int i = pkg->out_row1; i < pkg->out_row2; i++) { \
-		temp_type r, g, b, t; \
 		type* in_row = input_rows[i + iy] + ix; \
 		type* output = output_rows[i] + ox; \
-		if( opacity == 0 ) { \
-			int line_len = ow * sizeof(type) * components; \
-			memcpy(output, in_row, line_len); \
-			continue; \
-		} \
 		for(int j = 0; j < ow; j++) { \
-			temp_type opcty = components != 4 ? opacity : in_row[3]*opacity; \
-			temp_type trnsp = amax - opcty; \
-			ALPHA3_BLEND(FN, temp_type, in_row, output, max, chroma_offset); \
-			ALPHA3_STORE(output, components, in_row[3], max); \
+			if( components == 4 ) { \
+				temp_type r, g, b, a; \
+				ALPHA4_BLEND(FN, temp_type, in_row, output, max, chroma_offset, round); \
+				ALPHA4_STORE(output, chroma_offset, max); \
+			} \
+			else { \
+				temp_type r, g, b; \
+				ALPHA3_BLEND(FN, temp_type, in_row, output, max, chroma_offset, round); \
+				ALPHA3_STORE(output, chroma_offset, max); \
+			} \
 			in_row += components;  output += components; \
 		} \
 	} \
@@ -473,16 +559,16 @@ XOR  		[Sa + Da - 2 * Sa * Da, Sc * (1 - Da) + (1 - Sa) * Dc]
 
 #define XBLEND_ONLY(FN) { \
 	switch(input->get_color_model()) { \
-	case BC_RGB_FLOAT:	XBLEND_3(FN, float,   float,    1.0,    3, 0); \
-	case BC_RGBA_FLOAT:	XBLEND_3(FN, float,   float,    1.0,    4, 0); \
-	case BC_RGB888:		XBLEND_3(FN, int32_t, uint8_t,  0xff,   3, 0); \
-	case BC_YUV888:		XBLEND_3(FN, int32_t, uint8_t,  0xff,   3, 0x80); \
-	case BC_RGBA8888:	XBLEND_3(FN, int32_t, uint8_t,  0xff,   4, 0); \
-	case BC_YUVA8888:	XBLEND_3(FN, int32_t, uint8_t,  0xff,   4, 0x80); \
-	case BC_RGB161616:	XBLEND_3(FN, int64_t, uint16_t, 0xffff, 3, 0); \
-	case BC_YUV161616:	XBLEND_3(FN, int64_t, uint16_t, 0xffff, 3, 0x8000); \
-	case BC_RGBA16161616:	XBLEND_3(FN, int64_t, uint16_t, 0xffff, 4, 0); \
-	case BC_YUVA16161616:	XBLEND_3(FN, int64_t, uint16_t, 0xffff, 4, 0x8000); \
+	case BC_RGB_FLOAT:	XBLEND(FN, float,   float,    1.f,    3, 0,      0.f); \
+	case BC_RGBA_FLOAT:	XBLEND(FN, float,   float,    1.f,    4, 0,      0.f); \
+	case BC_RGB888:		XBLEND(FN, int32_t, uint8_t,  0xff,   3, 0,      .5f); \
+	case BC_YUV888:		XBLEND(FN, int32_t, uint8_t,  0xff,   3, 0x80,   .5f); \
+	case BC_RGBA8888:	XBLEND(FN, int32_t, uint8_t,  0xff,   4, 0,      .5f); \
+	case BC_YUVA8888:	XBLEND(FN, int32_t, uint8_t,  0xff,   4, 0x80,   .5f); \
+	case BC_RGB161616:	XBLEND(FN, int64_t, uint16_t, 0xffff, 3, 0,      .5f); \
+	case BC_YUV161616:	XBLEND(FN, int64_t, uint16_t, 0xffff, 3, 0x8000, .5f); \
+	case BC_RGBA16161616:	XBLEND(FN, int64_t, uint16_t, 0xffff, 4, 0,      .5f); \
+	case BC_YUVA16161616:	XBLEND(FN, int64_t, uint16_t, 0xffff, 4, 0x8000, .5f); \
 	} \
 	break; \
 }
@@ -510,7 +596,8 @@ void DirectUnit::process_package(LoadPackage *package)
 	VFrame *output = engine->output;
 	VFrame *input = engine->input;
 	int mode = engine->mode;
-	float alpha = mode == TRANSFER_REPLACE ? 0. : engine->alpha;
+	float fade = engine->alpha;
+	float alpha = mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
 
 	int ix = engine->in_x1;
 	int ox = engine->out_x1;
@@ -518,13 +605,29 @@ void DirectUnit::process_package(LoadPackage *package)
 	int iy = engine->in_y1 - engine->out_y1;
 
 	switch( mode ) {
-        case TRANSFER_DIVIDE: 	XBLEND_ONLY(DIVIDE);
-        case TRANSFER_MULTIPLY:	XBLEND_ONLY(MULTIPLY);
-        case TRANSFER_SUBTRACT:	XBLEND_ONLY(SUBTRACT);
-        case TRANSFER_ADDITION:	XBLEND_ONLY(ADDITION);
-        case TRANSFER_MAX: 	XBLEND_ONLY(MAX);
-        case TRANSFER_REPLACE: 	
-        case TRANSFER_NORMAL: 	XBLEND_ONLY(NORMAL);
+        case TRANSFER_NORMAL: 		XBLEND_ONLY(NORMAL);
+        case TRANSFER_ADDITION:		XBLEND_ONLY(ADDITION);
+        case TRANSFER_SUBTRACT:		XBLEND_ONLY(SUBTRACT);
+        case TRANSFER_MULTIPLY:		XBLEND_ONLY(MULTIPLY);
+        case TRANSFER_DIVIDE: 		XBLEND_ONLY(DIVIDE);
+        case TRANSFER_REPLACE: 		XBLEND_ONLY(REPLACE);
+        case TRANSFER_MAX: 		XBLEND_ONLY(MAX);
+        case TRANSFER_MIN: 		XBLEND_ONLY(MIN);
+	case TRANSFER_AVERAGE:		XBLEND_ONLY(AVERAGE);
+	case TRANSFER_DARKEN:		XBLEND_ONLY(DARKEN);
+	case TRANSFER_LIGHTEN:		XBLEND_ONLY(LIGHTEN);
+	case TRANSFER_DST:		XBLEND_ONLY(DST);
+	case TRANSFER_DST_ATOP:		XBLEND_ONLY(DST_ATOP);
+	case TRANSFER_DST_IN:		XBLEND_ONLY(DST_IN);
+	case TRANSFER_DST_OUT:		XBLEND_ONLY(DST_OUT);
+	case TRANSFER_DST_OVER:		XBLEND_ONLY(DST_OVER);
+	case TRANSFER_SRC:		XBLEND_ONLY(SRC);
+	case TRANSFER_SRC_ATOP:		XBLEND_ONLY(SRC_ATOP);
+	case TRANSFER_SRC_IN:		XBLEND_ONLY(SRC_IN);
+	case TRANSFER_SRC_OUT:		XBLEND_ONLY(SRC_OUT);
+	case TRANSFER_SRC_OVER:		XBLEND_ONLY(SRC_OVER);
+	case TRANSFER_OR:		XBLEND_ONLY(OR);
+	case TRANSFER_XOR:		XBLEND_ONLY(XOR);
 	}
 }
 
@@ -572,31 +675,28 @@ LoadPackage* DirectEngine::new_package()
 
 /* Nearest Neighbor scale / translate / blend ********************/
 
-#define XBLEND_3NN(FN, temp_type, type, max, components, chroma_offset) { \
-	temp_type amax = components == 3 ? (max) : (temp_type)(max)*(max); \
-	temp_type opacity = alpha * max + 0.5; \
+#define XBLEND_3NN(FN, temp_type, type, max, components, chroma_offset, round) { \
+	temp_type opcty = alpha * max + round, trnsp = max - opcty; \
 	type** output_rows = (type**)output->get_rows(); \
 	type** input_rows = (type**)input->get_rows(); \
 	ox *= components; \
  \
 	for(int i = pkg->out_row1; i < pkg->out_row2; i++) { \
-		temp_type r, g, b, t; \
 		int *lx = engine->in_lookup_x; \
 		type* in_row = input_rows[*ly++]; \
 		type* output = output_rows[i] + ox; \
-		if( opacity == 0 ) { \
-	                for(int j = 0; j < ow; j++, output+=components) { \
-				in_row += *lx++; \
-				r = in_row[0];  g = in_row[1]; g = in_row[2]; \
-				ALPHA3_STORE(output, components, 0, max); \
-			} \
-			continue; \
-		} \
 		for(int j = 0; j < ow; j++) { \
-			temp_type opcty = components != 4 ? opacity : in_row[3]*opacity; \
-			temp_type trnsp = amax - opcty; \
-			ALPHA3_BLEND(FN, temp_type, in_row, output, max, chroma_offset); \
-			ALPHA3_STORE(output, components, in_row[3], max); \
+			in_row += *lx++; \
+			if( components == 4 ) { \
+				temp_type r, g, b, a; \
+				ALPHA4_BLEND(FN, temp_type, in_row, output, max, chroma_offset, round); \
+				ALPHA4_STORE(output, chroma_offset, max); \
+			} \
+			else { \
+				temp_type r, g, b; \
+				ALPHA3_BLEND(FN, temp_type, in_row, output, max, chroma_offset, round); \
+				ALPHA3_STORE(output, chroma_offset, max); \
+			} \
 			output += components; \
 		} \
 	} \
@@ -605,16 +705,16 @@ LoadPackage* DirectEngine::new_package()
 
 #define XBLEND_NN(FN) { \
 	switch(input->get_color_model()) { \
-	case BC_RGB_FLOAT:	XBLEND_3NN(FN, float,   float,    1.0,    3, 0); \
-	case BC_RGBA_FLOAT:	XBLEND_3NN(FN, float,   float,    1.0,    4, 0); \
-	case BC_RGB888:		XBLEND_3NN(FN, int32_t, uint8_t,  0xff,   3, 0); \
-	case BC_YUV888:		XBLEND_3NN(FN, int32_t, uint8_t,  0xff,   3, 0x80); \
-	case BC_RGBA8888:	XBLEND_3NN(FN, int32_t, uint8_t,  0xff,   4, 0); \
-	case BC_YUVA8888:	XBLEND_3NN(FN, int32_t, uint8_t,  0xff,   4, 0x80); \
-	case BC_RGB161616:	XBLEND_3NN(FN, int64_t, uint16_t, 0xffff, 3, 0); \
-	case BC_YUV161616:	XBLEND_3NN(FN, int64_t, uint16_t, 0xffff, 3, 0x8000); \
-	case BC_RGBA16161616:	XBLEND_3NN(FN, int64_t, uint16_t, 0xffff, 4, 0); \
-	case BC_YUVA16161616:	XBLEND_3NN(FN, int64_t, uint16_t, 0xffff, 4, 0x8000); \
+	case BC_RGB_FLOAT:	XBLEND_3NN(FN, float,   float,    1.f,    3, 0,       0.f); \
+	case BC_RGBA_FLOAT:	XBLEND_3NN(FN, float,   float,    1.f,    4, 0,       0.f); \
+	case BC_RGB888:		XBLEND_3NN(FN, int32_t, uint8_t,  0xff,   3, 0,      .5f); \
+	case BC_YUV888:		XBLEND_3NN(FN, int32_t, uint8_t,  0xff,   3, 0x80,   .5f); \
+	case BC_RGBA8888:	XBLEND_3NN(FN, int32_t, uint8_t,  0xff,   4, 0,      .5f); \
+	case BC_YUVA8888:	XBLEND_3NN(FN, int32_t, uint8_t,  0xff,   4, 0x80,   .5f); \
+	case BC_RGB161616:	XBLEND_3NN(FN, int64_t, uint16_t, 0xffff, 3, 0,      .5f); \
+	case BC_YUV161616:	XBLEND_3NN(FN, int64_t, uint16_t, 0xffff, 3, 0x8000, .5f); \
+	case BC_RGBA16161616:	XBLEND_3NN(FN, int64_t, uint16_t, 0xffff, 4, 0,      .5f); \
+	case BC_YUVA16161616:	XBLEND_3NN(FN, int64_t, uint16_t, 0xffff, 4, 0x8000, .5f); \
 	} \
 	break; \
 }
@@ -639,20 +739,37 @@ void NNUnit::process_package(LoadPackage *package)
 	VFrame *output = engine->output;
 	VFrame *input = engine->input;
 	int mode = engine->mode;
-	float alpha = mode == TRANSFER_REPLACE ? 0. : engine->alpha;
+	float fade = engine->alpha;
+	float alpha = mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
 
 	int ox = engine->out_x1i;
 	int ow = engine->out_x2i - ox;
 	int *ly = engine->in_lookup_y + pkg->out_row1;
 
 	switch( mode ) {
-        case TRANSFER_DIVIDE: 	XBLEND_NN(DIVIDE);
-        case TRANSFER_MULTIPLY:	XBLEND_NN(MULTIPLY);
-        case TRANSFER_SUBTRACT:	XBLEND_NN(SUBTRACT);
-        case TRANSFER_ADDITION:	XBLEND_NN(ADDITION);
-        case TRANSFER_MAX: 	XBLEND_NN(MAX);
-        case TRANSFER_REPLACE:
-        case TRANSFER_NORMAL: 	XBLEND_NN(NORMAL);
+        case TRANSFER_NORMAL: 		XBLEND_NN(NORMAL);
+        case TRANSFER_ADDITION:		XBLEND_NN(ADDITION);
+        case TRANSFER_SUBTRACT:		XBLEND_NN(SUBTRACT);
+        case TRANSFER_MULTIPLY:		XBLEND_NN(MULTIPLY);
+        case TRANSFER_DIVIDE: 		XBLEND_NN(DIVIDE);
+        case TRANSFER_REPLACE: 		XBLEND_NN(REPLACE);
+        case TRANSFER_MAX: 		XBLEND_NN(MAX);
+        case TRANSFER_MIN: 		XBLEND_NN(MIN);
+	case TRANSFER_AVERAGE:		XBLEND_NN(AVERAGE);
+	case TRANSFER_DARKEN:		XBLEND_NN(DARKEN);
+	case TRANSFER_LIGHTEN:		XBLEND_NN(LIGHTEN);
+	case TRANSFER_DST:		XBLEND_NN(DST);
+	case TRANSFER_DST_ATOP:		XBLEND_NN(DST_ATOP);
+	case TRANSFER_DST_IN:		XBLEND_NN(DST_IN);
+	case TRANSFER_DST_OUT:		XBLEND_NN(DST_OUT);
+	case TRANSFER_DST_OVER:		XBLEND_NN(DST_OVER);
+	case TRANSFER_SRC:		XBLEND_NN(SRC);
+	case TRANSFER_SRC_ATOP:		XBLEND_NN(SRC_ATOP);
+	case TRANSFER_SRC_IN:		XBLEND_NN(SRC_IN);
+	case TRANSFER_SRC_OUT:		XBLEND_NN(SRC_OUT);
+	case TRANSFER_SRC_OVER:		XBLEND_NN(SRC_OVER);
+	case TRANSFER_OR:		XBLEND_NN(OR);
+	case TRANSFER_XOR:		XBLEND_NN(XOR);
 	}
 }
 
@@ -774,26 +891,13 @@ LoadPackage* NNEngine::new_package()
 /* Fully resampled scale / translate / blend ******************************/
 /* resample into a temporary row vector, then blend */
 
-#define XSAMPLE_3(FN, temp_type, type, max, components, chroma_offset, round) { \
+#define XSAMPLE(FN, temp_type, type, max, components, chroma_offset, round) { \
 	float temp[oh*components]; \
-	temp_type amax = components == 3 ? (max) : (temp_type)max * max; \
+	temp_type opcty = alpha * max + round, trnsp = max - opcty; \
 	type **output_rows = (type**)voutput->get_rows() + o1i; \
 	type **input_rows = (type**)vinput->get_rows(); \
-	temp_type opacity = (alpha * max + round); \
-	temp_type transparency = max - opacity; \
  \
 	for(int i = pkg->out_col1; i < pkg->out_col2; i++) { \
-		temp_type r, g, b, t; \
-		if(opacity == 0) { \
-			/* don't bother resampling if the frame is invisible */ \
-			r = 0;  g = b = chroma_offset; \
-			temp_type opcty = 0, trnsp = amax; \
-			for(int j = 0; j < oh; j++) { \
-				type *output = output_rows[j] + i * components; \
-				ALPHA3_STORE(output, components, 0, max); \
-			} \
-			continue; \
-		} \
 		type *input = input_rows[i - engine->col_out1 + engine->row_in]; \
 		float *tempp = temp; \
 		if( !k ) { /* direct copy case */ \
@@ -828,7 +932,10 @@ LoadPackage* NNEngine::new_package()
 				*tempp++ = racc * wacc; \
 				*tempp++ = gacc * wacc; \
 				*tempp++ = bacc * wacc; \
-				if( components == 4 ) *tempp++ = aacc * awacc; \
+				if( components == 4 ) { \
+					if(awacc > 0.) awacc = 1. / awacc; \
+				 	*tempp++ = aacc * awacc; \
+				} \
 			} \
 		} \
  \
@@ -841,28 +948,35 @@ LoadPackage* NNEngine::new_package()
 		tempp = temp; \
 		/* blend output */ \
 		for(int j = 0; j < oh; j++) { \
-			temp_type opcty = components != 4 ? opacity : tempp[3]*opacity; \
-			temp_type trnsp = amax - opcty; \
 			type *output = output_rows[j] + i * components; \
-			ALPHA3_BLEND(FN, temp_type, tempp, output, max, chroma_offset); \
-			ALPHA3_STORE(output, components, tempp[3], max); \
+			if( components == 4 ) { \
+				temp_type r, g, b, a; \
+				ALPHA4_BLEND(FN, temp_type, tempp, output, max, 0, round); \
+				ALPHA4_STORE(output, chroma_offset, max); \
+			} \
+			else { \
+				temp_type r, g, b; \
+				ALPHA3_BLEND(FN, temp_type, tempp, output, max, 0, round); \
+				ALPHA3_STORE(output, chroma_offset, max); \
+			} \
 			tempp += components; \
 		} \
 	} \
+	break; \
 }
 
 #define XBLEND_SAMPLE(FN) { \
         switch(vinput->get_color_model()) { \
-        case BC_RGB_FLOAT:      XSAMPLE_3(FN, float,   float,    1.f,    3, 0.f,    0.f); \
-        case BC_RGBA_FLOAT:     XSAMPLE_3(FN, float,   float,    1.f,    4, 0.f,    0.f); \
-        case BC_RGB888:         XSAMPLE_3(FN, int32_t, uint8_t,  0xff,   3, 0,      .5f); \
-        case BC_YUV888:         XSAMPLE_3(FN, int32_t, uint8_t,  0xff,   3, 0x80,   .5f); \
-        case BC_RGBA8888:       XSAMPLE_3(FN, int32_t, uint8_t,  0xff,   4, 0,      .5f); \
-        case BC_YUVA8888:       XSAMPLE_3(FN, int32_t, uint8_t,  0xff,   4, 0x80,   .5f); \
-        case BC_RGB161616:      XSAMPLE_3(FN, int64_t, uint16_t, 0xffff, 3, 0,      .5f); \
-        case BC_YUV161616:      XSAMPLE_3(FN, int64_t, uint16_t, 0xffff, 3, 0x8000, .5f); \
-        case BC_RGBA16161616:   XSAMPLE_3(FN, int64_t, uint16_t, 0xffff, 4, 0,      .5f); \
-        case BC_YUVA16161616:   XSAMPLE_3(FN, int64_t, uint16_t, 0xffff, 4, 0x8000, .5f); \
+        case BC_RGB_FLOAT:      XSAMPLE(FN, float,   float,    1.f,    3, 0.f,    0.f); \
+        case BC_RGBA_FLOAT:     XSAMPLE(FN, float,   float,    1.f,    4, 0.f,    0.f); \
+        case BC_RGB888:         XSAMPLE(FN, int32_t, uint8_t,  0xff,   3, 0,      .5f); \
+        case BC_YUV888:         XSAMPLE(FN, int32_t, uint8_t,  0xff,   3, 0x80,   .5f); \
+        case BC_RGBA8888:       XSAMPLE(FN, int32_t, uint8_t,  0xff,   4, 0,      .5f); \
+        case BC_YUVA8888:       XSAMPLE(FN, int32_t, uint8_t,  0xff,   4, 0x80,   .5f); \
+        case BC_RGB161616:      XSAMPLE(FN, int64_t, uint16_t, 0xffff, 3, 0,      .5f); \
+        case BC_YUV161616:      XSAMPLE(FN, int64_t, uint16_t, 0xffff, 3, 0x8000, .5f); \
+        case BC_RGBA16161616:   XSAMPLE(FN, int64_t, uint16_t, 0xffff, 4, 0,      .5f); \
+        case BC_YUVA16161616:   XSAMPLE(FN, int64_t, uint16_t, 0xffff, 4, 0x8000, .5f); \
         } \
         break; \
 }
@@ -897,7 +1011,8 @@ void SampleUnit::process_package(LoadPackage *package)
 	VFrame *voutput = engine->output;
 	VFrame *vinput = engine->input;
 	int mode = engine->mode;
-	float alpha = mode == TRANSFER_REPLACE ? 0. : engine->alpha;
+	float fade = engine->alpha;
+	float alpha = mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
 
 	int   iw  = vinput->get_w();
 	int   i1i = floor(i1);
@@ -922,13 +1037,29 @@ void SampleUnit::process_package(LoadPackage *package)
 	float *lookup_wacc = engine->lookup_wacc;
 
 	switch( mode ) {
-        case TRANSFER_DIVIDE: 	XBLEND_SAMPLE(DIVIDE);
-        case TRANSFER_MULTIPLY:	XBLEND_SAMPLE(MULTIPLY);
-        case TRANSFER_SUBTRACT:	XBLEND_SAMPLE(SUBTRACT);
-        case TRANSFER_ADDITION:	XBLEND_SAMPLE(ADDITION);
-        case TRANSFER_MAX: 	XBLEND_SAMPLE(MAX);
-        case TRANSFER_REPLACE:
-        case TRANSFER_NORMAL: 	XBLEND_SAMPLE(NORMAL);
+        case TRANSFER_NORMAL: 		XBLEND_SAMPLE(NORMAL);
+        case TRANSFER_ADDITION:		XBLEND_SAMPLE(ADDITION);
+        case TRANSFER_SUBTRACT:		XBLEND_SAMPLE(SUBTRACT);
+        case TRANSFER_MULTIPLY:		XBLEND_SAMPLE(MULTIPLY);
+        case TRANSFER_DIVIDE: 		XBLEND_SAMPLE(DIVIDE);
+        case TRANSFER_REPLACE: 		XBLEND_SAMPLE(REPLACE);
+        case TRANSFER_MAX: 		XBLEND_SAMPLE(MAX);
+        case TRANSFER_MIN: 		XBLEND_SAMPLE(MIN);
+	case TRANSFER_AVERAGE:		XBLEND_SAMPLE(AVERAGE);
+	case TRANSFER_DARKEN:		XBLEND_SAMPLE(DARKEN);
+	case TRANSFER_LIGHTEN:		XBLEND_SAMPLE(LIGHTEN);
+	case TRANSFER_DST:		XBLEND_SAMPLE(DST);
+	case TRANSFER_DST_ATOP:		XBLEND_SAMPLE(DST_ATOP);
+	case TRANSFER_DST_IN:		XBLEND_SAMPLE(DST_IN);
+	case TRANSFER_DST_OUT:		XBLEND_SAMPLE(DST_OUT);
+	case TRANSFER_DST_OVER:		XBLEND_SAMPLE(DST_OVER);
+	case TRANSFER_SRC:		XBLEND_SAMPLE(SRC);
+	case TRANSFER_SRC_ATOP:		XBLEND_SAMPLE(SRC_ATOP);
+	case TRANSFER_SRC_IN:		XBLEND_SAMPLE(SRC_IN);
+	case TRANSFER_SRC_OUT:		XBLEND_SAMPLE(SRC_OUT);
+	case TRANSFER_SRC_OVER:		XBLEND_SAMPLE(SRC_OVER);
+	case TRANSFER_OR:		XBLEND_SAMPLE(OR);
+	case TRANSFER_XOR:		XBLEND_SAMPLE(XOR);
 	}
 }
 
@@ -982,10 +1113,10 @@ void SampleEngine::init_packages()
 	float bound = (coverage < 1.f ? kw : kw * coverage) - (.5f / TRANSFORM_SPP);
 	float coeff = (coverage < 1.f ? 1.f : scale) * TRANSFORM_SPP;
 
-	if(lookup_sx0) delete [] lookup_sx0;
-	if(lookup_sx1) delete [] lookup_sx1;
-	if(lookup_sk) delete [] lookup_sk;
-	if(lookup_wacc) delete [] lookup_wacc;
+	delete [] lookup_sx0;
+	delete [] lookup_sx1;
+	delete [] lookup_sk;
+	delete [] lookup_wacc;
 
 	lookup_sx0 = new int[oh];
 	lookup_sx1 = new int[oh];
@@ -995,8 +1126,7 @@ void SampleEngine::init_packages()
 	kd = (double)coeff * (1 << INDEX_FRACTION) + .5;
 
 	/* precompute kernel values and weight sums */
-	for(int i = 0; i < oh; i++)
-	{
+	for(int i = 0; i < oh; i++) {
 		/* map destination back to source */
 		double sx = (i - oyf + .5) * iscale + in1 - .5;
 
@@ -1016,32 +1146,24 @@ void SampleEngine::init_packages()
 		lookup_sx0[i] = -1;
 		lookup_sx1[i] = -1;
 
-		for(int j= sx0; j < sx1; j++)
-		{
+		for(int j= sx0; j < sx1; j++) {
 			int kv = (ki >> INDEX_FRACTION);
 			if(kv > kn) break;
-			if(kv >= -kn)
-			{
+			if(kv >= -kn) {
 				/*
 				 * the contribution of the first and last input pixel (if
 				 * fractional) are linearly weighted by the fraction
 				 */
 				if(j == i1i)
-				{
 					wacc += k[abs(kv)] * i1f;
-				}
 				else if(j + 1 == i2i)
-				{
 					wacc += k[abs(kv)] * i2f;
-				}
 				else
 					wacc += k[abs(kv)];
 
 				/* this is where we clip the kernel convolution to the source plane */
-				if(j >= 0 && j < iw)
-				{
-					if(lookup_sx0[i] == -1)
-					{
+				if(j >= 0 && j < iw) {
+					if(lookup_sx0[i] == -1) {
 						lookup_sx0[i] = j;
 						lookup_sk[i] = ki;
 					}

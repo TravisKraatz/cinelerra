@@ -28,13 +28,13 @@ public:
 	Mutex *db_lock;
 	class MDb : public Garbage, public MediaDb {
 		DbWindow *dwin;
-	public: MDb(DbWindow *d) : Garbage("DbWindow::MDb"), dwin(d) {
-			 openDb();  detachDb();
-		}
-		~MDb() { closeDb(); }
+	public:
 		int attach_rd() { dwin->db_lock->lock();  attachDb(0);  return 0; }
 		int attach_wr() { dwin->db_lock->lock();  attachDb(1);  return 0; }
 		int detach() {  dwin->db_lock->unlock();  detachDb();   return 0; }
+
+		MDb(DbWindow *d);
+		~MDb();
 	} *mdb;
 
 	void start();

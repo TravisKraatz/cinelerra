@@ -1827,7 +1827,7 @@ void BC_TextBox::do_separators(int ibeam_left)
 		for(int i = 0; i < separator_len; i++) {
 			if(i < wtext_len) {
 // Insert a separator
-				if( !iswalnum(wtext[i]) ) {
+				if( is_separator(separators,i) ) {
 					for(int j = wtext_len; j >= i; j--) {
 						wtext[j + 1] = wtext[j];
 					}
@@ -1836,9 +1836,7 @@ void BC_TextBox::do_separators(int ibeam_left)
 					wtext[i] = separators[i];
 				}
 			}
-			else
-			if(i >= wtext_len)
-			{
+			else {
 				wtext[i] = separators[i];
 			}
 		}

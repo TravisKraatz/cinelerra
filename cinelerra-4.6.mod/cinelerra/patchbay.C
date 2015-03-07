@@ -183,30 +183,36 @@ void PatchBay::create_objects()
 	flash(0);
 
 // Create icons for mode types
-	mode_icons[TRANSFER_NORMAL] = new BC_Pixmap(this, 
-		mwindow->theme->get_image("mode_normal"),
-		PIXMAP_ALPHA);
-	mode_icons[TRANSFER_ADDITION] = new BC_Pixmap(this, 
-		mwindow->theme->get_image("mode_add"),
-		PIXMAP_ALPHA);
-	mode_icons[TRANSFER_SUBTRACT] = new BC_Pixmap(this, 
-		mwindow->theme->get_image("mode_subtract"),
-		PIXMAP_ALPHA);
-	mode_icons[TRANSFER_MULTIPLY] = new BC_Pixmap(this, 
-		mwindow->theme->get_image("mode_multiply"),
-		PIXMAP_ALPHA);
-	mode_icons[TRANSFER_DIVIDE] = new BC_Pixmap(this, 
-		mwindow->theme->get_image("mode_divide"),
-		PIXMAP_ALPHA);
-	mode_icons[TRANSFER_REPLACE] = new BC_Pixmap(this, 
-		mwindow->theme->get_image("mode_replace"),
-		PIXMAP_ALPHA);
-	mode_icons[TRANSFER_MAX] = new BC_Pixmap(this, 
-		mwindow->theme->get_image("mode_max"),
-		PIXMAP_ALPHA);
-	mode_icons[TRANSFER_MIN] = new BC_Pixmap(this, 
-		mwindow->theme->get_image("mode_min"),
-		PIXMAP_ALPHA);
+	static const char *mode_types[] = {
+		"mode_normal",
+		"mode_add",
+		"mode_subtract",
+		"mode_multiply",
+		"mode_divide",
+		"mode_replace",
+		"mode_max",
+		"mode_min",
+		"mode_average",
+		"mode_darken",
+		"mode_lighten",
+		"mode_dst",
+		"mode_dstatop",
+		"mode_dstin",
+		"mode_dstout",
+		"mode_dstover",
+		"mode_src",
+		"mode_srcatop",
+		"mode_srcin",
+		"mode_srcout",
+		"mode_srcover",
+		"mode_or",
+		"mode_xor",
+	};
+	for( int mode=0; mode<TRANSFER_TYPES; ++mode ) {
+		mode_icons[mode] = new BC_Pixmap(this,
+			mwindow->theme->get_image(mode_types[mode]),
+			PIXMAP_ALPHA);
+	}
 
 	add_subwindow(nudge_popup = new NudgePopup(mwindow, this));
 	nudge_popup->create_objects();

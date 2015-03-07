@@ -54,7 +54,7 @@ public:
 	int enable_cancel();
 	int disable_cancel();
 	int get_cancel_enabled();
-	bool running();          // started and not finished
+	bool running();          // exists and not finished
 	int get_synchronous();
 	int set_synchronous(int value);
 	int get_realtime();                 
@@ -73,7 +73,7 @@ private:
 	bool synchronous;        // force join() to end
 	bool realtime;           // schedule realtime
 	bool autodelete;         // autodelete when run() finishes
-	bool started, finished;
+	bool finished;
 	bool cancel_enabled, cancelled;
   	pthread_t owner, tid;
 };

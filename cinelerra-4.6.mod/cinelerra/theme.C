@@ -88,6 +88,8 @@ Theme::Theme()
 	title_h = 23;
 	clock_bg_color = BLACK;
 	assetedit_color = YELLOW;
+	const char *cp = getenv("BC_USE_COMMERCIALS");
+	use_commercials = !cp ? 0 : atoi(cp);
 
 	preferences_category_overlap = 0;
 
@@ -137,13 +139,31 @@ void Theme::initialize()
 	set_data(_binary_theme_data_start);
 
 // Set images which weren't set by subclass
-	new_image("mode_add", "mode_add.png");
-	new_image("mode_divide", "mode_divide.png");
-	new_image("mode_multiply", "mode_multiply.png");
 	new_image("mode_normal", "mode_normal.png");
-	new_image("mode_replace", "mode_replace.png");
+	new_image("mode_add", "mode_add.png");
 	new_image("mode_subtract", "mode_subtract.png");
+	new_image("mode_multiply", "mode_multiply.png");
+	new_image("mode_divide", "mode_divide.png");
+	new_image("mode_replace", "mode_replace.png");
+	new_image("mode_max", "mode_max.png");
+	new_image("mode_min", "mode_min.png");
+	new_image("mode_average", "mode_average.png");
+	new_image("mode_darken", "mode_darken.png");
+	new_image("mode_lighten", "mode_lighten.png");
+	new_image("mode_dst", "mode_dst.png");
+	new_image("mode_dstatop", "mode_dstatop.png");
+	new_image("mode_dstin", "mode_dstin.png");
+	new_image("mode_dstout", "mode_dstout.png");
+	new_image("mode_dstover", "mode_dstover.png");
+	new_image("mode_src", "mode_src.png");
+	new_image("mode_srcatop", "mode_srcatop.png");
+	new_image("mode_srcin", "mode_srcin.png");
+	new_image("mode_srcout", "mode_srcout.png");
+	new_image("mode_srcover", "mode_srcover.png");
+	new_image("mode_or", "mode_or.png");
+	new_image("mode_xor", "mode_xor.png");
 
+	new_image_set("mode_popup", 3, "mode_up.png", "mode_hi.png", "mode_dn.png");
 
 // Images all themes have
 	new_image("mwindow_icon", "heroine_icon.png");

@@ -511,8 +511,22 @@ int VDeviceX11::write_buffer(VFrame *output_channels, EDL *edl)
 		canvas_x1, canvas_y1, canvas_x2, canvas_y2, xfr_w, xfr_h);
 
 // Convert colormodel
-	if(bitmap_type == BITMAP_TEMP)
-	{
+#if 0
+// this is handled by overlay call in virtualvnode, using flatten alpha
+// invoked when is_nested = -1 is passed to vdevicex11->overlay(...)
+	if(device->out_config->driver == PLAYBACK_X11_GL &&
+	    output_frame->get_color_model() != BC_RGB888) {
+		int cmodel = BC_RGB888;
+		output->get_canvas()->unlock_window();
+		output->unlock_canvas();
+		output->mwindow->playback_3d->convert_cmodel(output, output_frame, cmodel);
+	        output_frame->reallocate(0,-1,0,0,0,output_frame->get_w(),output_frame->get_h(),cmodel,-1);
+		output->lock_canvas("VDeviceX11::write_buffer 3");
+		output->get_canvas()->lock_window("VDeviceX11::write_buffer 3");
+	}
+	else
+#endif
+	if(bitmap_type == BITMAP_TEMP) {
 // printf("VDeviceX11::write_buffer 1 %d %d, %d %d %d %d -> %d %d %d %d\n",
 //  output->w, output->h, in_x, in_y, in_w, in_h, out_x, out_y, out_w, out_h );
 // fflush(stdout);
@@ -684,7 +698,7 @@ void VDeviceX11::overlay(VFrame *output_frame, VFrame *input,
 // Convert node coords to canvas coords in here
 
 // If single frame playback or nested EDL, use full sized PBuffer as output.
-	if(device->single_frame || is_nested)
+	if(device->single_frame || is_nested > 0)
 	{
 		output->mwindow->playback_3d->overlay(output, input,
 			in_x1, in_y1, in_x2, in_y2, 
@@ -759,7 +773,7 @@ void VDeviceX11::overlay(VFrame *output_frame, VFrame *input,
 			output->mwindow->playback_3d->overlay(output, input,
 				track_x1, track_y1, track_x2, track_y2, 
 				canvas_x1, canvas_y1, canvas_x2, canvas_y2,
-				alpha, mode, interpolation_type, 0);
+				alpha, mode, interpolation_type, 0, is_nested);
 		}
 	}
 }

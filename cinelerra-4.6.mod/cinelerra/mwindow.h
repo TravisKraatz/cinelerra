@@ -498,6 +498,7 @@ public:
 	BRender *brender;
 	static Commercials *commercials;
 	int commercial_active;
+	int has_commercials();
 
 // Menu items
 	ArrayList<ColormodelItem*> colormodels;

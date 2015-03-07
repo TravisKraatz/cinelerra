@@ -160,7 +160,7 @@ MainEditing::MainEditing(MWindow *mwindow, MButtons *mbuttons, int x, int y)
 		0,
 		1,
 		1,
-		1)
+		mwindow->has_commercials())
 {
 	this->mwindow = mwindow;
 	this->mbuttons = mbuttons;

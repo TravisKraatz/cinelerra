@@ -58,7 +58,7 @@ public:
 	VFrame(int w,
 		int h,
 		int color_model,
-		long bytes_per_line=-1);
+		long bytes_per_line = -1);
 	VFrame(unsigned char *data,
 		int shmid,
 		int w,

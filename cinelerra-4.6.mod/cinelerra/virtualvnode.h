@@ -93,6 +93,7 @@ private:
 		int64_t start_position_project,
 		int use_opengl);
 
+	float alpha;
 	FadeEngine *fader;
 	MaskEngine *masker;
 };

@@ -536,7 +536,7 @@ void ScopeGUI::create_objects()
 		&use_vector));
 	x += vector_on->get_w() + theme->widget_border;
 
-	add_subwindow(value_text = new BC_Title(x, y, _("")));
+	add_subwindow(value_text = new BC_Title(x, y, ""));
 	x += value_text->get_w() + theme->widget_border;
 
 	y += vector_on->get_h() + theme->widget_border;

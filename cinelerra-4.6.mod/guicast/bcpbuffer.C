@@ -91,17 +91,17 @@ void BC_PBuffer::new_pbuffer(int w, int h)
 // In reality, only a very specific configuration works at all.
 		static int framebuffer_attributes[] = 
 		{
-        	GLX_RENDER_TYPE, GLX_RGBA_BIT,
+        		GLX_RENDER_TYPE, GLX_RGBA_BIT,
 			GLX_DRAWABLE_TYPE, GLX_PBUFFER_BIT | GLX_WINDOW_BIT,
-          	GLX_DOUBLEBUFFER, True, // False,
-     		GLX_DEPTH_SIZE, 1,
+          		GLX_DOUBLEBUFFER, True, // False,
+	     		GLX_DEPTH_SIZE, 1,
 			GLX_ACCUM_RED_SIZE, 1,
 			GLX_ACCUM_GREEN_SIZE, 1,
 			GLX_ACCUM_BLUE_SIZE, 1,
 			GLX_ACCUM_ALPHA_SIZE, 1,
-        	GLX_RED_SIZE, 8,
-        	GLX_GREEN_SIZE, 8,
-        	GLX_BLUE_SIZE, 8,
+			GLX_RED_SIZE, 8,
+			GLX_GREEN_SIZE, 8,
+			GLX_BLUE_SIZE, 8,
 			GLX_ALPHA_SIZE, 8,
 			None
 		};
@@ -110,9 +110,9 @@ void BC_PBuffer::new_pbuffer(int w, int h)
 		{
 			GLX_PBUFFER_WIDTH, 0,
 			GLX_PBUFFER_HEIGHT, 0,
-    		GLX_LARGEST_PBUFFER, False,
-    		GLX_PRESERVED_CONTENTS, True,
-    		None
+			GLX_LARGEST_PBUFFER, False,
+			GLX_PRESERVED_CONTENTS, True,
+			None
 		};
 
 		pbuffer_attributes[1] = w;
@@ -158,7 +158,7 @@ void BC_PBuffer::new_pbuffer(int w, int h)
 			pbuffer = glXCreatePbuffer(current_window->get_display(), 
 				config_result ? config_result[current_config] : 0, 
 				pbuffer_attributes);
-	    	visinfo = glXGetVisualFromFBConfig(current_window->get_display(), 
+			visinfo = glXGetVisualFromFBConfig(current_window->get_display(), 
 				config_result ? config_result[current_config] : 0);
 
 // printf("BC_PBuffer::new_pbuffer %d current_config=%d visinfo=%p error=%d pbuffer=%p\n",
@@ -194,7 +194,7 @@ void BC_PBuffer::new_pbuffer(int w, int h)
 		}
 
 		if(config_result) XFree(config_result);
-    	if(visinfo) XFree(visinfo);
+    		if(visinfo) XFree(visinfo);
 	}
 
 

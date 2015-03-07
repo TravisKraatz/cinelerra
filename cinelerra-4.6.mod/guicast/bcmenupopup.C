@@ -289,22 +289,14 @@ int BC_MenuPopup::activate_menu(int x,
 	active = 1;
 	if(menu_bar)
 	{
-		popup = new BC_Popup(menu_bar,
-					this->x,
-					this->y,
-					this->w,
-					this->h,
+		popup = new BC_Popup(menu_bar, this->x, this->y, this->w, this->h,
 					top_level->get_resources()->menu_up,
 					1,
 					menu_bar->bg_pixmap);
 	}
 	else
 	{
-		popup = new BC_Popup(top_level,
-					this->x,
-					this->y,
-					this->w,
-					this->h,
+		popup = new BC_Popup(top_level, this->x, this->y, this->w, this->h,
 					top_level->get_resources()->menu_up,
 					1,
 					0);
@@ -344,11 +336,7 @@ int BC_MenuPopup::draw_items()
 
 	if(window_bg)
 	{
-		popup->draw_9segment(0,
-			0,
-			w,
-			h,
-			window_bg);
+		popup->draw_9segment(0, 0, w, h, window_bg);
 	}
 	else
 	{
@@ -419,7 +407,12 @@ BC_Popup* BC_MenuPopup::get_popup()
 
 int BC_MenuPopup::cursor_inside()
 {
-	return !popup ? 0 : popup->cursor_inside();
+	if( !popup ) return 0;
+	int x = popup->get_relative_cursor_x();
+	if( x < 0 || x > popup->get_w() ) return 0;
+	int y = popup->get_relative_cursor_y();
+	if( y < 0 || y > popup->get_h() ) return 0;
+	return 1;
 }
 
 int BC_MenuPopup::get_w()

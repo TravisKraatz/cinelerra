@@ -65,6 +65,7 @@ VirtualVNode::VirtualVNode(RenderEngine *renderengine,
 	//VRender *vrender = ((VirtualVConsole*)vconsole)->vrender;
 	fader = new FadeEngine(renderengine->preferences->processors);
 	masker = new MaskEngine(renderengine->preferences->processors);
+	alpha = 1;
 }
 
 VirtualVNode::~VirtualVNode()
@@ -285,6 +286,7 @@ int VirtualVNode::render_fade(VFrame *output,
 //	CLAMP(intercept, 0, 100);
 
 
+#if 0
 // Can't use overlay here because overlayer blends the frame with itself.
 // The fade engine can compensate for lack of alpha channels by multiplying the 
 // color components by alpha.
@@ -297,6 +299,9 @@ int VirtualVNode::render_fade(VFrame *output,
 		else
 			fader->do_fade(output, output, intercept / 100);
 	}
+#else
+	alpha = intercept / 100;
+#endif
 
 	return 0;
 }
@@ -400,7 +405,7 @@ int VirtualVNode::render_projector(VFrame *input, VFrame *output,
 // can do dissolves, although a blend equation is still required for 3 component
 // colormodels since fractional translation requires blending.
 
-// If this is the first playable video track and the mode_keyframe is "normal"
+// If this is the first playable video track and the mode_keyframe is "src_over"
 // the mode may be overridden with "replace".  Replace is faster.
 			if(mode == TRANSFER_NORMAL &&
 				vconsole->current_exit_node == vconsole->total_exit_nodes - 1)
@@ -409,21 +414,23 @@ int VirtualVNode::render_projector(VFrame *input, VFrame *output,
 			if(use_opengl)
 			{
 // Nested EDL's overlay on a PBuffer instead of a screen
-				
+// is_nested < 0 ? flatten alpha channel, last draw before driver render
+				int is_nested = renderengine->is_nested ? 1 :
+					vconsole->current_exit_node == 0 ? -1 : 0;
 				((VDeviceX11*)((VirtualVConsole*)vconsole)->get_vdriver())->overlay(
 					output, input,
 					in_x1, in_y1, in_x2, in_y2,
 					out_x1, out_y1, out_x2, out_y2, 
-					1, mode, 
+					alpha, mode, 
 					renderengine->get_edl(),
-					renderengine->is_nested);
+					is_nested);
 			}
 			else
 			{
 				vrender->overlayer->overlay(output, input,
 					in_x1, in_y1, in_x2, in_y2,
 					out_x1, out_y1, out_x2, out_y2, 
-					1, mode, 
+					alpha, mode, 
 					renderengine->get_edl()->session->interpolation_type);
 			}
 		}
