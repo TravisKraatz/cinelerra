@@ -91,7 +91,7 @@ GLXFBConfig *BC_WindowBase::glx_pbuffer_fb_configs()
 	if( glx_fbcfgs_pbuffer ) return glx_fbcfgs_pbuffer;
 
        static int fb_attrs[] = {
-		GLX_DRAWABLE_TYPE,	GLX_PBUFFER_BIT | GLX_PIXMAP_BIT | GLX_WINDOW_BIT,
+		GLX_DRAWABLE_TYPE,	GLX_PBUFFER_BIT | GLX_PIXMAP_BIT,
 		GLX_RENDER_TYPE,	GLX_RGBA_BIT,
 		GLX_DOUBLEBUFFER,	True, //False,
 		GLX_DEPTH_SIZE,		1,

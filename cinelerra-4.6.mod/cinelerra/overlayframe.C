@@ -597,7 +597,9 @@ void DirectUnit::process_package(LoadPackage *package)
 	VFrame *input = engine->input;
 	int mode = engine->mode;
 	float fade = engine->alpha;
-	float alpha = mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
+	float alpha =
+		BC_CModels::has_alpha(input->get_color_model()) &&
+		mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
 
 	int ix = engine->in_x1;
 	int ox = engine->out_x1;
@@ -740,7 +742,9 @@ void NNUnit::process_package(LoadPackage *package)
 	VFrame *input = engine->input;
 	int mode = engine->mode;
 	float fade = engine->alpha;
-	float alpha = mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
+	float alpha =
+		BC_CModels::has_alpha(input->get_color_model()) &&
+		mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
 
 	int ox = engine->out_x1i;
 	int ow = engine->out_x2i - ox;
@@ -1012,7 +1016,9 @@ void SampleUnit::process_package(LoadPackage *package)
 	VFrame *vinput = engine->input;
 	int mode = engine->mode;
 	float fade = engine->alpha;
-	float alpha = mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
+	float alpha =
+		BC_CModels::has_alpha(vinput->get_color_model()) &&
+		mode == TRANSFER_REPLACE ? 1.f : engine->alpha;
 
 	int   iw  = vinput->get_w();
 	int   i1i = floor(i1);
