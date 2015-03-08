@@ -33,9 +33,7 @@ BC_PBuffer::BC_PBuffer(int w, int h)
 	reset();
 	this->w = w;
 	this->h = h;
-
-
-	new_pbuffer(w, h);
+	create_pbuffer(w, h);
 }
 
 BC_PBuffer::~BC_PBuffer()
@@ -63,142 +61,45 @@ GLXPbuffer BC_PBuffer::get_pbuffer()
 #endif
 
 
-void BC_PBuffer::new_pbuffer(int w, int h)
+void BC_PBuffer::create_pbuffer(int w, int h)
 {
 #ifdef HAVE_GL
+	int ww = (w + 3) & ~3, hh = (h + 3) & ~3;
+	int pb_attrs[] = {
+		GLX_PBUFFER_WIDTH, ww,
+		GLX_PBUFFER_HEIGHT, hh,
+		GLX_LARGEST_PBUFFER, False,
+		GLX_PRESERVED_CONTENTS, True,
+		None
+	};
 
-	if(!pbuffer)
-	{
-		BC_WindowBase *current_window = BC_WindowBase::get_synchronous()->current_window;
-// Try previously created PBuffers
-		pbuffer = BC_WindowBase::get_synchronous()->get_pbuffer(w, 
-			h, 
-			&window_id,
-			&gl_context);
+	BC_WindowBase *current_window = BC_WindowBase::get_synchronous()->current_window;
+	Display *dpy = current_window->get_display();
+	GLXFBConfig *fb_cfgs = current_window->glx_pbuffer_fb_configs();
+	int nfb_cfgs = current_window->n_fbcfgs_pbuffer;
+	XVisualInfo *visinfo = 0;
 
-		if(pbuffer)
-		{
-//printf("BC_PBuffer::new_pbuffer this=%p pbuffer=%p\n", this, pbuffer);
-			return;
-		}
-
-
-
-
-
-// You're supposed to try different configurations of decreasing overhead 
-// until one works.
-// In reality, only a very specific configuration works at all.
-		static int framebuffer_attributes[] = 
-		{
-        		GLX_RENDER_TYPE, GLX_RGBA_BIT,
-			GLX_DRAWABLE_TYPE, GLX_PBUFFER_BIT | GLX_WINDOW_BIT,
-          		GLX_DOUBLEBUFFER, True, // False,
-	     		GLX_DEPTH_SIZE, 1,
-			GLX_ACCUM_RED_SIZE, 1,
-			GLX_ACCUM_GREEN_SIZE, 1,
-			GLX_ACCUM_BLUE_SIZE, 1,
-			GLX_ACCUM_ALPHA_SIZE, 1,
-			GLX_RED_SIZE, 8,
-			GLX_GREEN_SIZE, 8,
-			GLX_BLUE_SIZE, 8,
-			GLX_ALPHA_SIZE, 8,
-			None
-		};
-
-		static int pbuffer_attributes[] = 
-		{
-			GLX_PBUFFER_WIDTH, 0,
-			GLX_PBUFFER_HEIGHT, 0,
-			GLX_LARGEST_PBUFFER, False,
-			GLX_PRESERVED_CONTENTS, True,
-			None
-		};
-
-		pbuffer_attributes[1] = w;
-		pbuffer_attributes[3] = h;
-		if(w % 4) pbuffer_attributes[1] += 4 - (w % 4);
-		if(h % 4) pbuffer_attributes[3] += 4 - (h % 4);
-
-		GLXFBConfig *config_result = 0;
-		XVisualInfo *visinfo = 0;
-		int config_result_count = 0;
-// Try the one that always worked on NVidia
-		config_result = glXChooseFBConfig(current_window->get_display(), 
-			current_window->get_screen(), 
-			framebuffer_attributes, 
-			&config_result_count);
-// If it doesn't work, try the default
-		if(!config_result_count || !config_result)
-		{
-			config_result = glXChooseFBConfig(current_window->get_display(), 
-				current_window->get_screen(), 
-				None,
-				&config_result_count);
-		}
-		
-// printf("BC_PBuffer::new_pbuffer %d display=%p screen=%d config_result=%p config_result_count=%d\n", 
-// __LINE__,
-// current_window->get_display(),
-// current_window->get_screen(),
-// config_result, 
-// config_result_count);
-
-		if(!config_result || !config_result_count)
-		{
-			printf("BC_PBuffer::new_pbuffer %d: glXChooseFBConfig failed\n", 
-				__LINE__);
-			return;
-		}
-
-		for(int current_config = 0; current_config < config_result_count; current_config++)
-		{
-
-			BC_Resources::error = 0;
-			pbuffer = glXCreatePbuffer(current_window->get_display(), 
-				config_result ? config_result[current_config] : 0, 
-				pbuffer_attributes);
-			visinfo = glXGetVisualFromFBConfig(current_window->get_display(), 
-				config_result ? config_result[current_config] : 0);
-
-// printf("BC_PBuffer::new_pbuffer %d current_config=%d visinfo=%p error=%d pbuffer=%p\n",
-// __LINE__,
-// current_config,
-// visinfo,
-// BC_Resources::error,
-// pbuffer);
-
-			if(visinfo) break;
-		}
-
-// Got it
-		if(!BC_Resources::error && pbuffer && visinfo)
-		{
-			window_id = current_window->get_id();
-			gl_context = glXCreateContext(current_window->get_display(),
-				visinfo,
-				current_window->gl_win_context,
-				1);
-			BC_WindowBase::get_synchronous()->put_pbuffer(w, 
-				h, 
-				pbuffer, 
-				gl_context);
-// printf("BC_PBuffer::new_pbuffer gl_context=%p window_id=%d\n",
-// gl_context,
-// current_window->get_id());
-		}
-		else
-		{
-			printf("BC_PBuffer::new_pbuffer %d: no valid FBConfig found\n", 
-				__LINE__);
-		}
-
-		if(config_result) XFree(config_result);
-    		if(visinfo) XFree(visinfo);
+	for( int i=0; !pbuffer && i<nfb_cfgs; ++i ) {
+		if( visinfo ) { XFree(visinfo);  visinfo = 0; }
+		BC_Resources::error = 0;
+                visinfo = glXGetVisualFromFBConfig(dpy, fb_cfgs[i]);
+		if( !visinfo || BC_Resources::error ) continue;
+		pbuffer = glXCreatePbuffer(dpy, fb_cfgs[i], pb_attrs);
+		if( BC_Resources::error ) pbuffer = 0;
 	}
 
+// printf("BC_PBuffer::create_pbuffer %d current_config=%d visinfo=%p error=%d pbuffer=%p\n",
+// __LINE__, current_config, visinfo, BC_Resources::error, pbuffer);
 
-	if(!pbuffer) printf("BC_PBuffer::new_pbuffer: failed\n");
+	if( pbuffer ) {
+		window_id = current_window->get_id();
+		glx_context = glXCreateContext(dpy, visinfo, current_window->glx_win_context, 1);
+		BC_WindowBase::get_synchronous()->put_pbuffer(w, h, pbuffer, glx_context);
+	}
+	else
+		printf("BC_PBuffer::create_pbuffer: failed\n");
+
+	if( visinfo ) XFree(visinfo);
 #endif
 }
 
@@ -209,7 +110,7 @@ void BC_PBuffer::enable_opengl()
 {
 #ifdef HAVE_GL
 	BC_WindowBase *current_window = BC_WindowBase::get_synchronous()->current_window;
-	bcgl_enable_ret = glXMakeCurrent(current_window->get_display(), pbuffer, gl_context);
+	bcgl_enable_ret = current_window->glx_make_current(pbuffer);
 	BC_WindowBase::get_synchronous()->is_pbuffer = 1;
 #endif
 }

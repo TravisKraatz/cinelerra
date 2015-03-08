@@ -150,9 +150,10 @@ BC_WindowBase::~BC_WindowBase()
 // Destroyed in synchronous thread if gl context exists.
 #ifdef HAVE_GL
 // NVIDIA library threading problem, XCloseDisplay SEGVs without this
-	if(!gl_win_context && get_resources()->get_synchronous())
-		glXMakeCurrent(top_level->display, 0, 0);
-	if(!gl_win_context || !get_resources()->get_synchronous())
+	if(!glx_win_context && get_resources()->get_synchronous())
+		glXMakeContextCurrent(top_level->display, 0, 0, 0);
+
+	if(!glx_win_context || !get_resources()->get_synchronous())
 #endif
 	{
 		XDestroyWindow(top_level->display, win);
@@ -204,7 +205,7 @@ BC_WindowBase::~BC_WindowBase()
 // Synchronous thread must delete display if gl_context exists.
 #ifndef SINGLE_THREAD
 #ifdef HAVE_GL
-		if(!gl_win_context || !get_resources()->get_synchronous())
+		if(!glx_win_context || !get_resources()->get_synchronous())
 #endif // HAVE_GL
 
 		{
@@ -226,7 +227,7 @@ BC_WindowBase::~BC_WindowBase()
 // This only works if it's a MAIN_WINDOW since the display deletion for
 // a subwindow is not determined by the subwindow.
 #ifdef HAVE_GL
-	if(gl_win_context && get_resources()->get_synchronous())
+	if(glx_win_context && get_resources()->get_synchronous())
 	{
 		printf("BC_WindowBase::~BC_WindowBase window deleted but opengl deletion is not\n"
 			"implemented for BC_Pixmap.\n");
@@ -246,6 +247,12 @@ BC_WindowBase::~BC_WindowBase()
 	BC_Display::unlock_display();
 #endif
 	delete cursor_timer;
+
+#if HAVE_GL
+	delete glx_fbcfgs_window;
+	delete glx_fbcfgs_pbuffer;
+	delete glx_fbcfgs_pixmap;
+#endif
 
 	UNSET_ALL_LOCKS(this)
 }
@@ -344,9 +351,13 @@ int BC_WindowBase::initialize()
 	cursor_timer = new Timer;
 	event_thread = 0;
 #ifdef HAVE_GL
-	fb_config = 0;
+	glx_fbcfgs_window = 0;	n_fbcfgs_window = 0;
+	glx_fbcfgs_pbuffer = 0;	n_fbcfgs_pbuffer = 0;
+	glx_fbcfgs_pixmap = 0;	n_fbcfgs_pixmap = 0;
+
+	glx_fb_config = 0;
+	glx_win_context = 0;
 	glx_win = 0;
-	gl_win_context = 0;
 #endif
 
 	return 0;
@@ -455,7 +466,27 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		root_w = get_root_w(0);
 		root_h = get_root_h(0);
 
-		vis = glx_visual(); // updates fb_config
+#if HAVE_GL
+		GLXFBConfig *fb_cfgs = glx_window_fb_configs();
+		XVisualInfo *vis_info = 0;
+		if( fb_cfgs ) {
+			for( int i=0; !vis_info && i<n_fbcfgs_window; ++i ) {
+				if( vis_info ) { XFree(vis_info);  vis_info = 0; }
+				glx_fb_config = fb_cfgs[i];
+				vis_info = glXGetVisualFromFBConfig(display, glx_fb_config);
+			}
+		}
+		if( vis_info ) {
+			vis = vis_info->visual;
+			XFree(vis_info);
+		}
+		else {
+			glx_fb_config = 0;
+			vis = DefaultVisual(display, screen);
+		}
+#else
+		vis = DefaultVisual(display, screen);
+#endif
 		default_depth = DefaultDepth(display, screen);
 
 		client_byte_order = (*(const u_int32_t*)"a   ") & 0x00000001;
@@ -504,7 +535,8 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			top_level->default_depth, InputOutput,
 			vis, mask, &attr);
 #if HAVE_GL
-		glx_win = glXCreateWindow(display, fb_config, win, 0);
+		if( glx_fb_config )
+			glx_win = glXCreateWindow(display, glx_fb_config, win, 0);
 #endif
 		XGetNormalHints(display, win, &size_hints);
 
@@ -604,9 +636,7 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 
 	if(window_type == SUB_WINDOW)
 	{
-		mask = CWBackPixel |
-			CWEventMask |
-			CWCursor;
+		mask = CWEventMask | CWBackPixel | CWCursor;
 		attr.event_mask = DEFAULT_EVENT_MASKS;
 		attr.background_pixel = top_level->get_color(this->bg_color);
 		if(top_level->is_hourglass)
@@ -617,6 +647,10 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			parent_window->win, this->x, this->y, this->w, this->h, 0,
 			top_level->default_depth, InputOutput, top_level->vis, mask,
 			&attr);
+#if HAVE_GL
+		if( top_level->glx_fb_config )
+			glx_win = glXCreateWindow(get_display(), top_level->glx_fb_config, win, 0);
+#endif
 		init_window_shape();
 		if(!hidden) XMapWindow(top_level->display, win);
 	}

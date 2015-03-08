@@ -101,8 +101,8 @@ private:
 	Pixmap opaque_pixmap, alpha_pixmap;
 	void *opaque_xft_draw, *alpha_xft_draw;
 #ifdef HAVE_GL
-	GLXContext gl_pixmap_context;
-	GLXPixmap gl_pixmap;
+	GLXContext glx_pixmap_context;
+	GLXPixmap glx_pixmap;
 #endif
 	int w, h;
 	int mode;

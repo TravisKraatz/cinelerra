@@ -236,8 +236,6 @@ public:
 // Must be called at the beginning of any opengl routine to make sure
 // the context is current.
 // No locking is performed.
-	Visual *glx_visual();
-	GLXContext glx_get_context();
 	void enable_opengl();
 	void disable_opengl();
 	void flip_opengl();
@@ -763,11 +761,27 @@ private:
 	int xinerama_screens;
 	XineramaScreenInfo *xinerama_info;
 #ifdef HAVE_GL
+	int glx_fb_configs(int *attrs, GLXFBConfig *&fb_cfgs, int &ncfgs);
+
+	int n_fbcfgs_window;
+	GLXFBConfig *glx_fbcfgs_window;
+	GLXFBConfig *glx_window_fb_configs();
+	int n_fbcfgs_pbuffer;
+	GLXFBConfig *glx_fbcfgs_pbuffer;
+	GLXFBConfig *glx_pbuffer_fb_configs();
+	int n_fbcfgs_pixmap;
+	GLXFBConfig *glx_fbcfgs_pixmap;
+	GLXFBConfig *glx_pixmap_fb_configs();
+
 // The first context to be created and the one whose texture id
 // space is shared with the other contexts.
-	GLXFBConfig fb_config;
+	GLXContext glx_get_context();
+	bool glx_make_current(GLXDrawable draw);
+	bool glx_make_current(GLXDrawable draw, GLXContext glx_ctxt);
+
+	GLXFBConfig glx_fb_config;
+	GLXContext glx_win_context;
 	GLXWindow glx_win;
-	GLXContext gl_win_context;
 #endif
 	int window_lock;
 	GC gc;

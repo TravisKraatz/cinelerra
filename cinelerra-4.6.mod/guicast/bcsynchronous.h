@@ -48,7 +48,7 @@
 // reliably even if MakeCurrent was used and only 1 thread at a time did
 // anything.
 
-// Also manages texture memory.  Textures are not deleted until the gl_context
+// Also manages texture memory.  Textures are not deleted until the glx_context
 // is deleted, so they have to be reused as much as possible.
 // Must be run as the main loop of the application.  Other threads must
 // call into it to dispatch commands.
@@ -91,15 +91,12 @@ public:
 	PBufferID() {};
 #ifdef HAVE_GL
 	PBufferID(int window_id,
-		GLXPbuffer pbuffer,
-		GLXContext gl_context,
-		int w,
-		int h);
-	GLXPbuffer pbuffer;
-	GLXContext gl_context;
+		GLXPbuffer glx_pbuffer, GLXContext glx_context,
+		int w, int h);
+	GLXPbuffer glx_pbuffer;
+	GLXContext glx_context;
 	int window_id;
-	int w;
-	int h;
+	int w, h;
 	int in_use;
 #endif
 };
@@ -130,21 +127,21 @@ public:
 
 	int colormodel;
 	BC_WindowBase *window;
-	VFrame *frame;
 
+	VFrame *frame;
 	VFrame *frame_return;
 
 	int id;
-	int w;
-	int h;
+	int w, h;
 
 // For garbage collection
 	int window_id;
 	Display *display;
 	Window win;
 #ifdef HAVE_GL
-	GLXContext gl_context;
-	GLXPixmap gl_pixmap;
+	GLXContext glx_context;
+	GLXPixmap glx_pixmap;
+	GLXWindow glx_win;
 #endif
 };
 
@@ -204,16 +201,15 @@ public:
 #ifdef HAVE_GL
 // Push a pbuffer when it's created.
 // Must be called inside synchronous loop.
-	void put_pbuffer(int w,
-		int h,
-		GLXPbuffer pbuffer,
-		GLXContext gl_context);
+	void put_pbuffer(int w, int h,
+		GLXPbuffer glx_pbuffer,
+		GLXContext glx_context);
 // Get the PBuffer by window_id and dimensions if it exists.
 // Must be called inside synchronous loop.
 	GLXPbuffer get_pbuffer(int w,
 		int h,
 		int *window_id,
-		GLXContext *gl_context);
+		GLXContext *glx_context);
 // Release a pbuffer for use by get_pbuffer.
 	void release_pbuffer(int window_id, GLXPbuffer pbuffer);
 

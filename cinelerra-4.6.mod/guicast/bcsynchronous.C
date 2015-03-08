@@ -59,14 +59,10 @@ ShaderID::~ShaderID()
 }
 
 #ifdef HAVE_GL
-PBufferID::PBufferID(int window_id,
-	GLXPbuffer pbuffer,
-	GLXContext gl_context,
-	int w,
-	int h)
+PBufferID::PBufferID(int window_id, GLXPbuffer glx_pbuffer, GLXContext glx_context, int w, int h)
 {
-	this->pbuffer = pbuffer;
-	this->gl_context = gl_context;
+	this->glx_pbuffer = glx_pbuffer;
+	this->glx_context = glx_context;
 	this->window_id = window_id;
 	this->w = w;
 	this->h = h;
@@ -386,7 +382,8 @@ void BC_Synchronous::delete_window(BC_WindowBase *window)
 	command->window_id = window->get_id();
 	command->display = window->get_display();
 	command->win = window->win;
-	command->gl_context = window->gl_win_context;
+	command->glx_win = window->glx_win;
+	command->glx_context = window->glx_win_context;
 
 	send_garbage(command);
 #endif
@@ -398,19 +395,16 @@ void BC_Synchronous::delete_window_sync(BC_SynchronousCommand *command)
 	int window_id = command->window_id;
 	Display *display = command->display;
 	Window win = command->win;
-	GLXContext gl_context = command->gl_context;
+	GLXWindow glx_win = command->glx_win;
+	GLXContext glx_context = command->glx_context;
 int debug = 0;
 
 // texture ID's are unique to different contexts
-	glXMakeCurrent(display,
-		win,
-		gl_context);
+	glXMakeContextCurrent(display, glx_win, glx_win, glx_context);
 
 	table_lock->lock("BC_Resources::release_textures");
-	for(int i = 0; i < texture_ids.total; i++)
-	{
-		if(texture_ids.values[i]->window_id == window_id)
-		{
+	for(int i = 0; i < texture_ids.total; i++) {
+		if(texture_ids.values[i]->window_id == window_id) {
 			GLuint id = texture_ids.values[i]->id;
 			glDeleteTextures(1, &id);
 //if(debug) printf("BC_Synchronous::delete_window_sync texture_id=%d window_id=%d\n",
@@ -437,8 +431,8 @@ int debug = 0;
 	{
 		if(pbuffer_ids.values[i]->window_id == window_id)
 		{
-			glXDestroyPbuffer(display, pbuffer_ids.values[i]->pbuffer);
-			glXDestroyContext(display, pbuffer_ids.values[i]->gl_context);
+			glXDestroyPbuffer(display, pbuffer_ids.values[i]->glx_pbuffer);
+			glXDestroyContext(display, pbuffer_ids.values[i]->glx_context);
 //if(debug)
 //printf("BC_Synchronous::delete_window_sync pbuffer_id=%p window_id=%d\n",
 //  (void*)pbuffer_ids.values[i]->pbuffer, window_id);
@@ -451,41 +445,31 @@ int debug = 0;
 	table_lock->unlock();
 
 	XDestroyWindow(display, win);
-	if(gl_context) glXDestroyContext(display, gl_context);
+	if( glx_context )
+		glXDestroyContext(display, glx_context);
 #endif
 }
 
 
 
 #ifdef HAVE_GL
-void BC_Synchronous::put_pbuffer(int w,
-	int h,
-	GLXPbuffer pbuffer,
-	GLXContext gl_context)
+void BC_Synchronous::put_pbuffer(int w, int h,
+		GLXPbuffer glx_pbuffer, GLXContext glx_context)
 {
 	int exists = 0;
 	table_lock->lock("BC_Resources::release_textures");
-	for(int i = 0; i < pbuffer_ids.total; i++)
-	{
+	for(int i = 0; i < pbuffer_ids.total; i++) {
 		PBufferID *ptr = pbuffer_ids.values[i];
-		if(ptr->w == w &&
-			ptr->h == h &&
-			ptr->pbuffer == pbuffer)
-		{
-// Exists
+		if(ptr->w == w && ptr->h == h && ptr->glx_pbuffer == glx_pbuffer) {
 			exists = 1;
 			break;
 		}
 	}
 
 
-	if(!exists)
-	{
+	if(!exists) {
 		PBufferID *ptr = new PBufferID(current_window->get_id(),
-			pbuffer,
-			gl_context,
-			w,
-			h);
+			glx_pbuffer, glx_context, w, h);
 		pbuffer_ids.append(ptr);
 	}
 	table_lock->unlock();
@@ -494,19 +478,15 @@ void BC_Synchronous::put_pbuffer(int w,
 GLXPbuffer BC_Synchronous::get_pbuffer(int w,
 	int h,
 	int *window_id,
-	GLXContext *gl_context)
+	GLXContext *glx_context)
 {
 	table_lock->lock("BC_Resources::release_textures");
-	for(int i = 0; i < pbuffer_ids.total; i++)
-	{
+	for(int i = 0; i < pbuffer_ids.total; i++) {
 		PBufferID *ptr = pbuffer_ids.values[i];
-		if(ptr->w == w &&
-			ptr->h == h &&
-			ptr->window_id == current_window->get_id() &&
-			!ptr->in_use)
-		{
-			GLXPbuffer result = ptr->pbuffer;
-			*gl_context = ptr->gl_context;
+		if(ptr->w == w && ptr->h == h && !ptr->in_use &&
+			ptr->window_id == current_window->get_id() ) {
+			GLXPbuffer result = ptr->glx_pbuffer;
+			*glx_context = ptr->glx_context;
 			*window_id = ptr->window_id;
 			ptr->in_use = 1;
 			table_lock->unlock();
@@ -520,11 +500,9 @@ GLXPbuffer BC_Synchronous::get_pbuffer(int w,
 void BC_Synchronous::release_pbuffer(int window_id, GLXPbuffer pbuffer)
 {
 	table_lock->lock("BC_Resources::release_textures");
-	for(int i = 0; i < pbuffer_ids.total; i++)
-	{
+	for(int i = 0; i < pbuffer_ids.total; i++) {
 		PBufferID *ptr = pbuffer_ids.values[i];
-		if(ptr->window_id == window_id)
-		{
+		if(ptr->window_id == window_id) {
 			ptr->in_use = 0;
 		}
 	}
@@ -532,16 +510,16 @@ void BC_Synchronous::release_pbuffer(int window_id, GLXPbuffer pbuffer)
 }
 
 void BC_Synchronous::delete_pixmap(BC_WindowBase *window,
-	GLXPixmap pixmap,
-	GLXContext context)
+	GLXPixmap glx_pixmap, GLXContext glx_context)
 {
 	BC_SynchronousCommand *command = new_command();
 	command->command = BC_SynchronousCommand::DELETE_PIXMAP;
 	command->window_id = window->get_id();
 	command->display = window->get_display();
 	command->win = window->win;
-	command->gl_pixmap = pixmap;
-	command->gl_context = context;
+	command->glx_win = window->glx_win;
+	command->glx_pixmap = glx_pixmap;
+	command->glx_context = glx_context;
 
 	send_garbage(command);
 }
@@ -551,12 +529,10 @@ void BC_Synchronous::delete_pixmap_sync(BC_SynchronousCommand *command)
 {
 #ifdef HAVE_GL
 	Display *display = command->display;
-	Window win = command->win;
-	glXMakeCurrent(display,
-		win,
-		command->gl_context);
-	glXDestroyContext(display, command->gl_context);
-	glXDestroyGLXPixmap(display, command->gl_pixmap);
+	GLXWindow glx_win = command->glx_win;
+	glXMakeContextCurrent(display, glx_win, glx_win, command->glx_context);
+	glXDestroyContext(display, command->glx_context);
+	glXDestroyGLXPixmap(display, command->glx_pixmap);
 #endif
 }
 
