@@ -86,6 +86,13 @@ VFrame::VFrame(unsigned char *png_data)
 	read_png(png_data);
 }
 
+VFrame::VFrame(unsigned char *png_data, long image_size)
+{
+	reset_parameters(1);
+	params = new BC_Hash;
+	read_png(png_data, image_size);
+}
+
 VFrame::VFrame(VFrame &frame)
 {
 	reset_parameters(1);
@@ -650,57 +657,32 @@ UNBUFFER(data);
 	return 0;
 }
 
-int VFrame::read_png(const unsigned char *data)
+int VFrame::read_png(const unsigned char *data, long img_sz)
 {
-
 // Test for RAW format
-	if(data[4] == 'R' &&
-		data[5] == 'A' &&
-		data[6] == 'W' &&
-		data[7] == ' ')
-	{
+	if(data[0] == 'R' && data[1] == 'A' && data[2] == 'W' && data[3] == ' ') {
 		int new_color_model = BC_RGBA8888;
-		w = (data[8]) | (data[9] << 8) |
-			(data[10] << 16) | (data[11] << 24);
-		h = (data[12]) | (data[13] << 8) |
-			(data[14] << 16) | (data[15] << 24);
-		int components = data[16];
-		if(components == 3)
-		{
-			new_color_model = BC_RGB888;
-		}
-		else
-		if(components == 4)
-		{
-			new_color_model = BC_RGBA8888;
-		}
-
+		w = data[4] | (data[5] << 8) | (data[6]  << 16) | (data[7]  << 24);
+		h = data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24);
+		int components = data[12];
+		new_color_model = components == 3 ? BC_RGB888 : BC_RGBA8888;
 // This shares the data directly
 // 		reallocate(data + 20, 0, 0, 0, w, h, new_color_model, -1);
 
 // Can't use shared data for theme since button constructions overlay the
 // images directly.
 		reallocate(NULL, -1, 0, 0, 0, w, h, new_color_model, -1);
-		memcpy(get_data(), data + 20, w * h * components);
+		memcpy(get_data(), data + 16, w * h * components);
 
 	}
-	else
-	if(data[4] == 0x89 &&
-		data[5] == 'P' &&
-		data[6] == 'N' &&
-		data[7] == 'G')
-	{
+	else if(data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G') {
 		int have_alpha = 0;
 		png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
 		png_infop info_ptr = png_create_info_struct(png_ptr);
 		int new_color_model;
 
 		image_offset = 0;
-		image = data + 4;
-		image_size = (((unsigned long)data[0]) << 24) |
-			(((unsigned long)data[1]) << 16) |
-			(((unsigned long)data[2]) << 8) |
-			(unsigned char)data[3];
+		image = data;  image_size = img_sz;
 		png_set_read_fn(png_ptr, this, PngReadFunction::png_read_function);
 		png_read_info(png_ptr, info_ptr);
 
@@ -762,13 +744,20 @@ int VFrame::read_png(const unsigned char *data)
 		png_read_image(png_ptr, get_rows());
 		png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 	}
-	else
-	{
+	else {
 		printf("VFrame::read_png %d: unknown file format"
 			" 0x%02x 0x%02x 0x%02x 0x%02x\n",
 			__LINE__, data[4], data[5], data[6], data[7]);
 	}
 	return 0;
+}
+
+int VFrame::read_png(const unsigned char *data)
+{
+	long img_sz =
+		((long)data[0] << 24) | ((long)data[1] << 16) |
+		((long)data[2] << 8)  |  (long)data[3];
+	return read_png(data+4, img_sz);
 }
 
 int VFrame::write_png(const char *path)

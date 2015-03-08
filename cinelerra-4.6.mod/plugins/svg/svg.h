@@ -48,6 +48,7 @@ public:
 
 	float in_x, in_y, in_w, in_h, out_x, out_y, out_w, out_h;
 	char svg_file[BCTEXTLEN];
+	char directory[BCTEXTLEN];
 	int64_t last_load;
 };
 
@@ -67,13 +68,11 @@ public:
 	void update_gui();
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);
-	int load_defaults();
-	int save_defaults();
 
 	OverlayFrame *overlayer;   // To translate images
 	VFrame *temp_frame;        // Used if buffers are the same
 	int need_reconfigure;
-	int force_raw_render;     //force rendering of PNG on first start
+	int force_png_render;     //force rendering of PNG on first start
 };
 
 

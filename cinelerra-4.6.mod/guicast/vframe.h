@@ -82,6 +82,7 @@ public:
 
 // Create a frame with the png image
 	VFrame(unsigned char *png_data);
+	VFrame(unsigned char *png_data, long image_size);
 	VFrame(VFrame &vframe);
 // Create new frame for compressed data.
 	VFrame();
@@ -119,6 +120,7 @@ public:
 
 // Read a PNG into the frame with alpha
 	int read_png(const unsigned char *data);
+	int read_png(const unsigned char *data, long image_size);
 // Write a PNG for debugging
 	int write_png(const char *path);
 

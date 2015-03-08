@@ -198,8 +198,10 @@ void NewSvgButton::run()
 	int result;
 //printf("NewSvgButton::run 1\n");
 	char directory[1024], filename[1024];
-	sprintf(directory, "~");
-	client->defaults->get("DIRECTORY", directory);
+	if( client->config.directory[0] )
+		strncpy(directory, client->config.directory, sizeof(directory));
+	else
+		sprintf(directory, "~");
 
 	result = 1;
 // Loop until file is chosen
@@ -210,7 +212,10 @@ void NewSvgButton::run()
 		new_window->create_objects();
 		new_window->update_filter("*.svg");
 		result = new_window->run_window();
-		client->defaults->update("DIRECTORY", new_window->get_path(0));
+		strncpy(directory, new_window->get_path(0), sizeof(directory));
+		char *cp = strrchr(directory,'/');
+		if( cp ) *cp = 0;
+		strcpy(client->config.directory, directory);
 		strcpy(filename, new_window->get_path(0));
 		delete new_window;
 
@@ -257,7 +262,7 @@ void NewSvgButton::run()
 	window->flush();
 	strcpy(client->config.svg_file, filename);
 	client->need_reconfigure = 1;
-	client->force_raw_render = 1;
+	client->force_png_render = 1;
 	client->send_configure_change();
 
 // save it
@@ -309,20 +314,20 @@ void EditSvgButton::run()
 	long delay;
 	int result;
 	time_t last_update;
-	struct stat st_raw;
-	char filename_raw[1024];
+	struct stat st_png;
+	char filename_png[1024];
 	char filename_fifo[1024];
 	struct fifo_struct fifo_buf;
 	SvgInkscapeThread *inkscape_thread = new SvgInkscapeThread(client, window);
 	
-	strcpy(filename_raw, client->config.svg_file);
-	strcat(filename_raw, ".raw");
-	result = stat (filename_raw, &st_raw);
-	last_update = st_raw.st_mtime;
+	strcpy(filename_png, client->config.svg_file);
+	strcat(filename_png, ".png");
+	result = stat (filename_png, &st_png);
+	last_update = st_png.st_mtime;
 	if (result) 
 		last_update = 0;	
 
-	strcpy(filename_fifo, filename_raw);
+	strcpy(filename_fifo, filename_png);
 	strcat(filename_fifo, ".fifo");	
 	if (mkfifo(filename_fifo, S_IRWXU) != 0) {
 		perror("Error while creating fifo file");
@@ -332,25 +337,17 @@ void EditSvgButton::run()
 	inkscape_thread->fh_fifo = fh_fifo;
 	inkscape_thread->start();
 	while (inkscape_thread->running() && (!quit_now)) { 
-//		pausetimer.delay(200); // poll file every 200ms
+		Timer::delay(200); // poll file every 200ms
 		read(fh_fifo, &fifo_buf, sizeof(fifo_buf));
 
 		if (fifo_buf.action == 1) {
-			result = stat (filename_raw, &st_raw);
-			// Check if PNG is newer then what we have in memory
-//			printf("action1\n");
-//			if (last_update < st_raw.st_mtime) { // FIXME this seems to work odd sometimes when fast-refreshing
-//				printf("newer pict\n");
-				// UPDATE IMAGE
-				client->config.last_load = 1;
-				client->send_configure_change();
-				last_update = st_raw.st_mtime;
-//			}
-		} else 
-		if (fifo_buf.action == 2) {
+			result = stat(filename_png, &st_png);
+			last_update = st_png.st_mtime;
+			client->config.last_load = 1;
+			client->send_configure_change();
+		} else if (fifo_buf.action == 2) {
 			printf(_("Inkscape has exited\n"));
-		} else
-		if (fifo_buf.action == 3) {
+		} else if (fifo_buf.action == 3) {
 			printf(_("Plugin window has closed\n"));
 			delete inkscape_thread;
 			close(fh_fifo);
@@ -381,24 +378,28 @@ SvgInkscapeThread::~SvgInkscapeThread()
 void SvgInkscapeThread::run()
 {
 // Runs the inkscape
+	char filename_png[1024];
+	strcpy(filename_png, client->config.svg_file);
+	strcat(filename_png, ".png");
 	char command[1024];
-	char filename_raw[1024];
-	strcpy(filename_raw, client->config.svg_file);
-	strcat(filename_raw, ".raw");
-
-	sprintf(command, "inkscape --cinelerra-export-file=%s %s",
-		filename_raw, client->config.svg_file);
+	sprintf(command, "inkscape --with-gui %s", client->config.svg_file);
 	printf(_("Running external SVG editor: %s\n"), command);		
 	enable_cancel();
 	system(command);
+	sprintf(command,
+		"inkscape --without-gui --export-background=0x000000 "
+		"--export-background-opacity=0 %s --export-png=%s",
+		client->config.svg_file, filename_png);
+	printf(_("Running command %s\n"), command);
+	system(command);
+
 	printf(_("External SVG editor finished\n"));
-	{
-		struct fifo_struct fifo_buf;
-		fifo_buf.pid = getpid();
-		fifo_buf.action = 2;
-		write (fh_fifo, &fifo_buf, sizeof(fifo_buf));
-	}
+	struct fifo_struct fifo_buf;
+	fifo_buf.pid = getpid();
+	fifo_buf.action = 2;
+	write (fh_fifo, &fifo_buf, sizeof(fifo_buf));
 	disable_cancel();
+
 	return;
 }
 

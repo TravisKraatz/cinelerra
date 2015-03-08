@@ -40,19 +40,6 @@
 
 #include "empty_svg.h"
 
-struct raw_struct {
-	char rawc[5];        // Null terminated "RAWC" string
-	int32_t struct_version;  // currently 1 (bumped at each destructive change) 
-	int32_t struct_size;     // size of this struct in bytes
-	int32_t width;               // logical width of image
-	int32_t height;
-	int32_t pitch;           // physical width of image in memory
-	int32_t color_model;      // as BC_ constant, currently only BC_RGBA8888 is supported
-	int64_t time_of_creation; // in milliseconds - calculated as (tv_sec * 1000 + tv_usec / 1000);
-				// we can't trust date on the file, due to different reasons
-};	
-
-
 REGISTER_PLUGIN(SvgMain)
 
 SvgConfig::SvgConfig()
@@ -67,6 +54,7 @@ SvgConfig::SvgConfig()
 	out_h = 480;
 	last_load = 0;
 	strcpy(svg_file, "");
+	strcpy(directory, "");
 }
 
 int SvgConfig::equivalent(SvgConfig &that)
@@ -129,7 +117,7 @@ SvgMain::SvgMain(PluginServer *server)
 	temp_frame = 0;
 	overlayer = 0;
 	need_reconfigure = 0;
-	force_raw_render = 0;
+	force_png_render = 0;
 }
 
 SvgMain::~SvgMain()
@@ -145,43 +133,6 @@ int SvgMain::is_realtime() { return 1; }
 int SvgMain::is_synthesis() { return 1; }
 
 NEW_PICON_MACRO(SvgMain)
-
-int SvgMain::load_defaults()
-{
-	char directory[1024], string[1024];
-// set the default directory
-	sprintf(directory, "%ssvg.rc", BCASTDIR);
-
-// load the defaults
-	defaults = new BC_Hash(directory);
-	defaults->load();
-
-
-	config.in_x = defaults->get("IN_X", config.in_x);
-	config.in_y = defaults->get("IN_Y", config.in_y);
-	config.in_w = defaults->get("IN_W", config.in_w);
-	config.in_h = defaults->get("IN_H", config.in_h);
-	config.out_x = defaults->get("OUT_X", config.out_x);
-	config.out_y = defaults->get("OUT_Y", config.out_y);
-	config.out_w = defaults->get("OUT_W", config.out_w);
-	config.out_h = defaults->get("OUT_H", config.out_h);
-	strcpy(config.svg_file, "");
-//	defaults->get("SVG_FILE", config.svg_file);
-}
-
-int SvgMain::save_defaults()
-{
-	defaults->update("IN_X", config.in_x);
-	defaults->update("IN_Y", config.in_y);
-	defaults->update("IN_W", config.in_w);
-	defaults->update("IN_H", config.in_h);
-	defaults->update("OUT_X", config.out_x);
-	defaults->update("OUT_Y", config.out_y);
-	defaults->update("OUT_W", config.out_w);
-	defaults->update("OUT_H", config.out_h);
-	defaults->update("SVG_FILE", config.svg_file);
-	defaults->save();
-}
 
 LOAD_CONFIGURATION_MACRO(SvgMain, SvgConfig)
 
@@ -203,6 +154,7 @@ void SvgMain::save_data(KeyFrame *keyframe)
 	output.tag.set_property("OUT_W", config.out_w);
 	output.tag.set_property("OUT_H", config.out_h);
 	output.tag.set_property("SVG_FILE", config.svg_file);
+	output.tag.set_property("DIRECTORY", config.directory);
 	output.append_tag();
 	output.tag.set_title("/SVG");
 	output.append_tag();
@@ -237,6 +189,7 @@ void SvgMain::read_data(KeyFrame *keyframe)
 				config.out_w =	input.tag.get_property("OUT_W", config.out_w);
 				config.out_h =	input.tag.get_property("OUT_H", config.out_h);
 				input.tag.get_property("SVG_FILE", config.svg_file);
+				input.tag.get_property("DIRECTORY", config.directory);
 			}
 		}
 	}
@@ -249,142 +202,78 @@ void SvgMain::read_data(KeyFrame *keyframe)
 
 
 
-int SvgMain::process_realtime(VFrame *input_ptr, VFrame *output_ptr)
+int SvgMain::process_realtime(VFrame *input, VFrame *output)
 {
-	char filename_raw[1024];
-	int fh_raw;
-	struct stat st_raw;
-	VFrame *input, *output;
-	input = input_ptr;
-	output = output_ptr;
-	unsigned char * raw_buffer;
-	struct raw_struct *raw_data;
+	char filename_png[1024];
 
 	need_reconfigure |= load_configuration();
+	output->copy_from(input);
 
-	if (config.svg_file[0] == 0) {
-		output->copy_from(input);
-		return(0);
-	}
+	if( config.svg_file[0] == 0 ) return 0;
 
-	strcpy(filename_raw, config.svg_file);
-	strcat(filename_raw, ".raw");
-	fh_raw = open(filename_raw, O_RDWR); // in order for lockf to work it has to be open for writing
+	strcpy(filename_png, config.svg_file);
+	strcat(filename_png, ".png");
 
-	if (fh_raw == -1 || force_raw_render) // file does not exist, export it
-	{
+	int fd_png = open(filename_png, O_RDWR); // in order for lockf to work it has to be open for writing
+
+	if (fd_png == -1 || force_png_render) { // file does not exist, export it
 		need_reconfigure = 1;
 		char command[1024];
 		sprintf(command,
-			"inkscape --without-gui --cinelerra-export-file=%s %s",
-			filename_raw, config.svg_file);
+			"inkscape --without-gui --export-background=0x000000 "
+			"--export-background-opacity=0 %s --export-png=%s",
+			config.svg_file, filename_png);
 		printf(_("Running command %s\n"), command);
 		system(command);
-		stat(filename_raw, &st_raw);
-		force_raw_render = 0;
-		fh_raw = open(filename_raw, O_RDWR); // in order for lockf to work it has to be open for writing
-		if (!fh_raw) {
-			printf(_("Export of %s to %s failed\n"), config.svg_file, filename_raw);
+
+		force_png_render = 0;
+		fd_png = open(filename_png, O_RDWR); // in order for lockf to work it has to be open for writing
+		if (!fd_png) {
+			printf(_("Export of %s to %s failed\n"), config.svg_file, filename_png);
 			return 0;
 		}
 	}
 
-
 	// file exists, ... lock it, mmap it and check time_of_creation
-	lockf(fh_raw, F_LOCK, 0);    // Blocking call - will wait for inkscape to finish!
-	fstat (fh_raw, &st_raw);
-	raw_buffer = (unsigned char *)mmap (NULL, st_raw.st_size, PROT_READ, MAP_SHARED, fh_raw, 0); 
-	raw_data = (struct raw_struct *) raw_buffer;
-
-	if (strcmp(raw_data->rawc, "RAWC")) 
-	{
-		printf (_("The file %s that was generated from %s is not in RAWC format. Try to delete all *.raw files.\n"), filename_raw, config.svg_file);	
-		lockf(fh_raw, F_ULOCK, 0);
-		close(fh_raw);
-		return (0);
-	}
-	if (raw_data->struct_version > 1) 
-	{
-		printf (_("Unsupported version of RAWC file %s. This means your Inkscape uses newer RAWC format than Cinelerra. Please upgrade Cinelerra.\n"), filename_raw);
-		lockf(fh_raw, F_ULOCK, 0);
-		close(fh_raw);
-		return (0);
-	}
-	// Ok, we can now be sure we have valid RAWC file on our hands
-	if (need_reconfigure || config.last_load < raw_data->time_of_creation) {    // the file was updated or is new (then last_load is zero)
-
-		if (temp_frame && 
-		  !temp_frame->params_match(raw_data->width, raw_data->height, output_ptr->get_color_model()))
-		{
-			// parameters don't match
-			delete temp_frame;
-			temp_frame = 0;
+	lockf(fd_png, F_LOCK, 0);    // Blocking call - will wait for inkscape to finish!
+	struct stat st_png;
+	fstat(fd_png, &st_png);
+	unsigned char *png_buffer = (unsigned char *)
+		mmap (NULL, st_png.st_size, PROT_READ, MAP_SHARED, fd_png, 0); 
+	if( png_buffer != MAP_FAILED ) {
+		if( png_buffer[0] == 0x89 && png_buffer[1] == 0x50 &&
+		     png_buffer[2] == 0x4e && png_buffer[3] == 0x47) {
+			if(!overlayer) overlayer = new OverlayFrame(smp + 1);
+			VFrame vf(png_buffer, st_png.st_size), *of = &vf;
+			if( vf.get_color_model() != output->get_color_model() ) {
+				of = new VFrame(vf.get_w(), vf.get_h(),
+					 output->get_color_model());
+				BC_CModels::transfer(of->get_rows(), vf.get_rows(),
+					0, 0, 0, 0, 0, 0,
+					0, 0, vf.get_w(), vf.get_h(),
+					0, 0, of->get_w(), of->get_h(), 
+					vf.get_color_model(), of->get_color_model(),
+					0, vf.get_bytes_per_line(), of->get_bytes_per_line());
+			}
+			overlayer->overlay(output, of,
+				 0, 0, of->get_w(), of->get_h(),
+				config.out_x, config.out_y, 
+				config.out_x + vf.get_w(),
+				config.out_y + vf.get_h(),
+				1, TRANSFER_NORMAL,
+				get_interpolation_type());
+			if( of != &vf ) delete of;
 		}
-		if (!temp_frame)			
-			temp_frame = new VFrame(
-				        raw_data->width,
-					raw_data->height,
-					output_ptr->get_color_model());
-
-		// temp_frame is ready by now, we can do the loading
-		unsigned char ** raw_rows;
-		raw_rows = new unsigned char*[raw_data->height]; // this could be optimized, so new isn't used every time
-		for (int i = 0; i < raw_data->height; i++) {
-			raw_rows[i] = raw_buffer + raw_data->struct_size + raw_data->pitch * i * 4;
-		}
-		BC_CModels::transfer(temp_frame->get_rows(), raw_rows,
-	                0, 0, 0, 0, 0, 0,
-	                0, 0, raw_data->width, raw_data->height,
-	                0, 0, temp_frame->get_w(), temp_frame->get_h(),
-	               	BC_RGBA8888,
-	                temp_frame->get_color_model(),
-	                0,
-	                raw_data->pitch,
-	                temp_frame->get_w());
-		delete [] raw_rows;
-		munmap(raw_buffer, st_raw.st_size);
-		lockf(fh_raw, F_ULOCK, 0);
-		close(fh_raw);
-	}	
-	// by now we have temp_frame ready, we just need to overylay it
-
-	if(!overlayer)
-	{
-		overlayer = new OverlayFrame(smp + 1);
+		else
+			printf (_("The file %s that was generated from %s is not in PNG format."
+				  " Try to delete all *.png files.\n"), filename_png, config.svg_file);	
+		munmap(png_buffer, st_png.st_size);
 	}
-
-
-
-// printf("SvgMain::process_realtime 3 output=%p input=%p config.w=%f config.h=%f"
-// 	"%f %f %f %f -> %f %f %f %f\n", 
-// 	output,
-// 	input,
-// 	config.w, 
-// 	config.h,
-// 	in_x1, 
-// 	in_y1, 
-// 	in_x2, 
-// 	in_y2,
-// 	out_x1, 
-// 	out_y1, 
-// 	out_x2, 
-// 	out_y2);
-		output->copy_from(input);
-		overlayer->overlay(output, 
-			temp_frame,
-			0, 
-			0, 
-			temp_frame->get_w(),
-			temp_frame->get_h(),
-			config.out_x, 
-			config.out_y, 
-			config.out_x + temp_frame->get_w(),
-			config.out_y + temp_frame->get_h(),
-			1,
-			TRANSFER_NORMAL,
-			get_interpolation_type());
-
-	return(0);
+	else
+		printf(_("Access mmap to %s as %s failed.\n"), config.svg_file, filename_png);
+	lockf(fd_png, F_ULOCK, 0);
+	close(fd_png);
+	return 0;
 }
 
 

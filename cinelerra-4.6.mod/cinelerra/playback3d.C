@@ -550,6 +550,13 @@ void Playback3DCommand::copy_from(BC_SynchronousCommand *command)
 }
 
 
+///static void glDebugCallback(GLenum src, GLenum typ, GLuint id,
+///	GLenum svy, GLsizei len, const GLchar* msg, void* dat)
+//static void glDebugCallback(unsigned int src, unsigned int typ, unsigned int id,
+//	unsigned int svy, int len, const char* msg, const void* dat)
+//{
+//	printf("glDebug: %d:%d; %d/%d %s\n",src,typ,id,svy,msg);
+//}
 
 
 Playback3D::Playback3D(MWindow *mwindow)
@@ -558,9 +565,10 @@ Playback3D::Playback3D(MWindow *mwindow)
 	this->mwindow = mwindow;
 	temp_texture = 0;
 	//Enabling OpenGL debug output on nVidia drivers
-	//glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
-	//glEnable(GL_DEBUG_OUTPUT);
-	//glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+//	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+//	glEnable(GL_DEBUG_OUTPUT);
+//	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+//	glDebugMessageCallback(glDebugCallback, 0);
 }
 
 Playback3D::~Playback3D()

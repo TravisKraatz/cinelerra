@@ -630,7 +630,10 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			top_level->rootwin, this->x, this->y, this->w, this->h, 0,
 			top_level->default_depth, InputOutput, top_level->vis, mask,
 			&attr);
-
+#if HAVE_GL
+		if( top_level->glx_fb_config )
+			glx_win = glXCreateWindow(get_display(), top_level->glx_fb_config, win, 0);
+#endif
 		top_level->add_popup(this);
 	}
 
