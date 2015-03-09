@@ -57,7 +57,7 @@
 #include<unistd.h>
 #include<fcntl.h>
 #include<sys/stat.h>
-
+#include <sys/mman.h>
 
 AssetPicon::AssetPicon(MWindow *mwindow, 
 	AWindowGUI *gui, 
@@ -604,28 +604,31 @@ int AWindowGUI::get_custom_icon(PluginServer *plugin, BC_Pixmap **iconp, VFrame 
 	if( stat(png_path, &st) ) return 1;
 	if( !S_ISREG(st.st_mode) ) return 1;
 	if( st.st_size == 0 ) return 1;
+	unsigned len = st.st_size;
 	VFrame *vframe = 0;
 	int ret = 0, w = 0, h = 0;
-	unsigned n = st.st_size;
-	uint8_t *bfr = new uint8_t[sizeof(n)+n], *bp = bfr;
-	for( int i=sizeof(n); --i>=0; ++bp ) *bp = n>>(8*i);
-	int fd = open(png_path, O_RDONLY);
+	uint8_t *bfr = 0;
+	int fd = ::open(png_path, O_RDONLY);
 	if( fd < 0 ) ret = 1;
-	if( !ret && read(fd, bp, n) != n ) ret = 1;
 	if( !ret ) {
-		vframe = new VFrame(bfr);
+		bfr = (uint8_t*) ::mmap (NULL, len, PROT_READ, MAP_SHARED, fd, 0); 
+		if( bfr == MAP_FAILED ) ret = 1;
+	}
+	if( !ret ) {
+		vframe = new VFrame(bfr, st.st_size);
 		if( (w=vframe->get_w()) <= 0 ||
 		    (h=vframe->get_h()) <= 0 ||
 		    vframe->get_data() == 0 ) ret = 1;
-		if( ret ) delete vframe;
 	}
 	if( !ret ) {
 		BC_Pixmap *icon = new BC_Pixmap(this, w, h);
 	       	icon->draw_vframe(vframe, 0,0, w,h, 0,0);
 		*iconp = icon;
-		if( vframep ) *vframep = vframe;
+		if( vframep ) { *vframep = vframe;  vframe = 0; }
 	}
-	delete [] bfr;
+	if( bfr && bfr != MAP_FAILED ) ::munmap(bfr, len);
+	if( fd >= 0 ) ::close(fd);
+	if( vframe ) delete vframe;
 	return ret;
 }
 

@@ -52,9 +52,8 @@ SvgConfig::SvgConfig()
 	out_y = 0;
 	out_w = 720;
 	out_h = 480;
-	last_load = 0;
+	force_png_render = 0;
 	strcpy(svg_file, "");
-	strcpy(directory, "");
 }
 
 int SvgConfig::equivalent(SvgConfig &that)
@@ -80,7 +79,6 @@ void SvgConfig::copy_from(SvgConfig &that)
 	out_y = that.out_y;
 	out_w = that.out_w;
 	out_h = that.out_h;
-	last_load = that.last_load;
 	strcpy(svg_file, that.svg_file);
 }
 
@@ -116,8 +114,6 @@ SvgMain::SvgMain(PluginServer *server)
 {
 	temp_frame = 0;
 	overlayer = 0;
-	need_reconfigure = 0;
-	force_png_render = 0;
 }
 
 SvgMain::~SvgMain()
@@ -154,7 +150,6 @@ void SvgMain::save_data(KeyFrame *keyframe)
 	output.tag.set_property("OUT_W", config.out_w);
 	output.tag.set_property("OUT_H", config.out_h);
 	output.tag.set_property("SVG_FILE", config.svg_file);
-	output.tag.set_property("DIRECTORY", config.directory);
 	output.append_tag();
 	output.tag.set_title("/SVG");
 	output.append_tag();
@@ -189,7 +184,6 @@ void SvgMain::read_data(KeyFrame *keyframe)
 				config.out_w =	input.tag.get_property("OUT_W", config.out_w);
 				config.out_h =	input.tag.get_property("OUT_H", config.out_h);
 				input.tag.get_property("SVG_FILE", config.svg_file);
-				input.tag.get_property("DIRECTORY", config.directory);
 			}
 		}
 	}
@@ -208,16 +202,18 @@ int SvgMain::process_realtime(VFrame *input, VFrame *output)
 
 	need_reconfigure |= load_configuration();
 	output->copy_from(input);
-
 	if( config.svg_file[0] == 0 ) return 0;
 
 	strcpy(filename_png, config.svg_file);
-	strcat(filename_png, ".png");
+	strncat(filename_png, ".png", sizeof(filename_png));
+	int fd_png = -1;
+	if( config.force_png_render )
+		remove(filename_png);
+	else // in order for lockf to work it has to be open for writing
+		fd_png = open(filename_png, O_RDWR);
 
-	int fd_png = open(filename_png, O_RDWR); // in order for lockf to work it has to be open for writing
-
-	if (fd_png == -1 || force_png_render) { // file does not exist, export it
-		need_reconfigure = 1;
+	if( fd_png < 0 ) { // file does not exist, export it
+		config.force_png_render = 0;
 		char command[1024];
 		sprintf(command,
 			"inkscape --without-gui --export-background=0x000000 "
@@ -226,12 +222,12 @@ int SvgMain::process_realtime(VFrame *input, VFrame *output)
 		printf(_("Running command %s\n"), command);
 		system(command);
 
-		force_png_render = 0;
 		fd_png = open(filename_png, O_RDWR); // in order for lockf to work it has to be open for writing
 		if (!fd_png) {
 			printf(_("Export of %s to %s failed\n"), config.svg_file, filename_png);
 			return 0;
 		}
+		need_reconfigure = 0;
 	}
 
 	// file exists, ... lock it, mmap it and check time_of_creation

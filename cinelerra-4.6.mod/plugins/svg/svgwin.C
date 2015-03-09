@@ -49,12 +49,7 @@ struct fifo_struct {
 
 
 SvgWin::SvgWin(SvgMain *client)
- : PluginClientWindow(client,
-	300, 
-	280, 
-	300, 
-	280, 
-	1)
+ : PluginClientWindow(client, 300, 280, 300, 280, 1)
 { 
 	this->client = client; 
 	this->editing = 0;
@@ -162,7 +157,6 @@ SvgCoord::~SvgCoord()
 int SvgCoord::handle_event()
 {
 	*value = atof(get_text());
-
 	client->send_configure_change();
 	return 1;
 }
@@ -197,72 +191,55 @@ void NewSvgButton::run()
 // ======================================= get path from user
 	int result;
 //printf("NewSvgButton::run 1\n");
-	char directory[1024], filename[1024];
-	if( client->config.directory[0] )
-		strncpy(directory, client->config.directory, sizeof(directory));
-	else
-		sprintf(directory, "~");
-
 	result = 1;
+	char filename[1024];
+	strncpy(filename, client->config.svg_file, sizeof(filename));
 // Loop until file is chosen
-	do{
-		NewSvgWindow *new_window;
-
-		new_window = new NewSvgWindow(client, window, directory);
+	do {
+		char directory[1024];
+		strncpy(directory, client->config.svg_file, sizeof(directory));
+		char *cp = strrchr(directory, '/');
+		if( cp ) *cp = 0;
+		if( !directory[0] ) {
+			char *cp = getenv("HOME");
+			if( !cp ) strncpy(directory, cp, sizeof(directory));
+		}
+		NewSvgWindow *new_window = new NewSvgWindow(client, window, directory);
 		new_window->create_objects();
 		new_window->update_filter("*.svg");
 		result = new_window->run_window();
-		strncpy(directory, new_window->get_path(0), sizeof(directory));
-		char *cp = strrchr(directory,'/');
-		if( cp ) *cp = 0;
-		strcpy(client->config.directory, directory);
-		strcpy(filename, new_window->get_path(0));
+		const char *filepath = new_window->get_path(0);
+		if( result || !filepath || !*filepath ) {
+			window->editing_lock.lock();
+			window->editing = 0;
+			window->editing_lock.unlock();
+			return;              // cancel or no filename given
+		}
+		strcpy(filename, filepath);
 		delete new_window;
 
 // Extend the filename with .svg
 		if(strlen(filename) < 4 || 
-			strcasecmp(&filename[strlen(filename) - 4], ".svg"))
-		{
+			strcasecmp(&filename[strlen(filename) - 4], ".svg")) {
 			strcat(filename, ".svg");
 		}
 
-// ======================================= try to save it
-		if((filename[0] == 0) || (result == 1)) {
-			window->editing_lock.lock();
-			window->editing = 0;
-			window->editing_lock.unlock();
-			return;              // no filename given
-		}
-		FILE *in;
-		if(in = fopen(filename, "rb"))
-		{
-			fclose(in);
-			// file exists
-			result = 0; 
-		} else
-		{
-			// create fresh file
-			in = fopen(filename, "w+");
-			unsigned long size;
-			size = (((unsigned long)empty_svg[0]) << 24) +
-				(((unsigned long)empty_svg[1]) << 16) +
-				(((unsigned long)empty_svg[2]) << 8) +
-				((unsigned long)empty_svg[3]);
-			printf("in: %p size: %li\n", in, size);
-			// FIXME this is not cool on different arhitectures
-			
-			fwrite(empty_svg+4, size,  1, in);
-			fclose(in);
+		if( !access(filename, R_OK) )
 			result = 0;
+		else {
+			FILE *out = fopen(filename,"w");
+			if( out ) {
+				unsigned long size = sizeof(empty_svg) - 4;
+				fwrite(empty_svg+4, size,  1, out);
+				fclose(out);
+				result = 0;
+			}
 		}
 	} while(result);        // file doesn't exist so repeat
 	
 
-	window->svg_file_title->update(filename);
-	window->flush();
 	strcpy(client->config.svg_file, filename);
-	client->need_reconfigure = 1;
-	client->force_png_render = 1;
+	client->config.force_png_render = 1;
 	client->send_configure_change();
 
 // save it
@@ -313,8 +290,8 @@ void EditSvgButton::run()
 	Timer pausetimer;
 	long delay;
 	int result;
-	time_t last_update;
 	struct stat st_png;
+	char filename[1024];
 	char filename_png[1024];
 	char filename_fifo[1024];
 	struct fifo_struct fifo_buf;
@@ -322,11 +299,7 @@ void EditSvgButton::run()
 	
 	strcpy(filename_png, client->config.svg_file);
 	strcat(filename_png, ".png");
-	result = stat (filename_png, &st_png);
-	last_update = st_png.st_mtime;
-	if (result) 
-		last_update = 0;	
-
+	remove(filename_png);
 	strcpy(filename_fifo, filename_png);
 	strcat(filename_fifo, ".fifo");	
 	if (mkfifo(filename_fifo, S_IRWXU) != 0) {
@@ -341,9 +314,6 @@ void EditSvgButton::run()
 		read(fh_fifo, &fifo_buf, sizeof(fifo_buf));
 
 		if (fifo_buf.action == 1) {
-			result = stat(filename_png, &st_png);
-			last_update = st_png.st_mtime;
-			client->config.last_load = 1;
 			client->send_configure_change();
 		} else if (fifo_buf.action == 2) {
 			printf(_("Inkscape has exited\n"));
@@ -354,12 +324,14 @@ void EditSvgButton::run()
 			return;
 		}
 	}
+	remove(filename_fifo); // fifo destroyed on last close
 	inkscape_thread->join();
 	close(fh_fifo);
 	window->editing_lock.lock();
 	window->editing = 0;
 	window->editing_lock.unlock();
 
+	client->send_configure_change();
 }
 
 SvgInkscapeThread::SvgInkscapeThread(SvgMain *client, SvgWin *window)
@@ -378,21 +350,12 @@ SvgInkscapeThread::~SvgInkscapeThread()
 void SvgInkscapeThread::run()
 {
 // Runs the inkscape
-	char filename_png[1024];
-	strcpy(filename_png, client->config.svg_file);
-	strcat(filename_png, ".png");
 	char command[1024];
 	sprintf(command, "inkscape --with-gui %s", client->config.svg_file);
-	printf(_("Running external SVG editor: %s\n"), command);		
+	printf(_("Running external SVG editor: %s\n"), command);
+
 	enable_cancel();
 	system(command);
-	sprintf(command,
-		"inkscape --without-gui --export-background=0x000000 "
-		"--export-background-opacity=0 %s --export-png=%s",
-		client->config.svg_file, filename_png);
-	printf(_("Running command %s\n"), command);
-	system(command);
-
 	printf(_("External SVG editor finished\n"));
 	struct fifo_struct fifo_buf;
 	fifo_buf.pid = getpid();

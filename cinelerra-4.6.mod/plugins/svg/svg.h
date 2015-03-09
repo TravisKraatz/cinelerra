@@ -47,9 +47,8 @@ public:
 		long current_frame);
 
 	float in_x, in_y, in_w, in_h, out_x, out_y, out_w, out_h;
+	int force_png_render;
 	char svg_file[BCTEXTLEN];
-	char directory[BCTEXTLEN];
-	int64_t last_load;
 };
 
 
@@ -61,6 +60,7 @@ public:
 
 // required for all realtime plugins
 	PLUGIN_CLASS_MEMBERS(SvgConfig)
+	int need_reconfigure;
 
 	int process_realtime(VFrame *input_ptr, VFrame *output_ptr);
 	int is_realtime();
@@ -71,8 +71,6 @@ public:
 
 	OverlayFrame *overlayer;   // To translate images
 	VFrame *temp_frame;        // Used if buffers are the same
-	int need_reconfigure;
-	int force_png_render;     //force rendering of PNG on first start
 };
 
 
