@@ -761,17 +761,15 @@ private:
 	int xinerama_screens;
 	XineramaScreenInfo *xinerama_info;
 #ifdef HAVE_GL
-	int glx_fb_configs(int *attrs, GLXFBConfig *&fb_cfgs, int &ncfgs);
-
+	int glx_fb_configs(int *attrs, GLXFBConfig *&cfgs);
+	int glx_test_fb_configs(int *attrs, GLXFBConfig *&cfgs,
+		const char *msg, int &msgs);
+	GLXFBConfig *glx_fbcfgs_window, *glx_window_fb_configs();
 	int n_fbcfgs_window;
-	GLXFBConfig *glx_fbcfgs_window;
-	GLXFBConfig *glx_window_fb_configs();
+	GLXFBConfig *glx_fbcfgs_pbuffer, *glx_pbuffer_fb_configs();
 	int n_fbcfgs_pbuffer;
-	GLXFBConfig *glx_fbcfgs_pbuffer;
-	GLXFBConfig *glx_pbuffer_fb_configs();
+	GLXFBConfig *glx_fbcfgs_pixmap, *glx_pixmap_fb_configs();
 	int n_fbcfgs_pixmap;
-	GLXFBConfig *glx_fbcfgs_pixmap;
-	GLXFBConfig *glx_pixmap_fb_configs();
 
 // The first context to be created and the one whose texture id
 // space is shared with the other contexts.

@@ -29,118 +29,111 @@
 // OpenGL functions in BC_WindowBase
 
 #ifdef HAVE_GL
-int BC_WindowBase::glx_fb_configs(int *attrs, GLXFBConfig *&fb_cfgs, int &ncfgs)
+int BC_WindowBase::glx_fb_configs(int *attrs, GLXFBConfig *&cfgs)
 {
-	ncfgs = 0;
-	fb_cfgs = glXChooseFBConfig(get_display(), get_screen(), attrs, &ncfgs);
-	if( !fb_cfgs ) ncfgs = 0;
-	else if( !ncfgs && fb_cfgs ) { XFree(fb_cfgs);  fb_cfgs = 0; }
-	if( !fb_cfgs )
-		printf("BC_WindowBase::get_fb_config %d: failed\n", __LINE__);
+	int ncfgs = 0;
+	cfgs = glXChooseFBConfig(get_display(), get_screen(), attrs, &ncfgs);
+	if( !cfgs ) ncfgs = 0;
+	else if( !ncfgs && cfgs ) { XFree(cfgs);  cfgs = 0; }
 	return ncfgs;
 }
 
-static int glx_window_fb_msgs = 0;
-
-GLXFBConfig *BC_WindowBase::glx_window_fb_configs()
+// expects prefix of attrs to be:
+//	GLX_CONFIG_CAVEAT,	<opt>,
+//	GLX_DRAWABLE_TYPE,	<opt>,
+//	GLX_DOUBLEBUFFER,	True,
+int BC_WindowBase::glx_test_fb_configs(int *attrs, GLXFBConfig *&cfgs,
+		const char *msg, int &msgs)
 {
-	if( glx_fbcfgs_window ) return glx_fbcfgs_window;
-
-	int fb_attrs[] = {
-		GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT | GLX_PBUFFER | GLX_PIXMAP_BIT,
-		GLX_RENDER_TYPE,	GLX_RGBA_BIT,
-		GLX_DOUBLEBUFFER,	True,
-		GLX_ACCUM_RED_SIZE,	1,
-		GLX_ACCUM_GREEN_SIZE,	1,
-		GLX_ACCUM_BLUE_SIZE,	1,
-		GLX_ACCUM_ALPHA_SIZE,	1,
-		GLX_RED_SIZE,		8,
-		GLX_GREEN_SIZE,		8,
-		GLX_BLUE_SIZE,		8,
-		GLX_ALPHA_SIZE,		8,
-		None
-	};
-	if( glx_fb_configs(fb_attrs, glx_fbcfgs_window, n_fbcfgs_window) )
-		return glx_fbcfgs_window;
-
-	if( glx_window_fb_msgs < 1 ) {
-		++glx_window_fb_msgs;
-		printf("BC_WindowBase::glx_window_fb_config %d: trying single buffering\n", __LINE__);
-	}
-
-	fb_attrs[5] = False;
-	if( glx_fb_configs(fb_attrs, glx_fbcfgs_window, n_fbcfgs_window) )
-		return glx_fbcfgs_window;
-
-	if( glx_window_fb_msgs < 2 ) {
-		++glx_window_fb_msgs;
-		printf("BC_WindowBase::glx_window_fb_config %d: trying attributes None\n", __LINE__);
-	}
-
-	if( glx_fb_configs(None, glx_fbcfgs_window, n_fbcfgs_window) )
-		return glx_fbcfgs_window;
-
-	printf("BC_WindowBase::glx_window_fb_config %d: failed\n", __LINE__);
+	int ncfgs = glx_fb_configs(attrs+2, cfgs);
+	if( ncfgs ) return ncfgs;
+	if( msgs < 1 ) { ++msgs;  printf("%s: trying fallback 1\n", msg); }
+	ncfgs = glx_fb_configs(attrs+0, cfgs);
+	if( ncfgs ) return ncfgs;
+	if( msgs < 2 ) { ++msgs;  printf("%s: trying single buffering\n", msg); }
+	attrs[5] = False;
+	ncfgs = glx_fb_configs(attrs+0, cfgs);
+	if( ncfgs ) return ncfgs;
+	if( msgs < 3 ) { ++msgs;  printf("%s: trying fallback 2\n", msg); }
+	ncfgs = glx_fb_configs(attrs+2, cfgs);
+	if( ncfgs ) return ncfgs;
+	if( msgs < 4 ) { ++msgs;  printf("%s: trying attributes None\n", msg); }
+	ncfgs = glx_fb_configs(None, cfgs);
+	if( ncfgs ) return ncfgs;
+	disable_opengl();
+	printf("%s: opengl initialization failed failed\n", msg);
 	return 0;
 }
 
-static int glx_pbuffer_fb_msgs = 0;
+GLXFBConfig *BC_WindowBase::glx_window_fb_configs()
+{
+	static int msgs = 0;
+	if( !glx_fbcfgs_window && !msgs ) {
+		int fb_attrs[] = {
+			GLX_CONFIG_CAVEAT,	GLX_SLOW_CONFIG,
+			GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT | GLX_PBUFFER | GLX_PIXMAP_BIT,
+			GLX_DOUBLEBUFFER,	True,
+			GLX_RENDER_TYPE,	GLX_RGBA_BIT,
+			GLX_ACCUM_RED_SIZE,	1,
+			GLX_ACCUM_GREEN_SIZE,	1,
+			GLX_ACCUM_BLUE_SIZE,	1,
+			GLX_ACCUM_ALPHA_SIZE,	1,
+			GLX_RED_SIZE,		8,
+			GLX_GREEN_SIZE,		8,
+			GLX_BLUE_SIZE,		8,
+			GLX_ALPHA_SIZE,		8,
+			None
+		};
+		n_fbcfgs_window = glx_test_fb_configs(fb_attrs, glx_fbcfgs_window,
+			"BC_WindowBase::glx_window_fb_configs", msgs);
+	}
+	return glx_fbcfgs_window;
+}
 
 GLXFBConfig *BC_WindowBase::glx_pbuffer_fb_configs()
 {
-	if( glx_fbcfgs_pbuffer ) return glx_fbcfgs_pbuffer;
-
-       static int fb_attrs[] = {
-		GLX_DRAWABLE_TYPE,	GLX_PBUFFER_BIT | GLX_PIXMAP_BIT,
-		GLX_RENDER_TYPE,	GLX_RGBA_BIT,
-		GLX_DOUBLEBUFFER,	True, //False,
-		GLX_DEPTH_SIZE,		1,
-		GLX_ACCUM_RED_SIZE,	1,
-		GLX_ACCUM_GREEN_SIZE,	1,
-		GLX_ACCUM_BLUE_SIZE,	1,
-		GLX_ACCUM_ALPHA_SIZE,	1,
-		GLX_RED_SIZE,		8,
-		GLX_GREEN_SIZE,		8,
-		GLX_BLUE_SIZE,		8,
-		GLX_ALPHA_SIZE,		8,
-		None
-	};
-
-	if( glx_fb_configs(fb_attrs, glx_fbcfgs_pbuffer, n_fbcfgs_pbuffer) )
-		return glx_fbcfgs_pbuffer;
-
-	if( glx_pbuffer_fb_msgs < 1 ) {
-		++glx_pbuffer_fb_msgs;
-		printf("BC_WindowBase::glx_pbuffer_fb_config %d: trying attributes None\n", __LINE__);
+	static int msgs = 0;
+	if( !glx_fbcfgs_pbuffer && !msgs ) {
+		int fb_attrs[] = {
+			GLX_CONFIG_CAVEAT,	GLX_SLOW_CONFIG,
+			GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT | GLX_PBUFFER | GLX_PIXMAP_BIT,
+			GLX_DOUBLEBUFFER,	True, //False,
+			GLX_RENDER_TYPE,	GLX_RGBA_BIT,
+			GLX_ACCUM_RED_SIZE,	1,
+			GLX_ACCUM_GREEN_SIZE,	1,
+			GLX_ACCUM_BLUE_SIZE,	1,
+			GLX_ACCUM_ALPHA_SIZE,	1,
+			GLX_RED_SIZE,		8,
+			GLX_GREEN_SIZE,		8,
+			GLX_BLUE_SIZE,		8,
+			GLX_ALPHA_SIZE,		8,
+			None
+		};
+		n_fbcfgs_pbuffer = glx_test_fb_configs(fb_attrs, glx_fbcfgs_pbuffer,
+			"BC_WindowBase::glx_pbuffer_fb_configs", msgs);
 	}
-
-	if( glx_fb_configs(None, glx_fbcfgs_pbuffer, n_fbcfgs_pbuffer) )
-		return glx_fbcfgs_pbuffer;
-
-	printf("BC_WindowBase::glx_pbuffer_fb_config %d: failed\n", __LINE__);
-	return 0;
+	return glx_fbcfgs_pbuffer;
 }
 
 GLXFBConfig *BC_WindowBase::glx_pixmap_fb_configs()
 {
-	if( glx_fbcfgs_pixmap ) return glx_fbcfgs_pixmap;
-
-       static int fb_attrs[] = {
-		GLX_DRAWABLE_TYPE,	GLX_PIXMAP_BIT | GLX_PBUFFER,
-		GLX_RENDER_TYPE,	GLX_RGBA_BIT,
-		GLX_DOUBLEBUFFER,	True, //False,
-		GLX_RED_SIZE,		8,
-		GLX_GREEN_SIZE,		8,
-		GLX_BLUE_SIZE,		8,
-		GLX_ALPHA_SIZE,		8,
-		None
-	};
-
-	if( glx_fb_configs(fb_attrs, glx_fbcfgs_pixmap, n_fbcfgs_pixmap) )
-		return glx_fbcfgs_pixmap;
-
-	printf("BC_WindowBase::glx_pixmap_fb_config %d: failed\n", __LINE__);
-	return 0;
+	static int msgs = 0;
+	if( !glx_fbcfgs_pixmap && !msgs ) {
+		static int fb_attrs[] = {
+			GLX_CONFIG_CAVEAT,	GLX_SLOW_CONFIG,
+			GLX_DRAWABLE_TYPE,	GLX_PIXMAP_BIT | GLX_PBUFFER,
+			GLX_DOUBLEBUFFER,	True, //False,
+			GLX_RENDER_TYPE,	GLX_RGBA_BIT,
+			GLX_RED_SIZE,		8,
+			GLX_GREEN_SIZE,		8,
+			GLX_BLUE_SIZE,		8,
+			GLX_ALPHA_SIZE,		8,
+			None
+		};
+		n_fbcfgs_pixmap = glx_test_fb_configs(fb_attrs, glx_fbcfgs_pixmap,
+			"BC_WindowBase::glx_pixmap_fb_configs", msgs);
+	}
+	return glx_fbcfgs_pixmap;
 }
 
 GLXContext BC_WindowBase::glx_get_context()
