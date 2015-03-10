@@ -52,7 +52,6 @@ SvgConfig::SvgConfig()
 	out_y = 0;
 	out_w = 720;
 	out_h = 480;
-	force_png_render = 0;
 	strcpy(svg_file, "");
 }
 
@@ -112,16 +111,15 @@ void SvgConfig::interpolate(SvgConfig &prev,
 SvgMain::SvgMain(PluginServer *server)
  : PluginVClient(server)
 {
-	temp_frame = 0;
+	ofrm = 0;
 	overlayer = 0;
+	need_reconfigure = 1;
 }
 
 SvgMain::~SvgMain()
 {
-	if(temp_frame) delete temp_frame;
-	temp_frame = 0;
-	if(overlayer) delete overlayer;
-	overlayer = 0;
+	delete ofrm;
+	delete overlayer;
 }
 
 const char* SvgMain::plugin_title() { return N_("SVG via Inkscape"); }
@@ -198,77 +196,77 @@ void SvgMain::read_data(KeyFrame *keyframe)
 
 int SvgMain::process_realtime(VFrame *input, VFrame *output)
 {
-	char filename_png[1024];
 
 	need_reconfigure |= load_configuration();
 	output->copy_from(input);
 	if( config.svg_file[0] == 0 ) return 0;
 
-	strcpy(filename_png, config.svg_file);
-	strncat(filename_png, ".png", sizeof(filename_png));
-	int fd_png = -1;
-	if( config.force_png_render )
-		remove(filename_png);
-	else // in order for lockf to work it has to be open for writing
-		fd_png = open(filename_png, O_RDWR);
-
-	if( fd_png < 0 ) { // file does not exist, export it
-		config.force_png_render = 0;
-		char command[1024];
-		sprintf(command,
-			"inkscape --without-gui --export-background=0x000000 "
-			"--export-background-opacity=0 %s --export-png=%s",
-			config.svg_file, filename_png);
-		printf(_("Running command %s\n"), command);
-		system(command);
-
-		fd_png = open(filename_png, O_RDWR); // in order for lockf to work it has to be open for writing
-		if (!fd_png) {
-			printf(_("Export of %s to %s failed\n"), config.svg_file, filename_png);
-			return 0;
-		}
+	if( need_reconfigure ) {
 		need_reconfigure = 0;
-	}
-
-	// file exists, ... lock it, mmap it and check time_of_creation
-	lockf(fd_png, F_LOCK, 0);    // Blocking call - will wait for inkscape to finish!
-	struct stat st_png;
-	fstat(fd_png, &st_png);
-	unsigned char *png_buffer = (unsigned char *)
-		mmap (NULL, st_png.st_size, PROT_READ, MAP_SHARED, fd_png, 0); 
-	if( png_buffer != MAP_FAILED ) {
-		if( png_buffer[0] == 0x89 && png_buffer[1] == 0x50 &&
-		     png_buffer[2] == 0x4e && png_buffer[3] == 0x47) {
-			if(!overlayer) overlayer = new OverlayFrame(smp + 1);
-			VFrame vf(png_buffer, st_png.st_size), *of = &vf;
-			if( vf.get_color_model() != output->get_color_model() ) {
-				of = new VFrame(vf.get_w(), vf.get_h(),
-					 output->get_color_model());
-				BC_CModels::transfer(of->get_rows(), vf.get_rows(),
-					0, 0, 0, 0, 0, 0,
-					0, 0, vf.get_w(), vf.get_h(),
-					0, 0, of->get_w(), of->get_h(), 
-					vf.get_color_model(), of->get_color_model(),
-					0, vf.get_bytes_per_line(), of->get_bytes_per_line());
-			}
-			overlayer->overlay(output, of,
-				 0, 0, of->get_w(), of->get_h(),
-				config.out_x, config.out_y, 
-				config.out_x + vf.get_w(),
-				config.out_y + vf.get_h(),
-				1, TRANSFER_NORMAL,
-				get_interpolation_type());
-			if( of != &vf ) delete of;
+		delete ofrm;  ofrm = 0;
+		char filename_png[1024];
+		strcpy(filename_png, config.svg_file);
+		strncat(filename_png, ".png", sizeof(filename_png));
+		int fd = open(filename_png, O_RDWR);
+		if( fd < 0 ) { // file does not exist, export it
+			char command[1024];
+			sprintf(command,
+				"inkscape --without-gui --export-background=0x000000 "
+				"--export-background-opacity=0 %s --export-png=%s",
+				config.svg_file, filename_png);
+			printf(_("Running command %s\n"), command);
+			system(command);
+			// in order for lockf to work it has to be open for writing
+			fd = open(filename_png, O_RDWR);
+			if( fd < 0 )
+				printf(_("Export of %s to %s failed\n"), config.svg_file, filename_png);
 		}
-		else
-			printf (_("The file %s that was generated from %s is not in PNG format."
-				  " Try to delete all *.png files.\n"), filename_png, config.svg_file);	
-		munmap(png_buffer, st_png.st_size);
+		if( fd >= 0 ) {
+			// file exists, ... lock it, mmap it and check time_of_creation
+			// Blocking call - will wait for inkscape to finish!
+			lockf(fd, F_LOCK, 0);
+			struct stat st_png;
+			fstat(fd, &st_png);
+			unsigned char *png_buffer = (unsigned char *)
+				mmap (NULL, st_png.st_size, PROT_READ, MAP_SHARED, fd, 0); 
+			if( png_buffer != MAP_FAILED ) {
+				if( png_buffer[0] == 0x89 && png_buffer[1] == 0x50 &&
+				    png_buffer[2] == 0x4e && png_buffer[3] == 0x47 ) {
+					ofrm = new VFrame(png_buffer, st_png.st_size);
+					if( ofrm->get_color_model() != output->get_color_model() ) {
+						VFrame *vfrm = new VFrame(ofrm->get_w(), ofrm->get_h(),
+							output->get_color_model());
+						BC_CModels::transfer(vfrm->get_rows(), ofrm->get_rows(),
+							0, 0, 0, 0, 0, 0,
+							0, 0, ofrm->get_w(), ofrm->get_h(),
+							0, 0, vfrm->get_w(), vfrm->get_h(), 
+							ofrm->get_color_model(), vfrm->get_color_model(),
+							0, ofrm->get_bytes_per_line(),
+							vfrm->get_bytes_per_line());
+						delete ofrm;  ofrm = vfrm;
+					}
+				}
+				else
+					printf (_("The file %s that was generated from %s is not in PNG format."
+						  " Try to delete all *.png files.\n"), filename_png, config.svg_file);	
+				munmap(png_buffer, st_png.st_size);
+			}
+			else
+				printf(_("Access mmap to %s as %s failed.\n"), config.svg_file, filename_png);
+			lockf(fd, F_ULOCK, 0);
+			close(fd);
+		}
 	}
-	else
-		printf(_("Access mmap to %s as %s failed.\n"), config.svg_file, filename_png);
-	lockf(fd_png, F_ULOCK, 0);
-	close(fd_png);
+	if( ofrm ) {
+		if(!overlayer) overlayer = new OverlayFrame(smp + 1);
+		overlayer->overlay(output, ofrm,
+			 0, 0, ofrm->get_w(), ofrm->get_h(),
+			config.out_x, config.out_y, 
+			config.out_x + ofrm->get_w(),
+			config.out_y + ofrm->get_h(),
+			1, TRANSFER_NORMAL,
+			get_interpolation_type());
+	}
 	return 0;
 }
 

@@ -239,7 +239,6 @@ void NewSvgButton::run()
 	
 
 	strcpy(client->config.svg_file, filename);
-	client->config.force_png_render = 1;
 	client->send_configure_change();
 
 // save it

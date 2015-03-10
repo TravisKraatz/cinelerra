@@ -249,9 +249,9 @@ BC_WindowBase::~BC_WindowBase()
 	delete cursor_timer;
 
 #if HAVE_GL
-	delete glx_fbcfgs_window;
-	delete glx_fbcfgs_pbuffer;
-	delete glx_fbcfgs_pixmap;
+	if( glx_fbcfgs_window ) XFree(glx_fbcfgs_window);
+	if( glx_fbcfgs_pbuffer) XFree(glx_fbcfgs_pbuffer);
+	if( glx_fbcfgs_pixmap ) XFree(glx_fbcfgs_pixmap);
 #endif
 
 	UNSET_ALL_LOCKS(this)
