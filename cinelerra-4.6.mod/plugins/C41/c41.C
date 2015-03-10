@@ -134,8 +134,6 @@ public:
 			int64_t start_position,
 			double frame_rate);
 	int is_realtime();
-	int load_defaults();
-	int save_defaults();
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);
 	void update_gui();
@@ -412,39 +410,6 @@ void C41Effect::render_gui(void* data)
 	}
 }
 
-int C41Effect::load_defaults()
-{
-	char directory[BCTEXTLEN];
-	sprintf(directory, "%sC41.rc", BCASTDIR);
-	defaults->load();
-	config.active = defaults->get("ACTIVE", config.active);
-	config.compute_magic = defaults->get("COMPUTE_MAGIC", config.compute_magic);
-
-	config.fix_min_r = defaults->get("FIX_MIN_R", config.fix_min_r);
-	config.fix_min_g = defaults->get("FIX_MIN_G", config.fix_min_g);
-	config.fix_min_b = defaults->get("FIX_MIN_B", config.fix_min_b);
-	config.fix_light = defaults->get("FIX_LIGHT", config.fix_light);
-	config.fix_gamma_g = defaults->get("FIX_GAMMA_G", config.fix_gamma_g);
-	config.fix_gamma_b = defaults->get("FIX_GAMMA_B", config.fix_gamma_b);
-
-	return 0;
-}
-
-int C41Effect::save_defaults()
-{
-	defaults->update("ACTIVE", config.active);
-	defaults->update("COMPUTE_MAGIC", config.compute_magic);
-
-	defaults->update("FIX_MIN_R", config.fix_min_r);
-	defaults->update("FIX_MIN_G", config.fix_min_g);
-	defaults->update("FIX_MIN_B", config.fix_min_b);
-	defaults->update("FIX_LIGHT", config.fix_light);
-	defaults->update("FIX_GAMMA_G", config.fix_gamma_g);
-	defaults->update("FIX_GAMMA_B", config.fix_gamma_b);
-	defaults->save();
-	return 0;
-}
-
 void C41Effect::save_data(KeyFrame *keyframe)
 {
 	FileXML output;
@@ -525,39 +490,33 @@ float C41Effect::myPow(float a, float b)
 }
 
 
-int C41Effect::process_buffer(VFrame *frame,
+int C41Effect::process_buffer(VFrame *vframe,
 		int64_t start_position,
 		double frame_rate)
 {
 	load_configuration();
-
-	read_frame(frame,
-			0,
-			start_position,
-			frame_rate,
-			0);
+	VFrame *frame = vframe;
+	read_frame(frame, 0, start_position, frame_rate, 0);
 
 	int frame_w = frame->get_w();
 	int frame_h = frame->get_h();
+	int color_model = frame->get_color_model();
+	int active_model = BC_CModels::has_alpha(color_model) ?
+		BC_RGBA_FLOAT : BC_RGB_FLOAT;
+	int components = active_model == BC_RGBA_FLOAT ? 4 : 3;
 
-	switch(frame->get_color_model())
-	{
-		case BC_RGB888:
-		case BC_YUV888:
-		case BC_RGBA_FLOAT:
-		case BC_RGBA8888:
-		case BC_YUVA8888:
-		case BC_RGB161616:
-		case BC_YUV161616:
-		case BC_RGBA16161616:
-		case BC_YUVA16161616:
-			return 0; // Unsupported
-		case BC_RGB_FLOAT:
-			break;
+	if( color_model != active_model ) {
+		frame = new VFrame(frame_w, frame_h, active_model);
+		BC_CModels::transfer(frame->get_rows(), vframe->get_rows(),
+			0, 0, 0, 0, 0, 0,
+			0, 0, vframe->get_w(), vframe->get_h(),
+			0, 0, frame->get_w(), frame->get_h(),
+			vframe->get_color_model(), frame->get_color_model(),
+			0, vframe->get_bytes_per_line(),
+			frame->get_bytes_per_line());
 	}
 
-	if(config.compute_magic)
-	{
+	if(config.compute_magic) {
 		// Box blur!
 		VFrame* tmp_frame = new VFrame(*frame);
 		VFrame* blurry_frame = new VFrame(*frame);
@@ -566,61 +525,47 @@ int C41Effect::process_buffer(VFrame *frame,
 		float** tmp_rows = (float**)tmp_frame->get_rows();
 		float** blurry_rows = (float**)blurry_frame->get_rows();
 		for(int i = 0; i < frame_h; i++)
-			for(int j = 0; j < (3*frame_w); j++)
+			for(int j = 0; j < (components*frame_w); j++)
 				blurry_rows[i][j] = rows[i][j];
 
 		int boxw = 5, boxh = 5;
 		// 10 passes of Box blur should be good
-		int pass;
-		int x;
-		int y;
-		int y_up;
-		int y_down;
-		int x_right;
-		int x_left;
+		int pass, x, y, y_up, y_down, x_right, x_left;
 		float component;
-		for(pass=0; pass<10; pass++)
-		{
+		for(pass=0; pass<10; pass++) {
 			for(y = 0; y < frame_h; y++)
-				for(x = 0; x < (3 * frame_w); x++)
+				for(x = 0; x < (components * frame_w); x++)
 					tmp_rows[y][x] = blurry_rows[y][x];
-			for(y = 0; y < frame_h; y++)
-			{
+			for(y = 0; y < frame_h; y++) {
 				y_up = (y - boxh < 0)? 0 : y - boxh;
 				y_down = (y + boxh >= frame_h)? frame_h - 1 : y + boxh;
-				for(x = 0; x < (3*frame_w); x++)
-				{
-					x_left = (x-(3*boxw) < 0)? 0 : x-(3*boxw);
-					x_right = (x+(3*boxw) >= (3*frame_w))? (3*frame_w)-1 : x+(3*boxw);
-					component=(tmp_rows[y_down][x_right]
+				for(x = 0; x < (components*frame_w); x++) {
+					x_left = (x-(components*boxw) < 0)? 0 : x-(components*boxw);
+					x_right = (x+(components*boxw) >= (components*frame_w)) ?
+						(components*frame_w)-1 : x+(components*boxw);
+					component = (tmp_rows[y_down][x_right]
 							+tmp_rows[y_up][x_left]
 							+tmp_rows[y_up][x_right]
 							+tmp_rows[y_down][x_right])/4;
-					blurry_rows[y][x]= component;
+					blurry_rows[y][x] = component;
 				}
 			}
 		}
 
 		// Compute magic negfix values
-		float minima_r = 50.;
-		float minima_g = 50.;
-		float minima_b = 50.;
-		float maxima_r = 0.;
-		float maxima_g = 0.;
-		float maxima_b = 0.;
+		float minima_r = 50., minima_g = 50., minima_b = 50.;
+		float maxima_r = 0.,  maxima_g = 0.,  maxima_b = 0.;
 
 		// Shave the image in order to avoid black borders
 		// Tolerance default: 5%, i.e. 0.05
 #define TOLERANCE 0.20
 #define SKIP_ROW if (i < (TOLERANCE * frame_h) || i > ((1-TOLERANCE)*frame_h)) continue
 #define SKIP_COL if (j < (TOLERANCE * frame_w) || j > ((1-TOLERANCE)*frame_w)) continue
-
-		for(int i = 0; i < frame_h; i++)
+for(int i = 0; i < frame_h; i++)
 		{
 			SKIP_ROW;
 			float *row = (float*)blurry_frame->get_rows()[i];
-			for(int j = 0; j < frame_w; j++, row += 3)
-			{
+			for(int j = 0; j < frame_w; j++, row += components) {
 				SKIP_COL;
 				if(row[0] < minima_r) minima_r = row[0];
 				if(row[0] > maxima_r) maxima_r = row[0];
@@ -649,21 +594,27 @@ int C41Effect::process_buffer(VFrame *frame,
 	}
 
 	// Apply the transformation
-	if(config.active)
-	{
+	if(config.active) {
 		// Get the values from the config instead of the computed ones
-		for(int i = 0; i < frame_h; i++)
-		{
+		for(int i = 0; i < frame_h; i++) {
 			float *row = (float*)frame->get_rows()[i];
-			for(int j = 0; j < frame_w; j++, row += 3)
-			{
+			for(int j = 0; j < frame_w; j++, row += components) {
 				row[0] = (config.fix_min_r / row[0]) - config.fix_light;
-
 				row[1] = myPow((config.fix_min_g / row[1]), config.fix_gamma_g) - config.fix_light;
-
 				row[2] = myPow((config.fix_min_b / row[2]), config.fix_gamma_b) - config.fix_light;
 			}
 		}
+	}
+
+	if( vframe != frame ) {
+		BC_CModels::transfer(vframe->get_rows(), frame->get_rows(),
+			0, 0, 0, 0, 0, 0,
+			0, 0, frame->get_w(), frame->get_h(),
+			0, 0, vframe->get_w(), vframe->get_h(),
+			frame->get_color_model(), vframe->get_color_model(),
+			0, frame->get_bytes_per_line(),
+			vframe->get_bytes_per_line());
+		delete frame;
 	}
 
 	return 0;

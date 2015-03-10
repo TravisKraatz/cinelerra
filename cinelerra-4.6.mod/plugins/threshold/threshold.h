@@ -43,18 +43,11 @@ class RGBA
 	void set(int rgb, int alpha);  // red in byte 2, green in byte 1, blue in byte 0.
 	int getRGB() const; // Encode red in byte 2, green in byte 1, blue in byte 0.
 
-	// Load values in BC_Hash and return in an RGBA.
-	// Use values in this RGBA as defaults.
-	RGBA load_default(BC_Hash * defaults, const char * prefix) const;
-
-	// Save values in this RGBA to the BC_Hash.
-	void save_defaults(BC_Hash * defaults, const char * prefix) const;
-
 	// Set R, G, B, A properties from this RGBA.
 	void set_property(XMLTag & tag, const char * prefix) const;
 
 	// Load R, G, B, A properties and return in an RGBA.
-	// Use values in this RGBA as defaults.
+	// Use values in this RGBA as default.
 	RGBA get_property(XMLTag & tag, const char * prefix) const;
 
 	int  r, g, b, a;
@@ -106,8 +99,6 @@ public:
 		int64_t start_position,
 		double frame_rate);
 	int is_realtime();
-	int load_defaults();
-	int save_defaults();
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);
 	void update_gui();

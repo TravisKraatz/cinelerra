@@ -725,37 +725,37 @@ void LensMain::update_gui()
 	}
 }
 
-void LensMain::save_presets()
-{
-	char path[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(path, "%slenspresets.rc", BCASTDIR);
-	BC_Hash *defaults = new BC_Hash(path);
-
-// Save presets
-	defaults->update("TOTAL_PRESETS", presets.total);
-	for(int i = 0; i < presets.total; i++)
-	{
-		LensPreset *preset = presets.values[i];
-		sprintf(string, "TITLE_%d", i);
-		defaults->update(string, preset->title);
-
-		for(int j = 0; j < FOV_CHANNELS; j++)
-		{
-			sprintf(string, "FOCAL_LENGTH_%d_%d", i, j);
-			defaults->update(string, preset->fov[j]);
-		}
-
-		sprintf(string, "ASPECT_%d", i);
-		defaults->update(string, preset->aspect);
-		sprintf(string, "RADIUS_%d", i);
-		defaults->update(string, preset->radius);
-		sprintf(string, "MODE_%d", i);
-		defaults->update(string, preset->mode);
-	}
-	
-	defaults->save();
-	delete defaults;
-}
+//void LensMain::save_presets()
+//{
+//	char path[BCTEXTLEN], string[BCTEXTLEN];
+//	sprintf(path, "%slenspresets.rc", BCASTDIR);
+//	BC_Hash *defaults = new BC_Hash(path);
+//
+//// Save presets
+//	defaults->update("TOTAL_PRESETS", presets.total);
+//	for(int i = 0; i < presets.total; i++)
+//	{
+//		LensPreset *preset = presets.values[i];
+//		sprintf(string, "TITLE_%d", i);
+//		defaults->update(string, preset->title);
+//
+//		for(int j = 0; j < FOV_CHANNELS; j++)
+//		{
+//			sprintf(string, "FOCAL_LENGTH_%d_%d", i, j);
+//			defaults->update(string, preset->fov[j]);
+//		}
+//
+//		sprintf(string, "ASPECT_%d", i);
+//		defaults->update(string, preset->aspect);
+//		sprintf(string, "RADIUS_%d", i);
+//		defaults->update(string, preset->radius);
+//		sprintf(string, "MODE_%d", i);
+//		defaults->update(string, preset->mode);
+//	}
+//	
+//	defaults->save();
+//	delete defaults;
+//}
 
 
 void LensMain::save_data(KeyFrame *keyframe)

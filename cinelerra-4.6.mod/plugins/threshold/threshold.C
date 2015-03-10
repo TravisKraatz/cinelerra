@@ -175,33 +175,6 @@ int ThresholdMain::process_buffer(VFrame *frame,
 	return 0;
 }
 
-int ThresholdMain::load_defaults()
-{
-	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%sthreshold.rc", BCASTDIR);
-	defaults = new BC_Hash(directory);
-	defaults->load();
-	config.min = defaults->get("MIN", config.min);
-	config.max = defaults->get("MAX", config.max);
-	config.plot = defaults->get("PLOT", config.plot);
-	config.low_color.load_default(defaults,  "LOW_COLOR");
-	config.mid_color.load_default(defaults,  "MID_COLOR");
-	config.high_color.load_default(defaults, "HIGH_COLOR");
-	config.boundaries();
-	return 0;
-}
-
-int ThresholdMain::save_defaults()
-{
-	defaults->update("MIN", config.min);
-	defaults->update("MAX", config.max);
-	defaults->update("PLOT", config.plot);
-	config.low_color.save_defaults(defaults,  "LOW_COLOR");
-	config.mid_color.save_defaults(defaults,  "MID_COLOR");
-	config.high_color.save_defaults(defaults, "HIGH_COLOR");
-	defaults->save();
-}
-
 void ThresholdMain::save_data(KeyFrame *keyframe)
 {
 	FileXML file;
@@ -756,28 +729,6 @@ static void init_RGBA_keys(const char * prefix,
 	g_s += "_G";
 	b_s += "_B";
 	a_s += "_A";
-}
-
-RGBA RGBA::load_default(BC_Hash * defaults, const char * prefix) const
-{
-	string r_s, g_s, b_s, a_s;
-	init_RGBA_keys(prefix, r_s, g_s, b_s, a_s);
-
-	return RGBA(defaults->get(const_cast<char *>(r_s.c_str()), r),
-		    defaults->get(const_cast<char *>(g_s.c_str()), g),
-		    defaults->get(const_cast<char *>(b_s.c_str()), b),
-		    defaults->get(const_cast<char *>(a_s.c_str()), a));
-}
-
-void RGBA::save_defaults(BC_Hash * defaults, const char * prefix) const
-{
-	string r_s, g_s, b_s, a_s;
-	init_RGBA_keys(prefix, r_s, g_s, b_s, a_s);
-
-	defaults->update(const_cast<char *>(r_s.c_str()), r);
-	defaults->update(const_cast<char *>(g_s.c_str()), g);
-	defaults->update(const_cast<char *>(b_s.c_str()), b);
-	defaults->update(const_cast<char *>(a_s.c_str()), a);
 }
 
 void RGBA::set_property(XMLTag & tag, const char * prefix) const

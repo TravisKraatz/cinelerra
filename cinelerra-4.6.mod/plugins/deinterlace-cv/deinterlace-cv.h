@@ -84,8 +84,6 @@ public:
 	void update_gui();
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);
-	int load_defaults();
-	int save_defaults();
 	void render_gui(void *data);
 
 	void deinterlace_avg_top(VFrame *input, VFrame *output, int dominance);

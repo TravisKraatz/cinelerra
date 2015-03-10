@@ -76,8 +76,6 @@ public:
 		int64_t start_position,
 		double frame_rate);
 	int is_realtime();
-	int load_defaults();
-	int save_defaults();
         void save_auto(KeyFrame *keyframe);
 	void save_data(KeyFrame *keyframe);
 	void read_data(KeyFrame *keyframe);

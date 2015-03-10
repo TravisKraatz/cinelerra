@@ -3478,3 +3478,9 @@ int MWindow::select_asset(int vtrack, int delete_tracks)
 	return select_asset(asset, edit->channel, 0, delete_tracks);
 }
 
+int MWindow::dump_plugindb(FILE *fp)
+{
+	for(int i = 0; i < plugindb->total; i++)
+		plugindb->values[i]->dump(fp);
+}
+

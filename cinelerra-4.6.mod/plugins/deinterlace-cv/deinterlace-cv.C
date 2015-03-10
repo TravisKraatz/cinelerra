@@ -597,30 +597,6 @@ NEW_PICON_MACRO(DeInterlaceMain)
 LOAD_CONFIGURATION_MACRO(DeInterlaceMain, DeInterlaceConfig)
 
 
-int DeInterlaceMain::load_defaults()
-{
-	char directory[BCTEXTLEN], string[BCTEXTLEN];
-	sprintf(directory, "%sdeinterlace.rc", BCASTDIR);
-	
-	defaults = new BC_Hash(directory);
-	defaults->load();
-	config.mode = defaults->get("MODE", config.mode);
-	config.dominance = defaults->get("DOMINANCE", config.dominance);
-	config.adaptive = defaults->get("ADAPTIVE", config.adaptive);
-	config.threshold = defaults->get("THRESHOLD", config.threshold);
-	return 0;
-}
-
-
-int DeInterlaceMain::save_defaults()
-{
-	defaults->update("MODE", config.mode);
-	defaults->update("DOMINANCE", config.dominance);
-	defaults->update("ADAPTIVE", config.adaptive);
-	defaults->update("THRESHOLD", config.threshold);
-	defaults->save();
-	return 0;
-}
 
 void DeInterlaceMain::save_data(KeyFrame *keyframe)
 {
