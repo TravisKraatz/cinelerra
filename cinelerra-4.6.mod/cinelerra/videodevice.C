@@ -303,7 +303,7 @@ VDeviceBase* VideoDevice::new_device_base()
 
 static char* get_channeldb_path(VideoInConfig *vconfig_in)
 {
-	char *path = (char*)"";
+	char *path = 0;
 	switch(vconfig_in->driver)
 	{
 		case VIDEO4LINUX:

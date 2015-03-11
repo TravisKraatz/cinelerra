@@ -37,22 +37,24 @@ ChannelDB::~ChannelDB()
 	channels.remove_all_objects();
 }
 
-char* ChannelDB::prefix_to_path(char *path, const char *prefix)
+char* ChannelDB::prefix_to_path(char *path, const char *filename)
 {
 	FileSystem fs;
 	char directory[BCTEXTLEN];
 	sprintf(directory, BCASTDIR);
 	fs.complete_path(directory);
-	fs.join_names(path, directory, prefix);
+	fs.join_names(path, directory, filename);
 	return path;
 }
 
-void ChannelDB::load(const char *prefix)
+void ChannelDB::load(const char *filename)
 {
+	if( !filename ) return;
+
 	FileXML file;
 	char path[BCTEXTLEN];
 
-	prefix_to_path(path, prefix);
+	prefix_to_path(path, filename);
 	channels.remove_all_objects();
 
 	int done = file.read_from_file(path, 1);
@@ -71,12 +73,13 @@ void ChannelDB::load(const char *prefix)
 	}
 }
 
-void ChannelDB::save(const char *prefix)
+void ChannelDB::save(const char *filename)
 {
+	if( !filename ) return;
 	char path[BCTEXTLEN];
 	FileXML file;
 
-	prefix_to_path(path, prefix);
+	prefix_to_path(path, filename);
 
 	if(channels.total)
 	{
