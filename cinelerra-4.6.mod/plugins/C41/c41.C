@@ -608,7 +608,8 @@ for(int i = 0; i < frame_h; i++)
 
 	if( vframe != frame ) {
 		BC_CModels::transfer(vframe->get_rows(), frame->get_rows(),
-			0, 0, 0, 0, 0, 0,
+			vframe->get_y(), vframe->get_u(), vframe->get_v(),
+			0, 0, 0,
 			0, 0, frame->get_w(), frame->get_h(),
 			0, 0, vframe->get_w(), vframe->get_h(),
 			frame->get_color_model(), vframe->get_color_model(),
