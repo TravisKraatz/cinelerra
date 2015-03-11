@@ -1100,7 +1100,7 @@ if(debug) printf("FileMOV::read_frame %d frame=" _LD " color_model=%d\n",
 
 if(debug) printf("FileMOV::read_frame %d\n", __LINE__);
 	if (result)
-		eprintf("quicktime_read_frame/quicktime_decode_video failed, result:\n");
+		printf("quicktime_read_frame/quicktime_decode_video failed, result:\n");
 
 	return result;
 }
@@ -1185,7 +1185,7 @@ int FileMOV::read_samples(double *buffer, int64_t len)
 //printf("FileMOV::read_samples 3 " _LD " " _LD "\n", file->current_sample, quicktime_audio_position(fd, 0));
 		if(quicktime_decode_audio(fd, 0, temp_float[0], len, file->current_channel))
 		{
-			eprintf("quicktime_decode_audio failed\n");
+			printf("quicktime_decode_audio failed\n");
 			return 1;
 		}
 		else
