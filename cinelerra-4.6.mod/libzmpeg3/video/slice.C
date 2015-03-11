@@ -727,8 +727,8 @@ get_mpg2_intra_block(int comp, int dc_dct_pred[])
   int *qmat = (comp < 4 || video->chroma_format == video_t::cfmt_420) ?
     video->intra_quantizer_matrix : video->chroma_intra_quantizer_matrix;
   int dc_coef = /* decode DC coefficients */
-    comp <  4 ? (dc_dct_pred[0] += slice_buffer->get_dc_lum())   :
-    comp == 4 ? (dc_dct_pred[1] += slice_buffer->get_dc_chrom()) :
+    comp < 4  ? (dc_dct_pred[0] += slice_buffer->get_dc_lum())   :
+    !(comp&1) ? (dc_dct_pred[1] += slice_buffer->get_dc_chrom()) :
                 (dc_dct_pred[2] += slice_buffer->get_dc_chrom()) ;
 /* with data partitioning, data always goes to base layer */
   short *bp = block[comp]; 
