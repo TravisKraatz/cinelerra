@@ -292,10 +292,10 @@ public:
 	DataHeader *get_header() { return data_header; }
 
 	DataBuffer(int len) : allocated(0),data_header(0) {
-		printf("DataBuffer new %p\n",this);
+		//printf("DataBuffer new %p\n",this);
 		set_buffer(0,len); }
 	~DataBuffer() {
-		printf("DataBuffer delete %p\n",this);
+		//printf("DataBuffer delete %p\n",this);
 		delete [] (char*) data_header; }
 };
 

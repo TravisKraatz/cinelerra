@@ -288,7 +288,7 @@ int InterpolatePixelsMain::process_buffer(VFrame *frame,
 
 int InterpolatePixelsMain::handle_opengl()
 {
-printf("InterpolatePixelsMain::handle_opengl\n");
+//printf("InterpolatePixelsMain::handle_opengl\n");
 #ifdef HAVE_GL
 
 

@@ -204,15 +204,12 @@ int VideoDevice::open_input(VideoInConfig *config,
 	r = 1;
 	this->input_z = -1;   // Force initialization.
 	this->frame_rate = frame_rate;
+	if( input_base ) return 1; // device already open
 
-
-	switch(in_config->driver)
-	{
+	switch(in_config->driver) {
 		case VIDEO4LINUX:
 			keepalive = new KeepaliveThread(this);
 			keepalive->start_keepalive();
-			new_device_base();
-			result = input_base->open_input();
 			break;
 
 
@@ -223,8 +220,6 @@ int VideoDevice::open_input(VideoInConfig *config,
 		case VIDEO4LINUX2MPEG:
 		case CAPTURE_JPEG_WEBCAM:
 		case CAPTURE_YUYV_WEBCAM:
-			new_device_base();
-			result = input_base->open_input();
 			break;
 
 #endif
@@ -232,71 +227,75 @@ int VideoDevice::open_input(VideoInConfig *config,
 		case SCREENCAPTURE:
 			this->input_x = input_x;
 			this->input_y = input_y;
-			new_device_base();
-			result = input_base->open_input();
 			break;
+		case CAPTURE_LML:
 		case CAPTURE_BUZ:
 //printf("VideoDevice 1\n");
 			keepalive = new KeepaliveThread(this);
 			keepalive->start_keepalive();
-			new_device_base();
-			result = input_base->open_input();
 			break;
 #ifdef HAVE_FIREWIRE
 		case CAPTURE_FIREWIRE:
 		case CAPTURE_IEC61883:
-			new_device_base();
-			result = input_base->open_input();
 			break;
 #endif
 
+#ifdef HAVE_DVB
 		case CAPTURE_DVB:
-			new_device_base();
-			result = input_base->open_input();
 			break;
+#endif
+
+		default:
+			return 1;
 	}
-	
-	in_config_updated = 0;
+
+	new_device_base();
+	if( !input_base ) return 1;
+	result = input_base->open_input();
 	if(!result) capturing = 1;
+	in_config_updated = 0;
 	return 0;
 }
 
 VDeviceBase* VideoDevice::new_device_base()
 {
-	switch(in_config->driver)
-	{
+	switch(in_config->driver) {
 #ifdef HAVE_VIDEO4LINUX
-		case VIDEO4LINUX:
-			return input_base = new VDeviceV4L(this);
+	case VIDEO4LINUX:
+		return input_base = new VDeviceV4L(this);
 #endif
 
 #ifdef HAVE_VIDEO4LINUX2
-		case VIDEO4LINUX2:
-		case CAPTURE_JPEG_WEBCAM:
-		case CAPTURE_YUYV_WEBCAM:
-			return input_base = new VDeviceV4L2(this);
-		case VIDEO4LINUX2JPEG:
-			return input_base = new VDeviceV4L2JPEG(this);
-		case VIDEO4LINUX2MPEG:
-			return input_base = new VDeviceV4L2MPEG(this);
+	case VIDEO4LINUX2:
+	case CAPTURE_JPEG_WEBCAM:
+	case CAPTURE_YUYV_WEBCAM:
+		return input_base = new VDeviceV4L2(this);
+	case VIDEO4LINUX2JPEG:
+		return input_base = new VDeviceV4L2JPEG(this);
+	case VIDEO4LINUX2MPEG:
+		return input_base = new VDeviceV4L2MPEG(this);
 #endif
 
-		case SCREENCAPTURE:
-			return input_base = new VDeviceX11(this, 0);
+	case SCREENCAPTURE:
+		return input_base = new VDeviceX11(this, 0);
 
 #ifdef HAVE_VIDEO4LINUX
-		case CAPTURE_BUZ:
-			return input_base = new VDeviceBUZ(this);
+	case CAPTURE_BUZ:
+		return input_base = new VDeviceBUZ(this);
+	case CAPTURE_LML:
+		return input_base = new VDeviceLML(this);
 #endif
 
 #ifdef HAVE_FIREWIRE
-		case CAPTURE_FIREWIRE:
-		case CAPTURE_IEC61883:
-			return input_base = new VDevice1394(this);
+	case CAPTURE_FIREWIRE:
+	case CAPTURE_IEC61883:
+		return input_base = new VDevice1394(this);
 #endif
 
-		case CAPTURE_DVB:
-			return input_base = new VDeviceDVB(this);
+#ifdef HAVE_DVB
+	case CAPTURE_DVB:
+		return input_base = new VDeviceDVB(this);
+#endif
 	}
 	return 0;
 }
@@ -429,6 +428,8 @@ const char* VideoDevice::drivertostr(int driver)
 	case CAPTURE_YUYV_WEBCAM: return CAPTURE_YUYV_WEBCAM_TITLE;
 	case SCREENCAPTURE:    return SCREENCAPTURE_TITLE;
 	case CAPTURE_BUZ:      return CAPTURE_BUZ_TITLE;
+	case CAPTURE_LML:      return CAPTURE_LML_TITLE;
+	case CAPTURE_DVB:      return CAPTURE_DVB_TITLE;
 	case CAPTURE_FIREWIRE: return CAPTURE_FIREWIRE_TITLE;
 	case CAPTURE_IEC61883: return CAPTURE_IEC61883_TITLE;
 	}
@@ -693,6 +694,9 @@ int VideoDevice::open_output(VideoOutConfig *config, float rate,
 #ifdef HAVE_VIDEO4LINUX
 	case PLAYBACK_BUZ:
 		output_base = new VDeviceBUZ(this);
+		break;
+	case PLAYBACK_LML:
+		output_base = new VDeviceLML(this);
 		break;
 #endif
 	case PLAYBACK_X11:
