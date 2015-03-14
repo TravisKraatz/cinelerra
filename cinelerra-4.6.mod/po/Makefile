@@ -7,8 +7,16 @@ OBJS := \
 	fr.mo \
 	it.mo \
 	nb.mo \
-	pt_BR.mo \
-	sl.mo
+	pt.mo \
+	sl.mo \
+	hi.mo \
+	ko.mo \
+	ru.mo \
+	vi.mo \
+	zh.mo \
+	el.mo \
+	ja.mo \
+	uk.mo \
 
 
 all: $(OBJS)
