@@ -170,6 +170,7 @@ install:
 
 # dependencies for parallel build
 aging:		libeffecttv
+burn:		libeffecttv
 dot:		libeffecttv
 holo:		libeffecttv
 motion2point:	downsample motion
