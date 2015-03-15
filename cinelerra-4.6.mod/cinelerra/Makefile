@@ -296,6 +296,7 @@ OBJS = \
 	$(OBJDIR)/scenegraph.o \
 	$(OBJDIR)/scopewindow.o \
 	$(OBJDIR)/setformat.o \
+	$(OBJDIR)/sha1.o \
 	$(OBJDIR)/sharedlocation.o \
 	$(OBJDIR)/shmemory.o \
 	$(OBJDIR)/sighandler.o \
@@ -890,6 +891,7 @@ $(OBJDIR)/savefile.o: 				  savefile.C
 $(OBJDIR)/scopewindow.o:                          scopewindow.C
 $(OBJDIR)/scenegraph.o:                           scenegraph.C
 $(OBJDIR)/setformat.o:                            setformat.C
+$(OBJDIR)/sha1.o: 				  sha1.C
 $(OBJDIR)/sharedlocation.o: 			  sharedlocation.C
 $(OBJDIR)/shmemory.o: 				  shmemory.C
 $(OBJDIR)/sighandler.o:                           sighandler.C

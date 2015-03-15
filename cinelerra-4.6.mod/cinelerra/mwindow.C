@@ -87,6 +87,7 @@
 #include "removefile.h"
 #include "render.h"
 #include "samplescroll.h"
+#include "sha1.h"
 #include "sighandler.h"
 #include "splashgui.h"
 #include "statusbar.h"
@@ -111,7 +112,7 @@
 #include "zoombar.h"
 
 #include <string.h>
-
+#include <sys/stat.h>
 
 
 extern "C"
@@ -3085,10 +3086,35 @@ void MWindow::dump_undo(FILE *fp)
 	undo->dump(fp);
 }
 
+void MWindow::dump_exe(FILE *fp)
+{
+        char proc_path[BCTEXTLEN], exe_path[BCTEXTLEN];
+        sprintf(proc_path, "/proc/%d/exe", (int)getpid());
+        int len = readlink(proc_path, exe_path, sizeof(exe_path));
+	if( len < 0 ) { fprintf(fp,"readlink: %m\n"); return; }
+	exe_path[len] = 0;
+	struct stat st;
+	if( stat(exe_path,&st) ) { fprintf(fp,"stat: %m\n"); return; }
+	fprintf(fp, "path: %s = %9jd bytes\n",exe_path,st.st_size);
+	int fd = open(exe_path,O_RDONLY);
+	if( fd < 0 ) { fprintf(fp,"open: %m\n"); return; }
+	uint8_t buf[65536];  SHA1 sha1;
+	while( (len=read(fd,buf,sizeof(buf))) > 0 ) {
+		sha1.addBytes(buf, len);
+	}
+	close(fd);
+	fprintf(fp, "SHA1: ");
+	uint8_t digest[20];  sha1.computeHash(digest);
+	for( int i=0; i<20; ++i ) fprintf(fp, "%02x", digest[i]);
+	fprintf(fp, "\n");
+}
+
 
 void MWindow::trap_hook(FILE *fp, void *vp)
 {
 	MWindow *mwindow = (MWindow *)vp;
+	fprintf(fp, "\nEXE:\n");
+	mwindow->dump_exe(fp);
 	fprintf(fp, "\nPLUGINS:\n");
 	mwindow->dump_plugins(fp);
 	fprintf(fp, "\nEDL:\n");

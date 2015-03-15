@@ -463,6 +463,7 @@ public:
 	void dump_plugins(FILE *fp=stdout);
 	void dump_edl(FILE *fp=stdout);
 	void dump_undo(FILE *fp=stdout);
+	void dump_exe(FILE *fp=stdout);
 	static void trap_hook(FILE *fp, void *vp);
 	
 	
