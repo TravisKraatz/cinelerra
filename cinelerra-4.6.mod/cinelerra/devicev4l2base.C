@@ -209,7 +209,7 @@ int DeviceV4L2Base::get_sources()
 	VideoDevice *video_device = v4l2_device();
 	if( !video_device ) return 1;
 	const char *dev_path = video_device->in_config->get_path();
-	int vfd = open(dev_path, O_RDWR);
+	int vfd = open(dev_path, O_RDWR+O_CLOEXEC);
 	if(vfd < 0)
 	{
 		perror("DeviceV4L2Base::get_sources open failed");
@@ -747,6 +747,21 @@ unsigned int DeviceV4L2Base::cmodel_to_device(int color_model)
 	return 0;
 }
 
+DeviceV4L2VFrame::DeviceV4L2VFrame(int dev_fd, unsigned long ofs, unsigned long sz)
+{
+	dev_data = (unsigned char*)mmap(NULL, dev_size=sz,
+		PROT_READ | PROT_WRITE, MAP_SHARED, dev_fd, ofs);
+	if(dev_data == MAP_FAILED) {
+		perror("DeviceV4L2VFrame::DeviceV4L2VFrame: mmap");
+		dev_data = 0;
+	}
+}
+
+
+DeviceV4L2VFrame::~DeviceV4L2VFrame()
+{
+	munmap(dev_data, dev_size);
+}
 
 int DeviceV4L2Base::start_dev()
 {
@@ -760,7 +775,7 @@ int DeviceV4L2Base::start_dev()
 
 	struct v4l2_requestbuffers requestbuffers;
 	memset(&requestbuffers, 0, sizeof(requestbuffers));
-printf("DeviceV4L2Base::start_dev requested %d buffers\n", req_buffers);
+//printf("DeviceV4L2Base::start_dev requested %d buffers\n", req_buffers);
 	requestbuffers.count = req_buffers;
 	requestbuffers.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	requestbuffers.memory = V4L2_MEMORY_MMAP;
@@ -769,15 +784,15 @@ printf("DeviceV4L2Base::start_dev requested %d buffers\n", req_buffers);
 		perror("DeviceV4L2Base::start_dev VIDIOC_REQBUFS");
 		return 1;
 	}
-	total_buffers = requestbuffers.count;
-printf("DeviceV4L2Base::start_dev got %d buffers\n", total_buffers);
-	device_buffers = new VFrame *[total_buffers];
-	memset(device_buffers, 0, total_buffers*sizeof(device_buffers[0]));
+	int bfr_count = requestbuffers.count;
+//printf("DeviceV4L2Base::start_dev got %d buffers\n", bfr_count);
+	device_buffers = new DeviceV4L2VFrame *[bfr_count];
+	memset(device_buffers, 0, bfr_count*sizeof(device_buffers[0]));
 
 //printf("DeviceV4L2Base::start_dev color_model=%d\n", color_model);
 	int iwidth = video_device->in_config->w;
 	int iheight = video_device->in_config->h;
-	int y_offset = 0, line_size = 0;
+	int y_offset = 0, line_size = -1;
 	int u_offset = 0, v_offset = 0;
 
 	if(color_model != BC_COMPRESSED)
@@ -797,7 +812,8 @@ printf("DeviceV4L2Base::start_dev got %d buffers\n", total_buffers);
 		}
 	}
 
-	for(int i = 0; i < total_buffers; i++)
+	total_buffers = 0;
+	for(int i = 0; i < bfr_count; i++)
 	{
 		struct v4l2_buffer buffer;
 		memset(&buffer, 0, sizeof(buffer));
@@ -806,27 +822,19 @@ printf("DeviceV4L2Base::start_dev got %d buffers\n", total_buffers);
 		if(vioctl(VIDIOC_QUERYBUF, &buffer) < 0)
 		{
 			perror("DeviceV4L2Base::start_dev VIDIOC_QUERYBUF");
-			return 1;
-		}
-		long buffer_size = buffer.length;
-
-		unsigned char *data = (unsigned char*)mmap(NULL, buffer_size,
-			PROT_READ | PROT_WRITE, MAP_SHARED,
-			dev_fd, buffer.m.offset);
-		if(data == MAP_FAILED)
-		{
-			perror("DeviceV4L2Base::start_dev mmap");
-			return 1;
+			continue;
 		}
 
-		VFrame *frame = new VFrame;
-		device_buffers[i] = frame;
-
+		DeviceV4L2VFrame *dframe =
+			new DeviceV4L2VFrame(dev_fd, buffer.m.offset, buffer.length);
+		unsigned char *data = dframe->get_dev_data();
+		if( !data ) continue;
+		device_buffers[total_buffers++] = dframe;
 		if(color_model != BC_COMPRESSED)
-			frame->reallocate(data, 0, y_offset, u_offset, v_offset,
+			dframe->reallocate(data, 0, y_offset, u_offset, v_offset,
 				iwidth, iheight, color_model, line_size);
 		else
-			frame->set_compressed_memory(data, 0, 0, buffer_size);
+			dframe->set_compressed_memory(data, 0, 0, dframe->get_dev_size());
 	}
 
 	q_bfrs = 0;
@@ -841,7 +849,7 @@ printf("DeviceV4L2Base::start_dev got %d buffers\n", total_buffers);
 		if(vioctl(VIDIOC_QBUF, &buffer) < 0)
 		{
 			perror("DeviceV4L2Base::start_dev VIDIOC_QBUF");
-			return 1;
+			continue;
 		}
 		++q_bfrs;
 	}
@@ -869,15 +877,15 @@ int DeviceV4L2Base::stop_dev()
 
 	for( int i = 0; i < total_buffers; i++ )
 	{
-		VFrame *frame = device_buffers[i];
-		unsigned char *data = frame->get_data();
-		if( !data ) continue;
-		long buffer_size = color_model == BC_COMPRESSED ?
-			frame->get_compressed_allocated() :
-			frame->get_data_size();
-		munmap(data, buffer_size);
-		delete frame;
+		delete device_buffers[i];
 	}
+
+	struct v4l2_requestbuffers requestbuffers;
+	memset(&requestbuffers, 0, sizeof(requestbuffers));
+	requestbuffers.count = 0;
+	requestbuffers.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	requestbuffers.memory = V4L2_MEMORY_MMAP;
+	vioctl(VIDIOC_REQBUFS, &requestbuffers);
 
 	delete [] device_buffers;
 	device_buffers = 0;

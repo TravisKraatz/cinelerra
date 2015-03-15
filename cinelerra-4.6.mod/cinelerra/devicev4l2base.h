@@ -28,6 +28,7 @@
 #include "devicev4l2base.inc"
 #include "mutex.inc"
 #include "thread.h"
+#include "vframe.h"
 #include "videodevice.inc"
 
 class DeviceV4L2BufferQ
@@ -63,6 +64,17 @@ public:
 	}
 };
 
+class DeviceV4L2VFrame : public VFrame {
+	unsigned char *dev_data;
+	unsigned long dev_size;
+public:
+	unsigned char *get_dev_data() { return dev_data; }
+	unsigned long get_dev_size() { return dev_size; }
+
+	DeviceV4L2VFrame(int dev_fd, unsigned long ofs, unsigned long sz);
+	~DeviceV4L2VFrame();
+};
+
 class DeviceV4L2Base : public Thread
 {
 	friend class DeviceV4L2Put;
@@ -71,7 +83,7 @@ class DeviceV4L2Base : public Thread
 // Some of the drivers in 2.6.7 can't handle simultaneous QBUF and DQBUF calls.
         Mutex *qbfrs_lock;
 	Condition *video_lock;
-        VFrame **device_buffers;
+	DeviceV4L2VFrame **device_buffers;
         Channel *device_channel;
         DeviceV4L2BufferQ *getq;
 
