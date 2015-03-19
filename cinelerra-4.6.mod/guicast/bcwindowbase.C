@@ -1823,7 +1823,7 @@ int BC_WindowBase::show_tooltip(int w, int h)
 		int top_x = top_level->get_x();
 		if( x < top_x ) x = top_x;
 		int top_w = top_x + top_level->get_w();
-		int lmt_w = top_level->get_screen_w(0, -1);
+		int lmt_w = top_level->get_screen_x(0, -1) + top_level->get_screen_w(0, -1);
 		if( top_w < lmt_w ) lmt_w = top_w;
 		if( x+w > lmt_w ) x = lmt_w-w;
 		if( x < 0 ) x = 0;
@@ -3490,7 +3490,7 @@ int BC_WindowBase::get_screen_w(int lock_display, int screen)
 			result = width;
 	}
 	else
-		result = info->x_org + info->width;
+		result = info->width;
 	if(lock_display) unlock_window();
 	return result;
 }
@@ -3499,7 +3499,7 @@ int BC_WindowBase::get_screen_h(int lock_display, int screen)
 {
 	if(lock_display) lock_window("BC_WindowBase::get_screen_h");
 	XineramaScreenInfo *info = top_level->get_xinerama_info(screen);
-	int result = info ? info->y_org + info->height : get_root_h(0);
+	int result = info ? info->height : get_root_h(0);
 	if(lock_display) unlock_window();
 	return result;
 }
