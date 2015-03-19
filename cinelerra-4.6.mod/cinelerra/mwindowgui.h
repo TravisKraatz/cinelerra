@@ -22,6 +22,7 @@
 #ifndef MAINWINDOWGUI_H
 #define MAINWINDOWGUI_H
 
+#include "androidcontrol.inc"
 #include "channelinfo.inc"
 #include "cwindow.inc"
 #include "editpopup.inc"
@@ -119,6 +120,8 @@ public:
 	int resize_event(int w, int h);          // handle a resize event
 	int keypress_event();
 	int keyboard_listener(BC_WindowBase *wp);
+	int keyboard_listener(int key);
+	void use_android_remote(int on);
 	int close_event();
 	int quit();
 	void stop_drawing();
@@ -211,6 +214,7 @@ public:
 //	TrackCanvas *canvas;
 
 // remote control
+	AndroidControl *android_control;
 	RemoteControl *remote_control;
 	CWindowRemoteHandler *cwindow_remote_handler;
 	RecordRemoteHandler *record_remote_handler;

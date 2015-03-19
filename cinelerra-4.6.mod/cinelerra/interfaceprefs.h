@@ -284,4 +284,28 @@ public:
 	PreferencesWindow *pwindow;
 };
 
+class AndroidRemote : public BC_CheckBox
+{
+public:
+	AndroidRemote(PreferencesWindow *pwindow, int x, int y);
+	int handle_event();
+	PreferencesWindow *pwindow;
+};
+
+class AndroidPIN : public BC_TextBox
+{
+public:
+	PreferencesWindow *pwindow;
+	int handle_event();
+	AndroidPIN(PreferencesWindow *pwindow, int x, int y);
+};
+
+class AndroidPort : public BC_TextBox
+{
+public:
+	PreferencesWindow *pwindow;
+	int handle_event();
+	AndroidPort(PreferencesWindow *pwindow, int x, int y);
+};
+
 #endif

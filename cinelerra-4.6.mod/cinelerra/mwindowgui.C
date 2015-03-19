@@ -19,6 +19,7 @@
  * 
  */
 
+#include "androidcontrol.h"
 #include "awindowgui.h"
 #include "awindow.h"
 #include "bcdisplayinfo.h"
@@ -119,11 +120,13 @@ MWindowGUI::MWindowGUI(MWindow *mwindow)
 	remote_control = 0;
 	cwindow_remote_handler = 0;
 	record_remote_handler = 0;
+	android_control = 0;
 }
 
 
 MWindowGUI::~MWindowGUI()
 {
+	delete android_control;
 	delete cwindow_remote_handler;
 	delete record_remote_handler;
 	delete remote_control;
@@ -251,6 +254,7 @@ void MWindowGUI::create_objects()
 	remote_control = new RemoteControl(this);
 	cwindow_remote_handler = new CWindowRemoteHandler(remote_control);
 	record_remote_handler = new RecordRemoteHandler(remote_control);
+	mwindow->reset_android_remote();
 	
 	if(debug) printf("MWindowGUI::create_objects %d\n", __LINE__);
 
@@ -1316,8 +1320,12 @@ int MWindowGUI::keypress_event()
 
 int MWindowGUI::keyboard_listener(BC_WindowBase *wp)
 {
+	return keyboard_listener(wp->get_keypress());
+}
+
+int MWindowGUI::keyboard_listener(int key)
+{
 	int result = 1;
-	int key = wp->get_keypress();
 	switch( key ) {
 	case KPTV:
 		if( !record->running() )
@@ -1340,6 +1348,18 @@ int MWindowGUI::keyboard_listener(BC_WindowBase *wp)
 		break;
 	}
 	return result;
+}
+
+
+void MWindowGUI::use_android_remote(int on)
+{
+	if( !on ) {
+		delete android_control;
+		android_control = 0;
+		return;
+	}
+	if( android_control ) return;
+	android_control = new AndroidControl(this);
 }
 
 int MWindowGUI::close_event() 
@@ -2243,8 +2263,6 @@ void MWindowGUI::draw_trackmovement()
 	update_patchbay();
 	flash_canvas(1);
 }
-
-
 
 
 

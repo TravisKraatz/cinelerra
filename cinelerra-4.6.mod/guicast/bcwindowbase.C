@@ -910,6 +910,12 @@ int BC_WindowBase::keysym_lookup(XEvent *event)
 	for( int i = 0; i < KEYPRESSLEN; ++i ) keys_return[i] = 0;
 	for( int i = 0; i < 4; ++i ) wkey_string[i] = 0;
 
+	if( event->xany.send_event && !event->xany.serial ) {
+		keysym = (KeySym) event->xkey.keycode;
+		keys_return[0] = keysym;
+		return 0;
+	}
+
 	wkey_string_length = XwcLookupString(input_context,
 		(XKeyEvent*)event, wkey_string, 4, &keysym, 0);
 //printf("keysym_lookup 1 %d %d %lx %x %x %x %x\n", wkey_string_length, keysym,

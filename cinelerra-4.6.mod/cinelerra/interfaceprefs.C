@@ -100,7 +100,6 @@ void InterfacePrefs::create_objects()
 		pwindow->thread->edl->session->time_format == TIME_SECONDS, 
 		x, y));
 
-
 	y += 35;
 	add_subwindow(new UseTipWindow(pwindow, x, y));
 
@@ -150,9 +149,22 @@ void InterfacePrefs::create_objects()
 
 	add_subwindow(new BC_Title(x, y, _("Editing"), LARGEFONT, resources->text_default));
 
-
 	y += 35;
+
 	add_subwindow(thumbnails = new ViewThumbnails(x, y, pwindow));
+
+	int x2 = x + 320, y2 = y;
+	AndroidRemote *android_remote = new AndroidRemote(pwindow, x2, y2);
+	add_subwindow(android_remote);
+	y2 += android_remote->get_h() + 10;
+	add_subwindow(title = new BC_Title(x2, y2, _("Port:")));
+	int x3 = x2 + title->get_w() + margin;
+	AndroidPort *android_port = new AndroidPort(pwindow, x3, y2);
+	add_subwindow(android_port);
+	y2 += title->get_h() + 10;
+	add_subwindow(title = new BC_Title(x2, y2, _("PIN:")));
+	AndroidPIN *android_pin = new AndroidPIN(pwindow, x3, y2);
+	add_subwindow(android_pin);
 
 	y += 35;
 	add_subwindow(new BC_Title(x, y, _("Clicking on edit boundaries does what:")));
@@ -644,4 +656,49 @@ int ScanCommercials::handle_event()
 }
 
 
+AndroidRemote::AndroidRemote(PreferencesWindow *pwindow, int x, int y)
+ : BC_CheckBox(x, y, 
+	pwindow->thread->preferences->android_remote, 
+	_("Android Remote Control"))
+{
+	this->pwindow = pwindow;
+}
+int AndroidRemote::handle_event()
+{
+	pwindow->thread->preferences->android_remote = get_value();
+	return 1;
+}
+
+
+AndroidPIN::AndroidPIN(PreferencesWindow *pwindow, int x, int y)
+ : BC_TextBox(x, y, 240, 1, pwindow->thread->preferences->android_pin)
+{
+	this->pwindow = pwindow;
+}
+
+int AndroidPIN::handle_event()
+{
+	char *txt = pwindow->thread->preferences->android_pin;
+	int len = sizeof(pwindow->thread->preferences->android_pin);
+	strncpy(txt, get_text(), len);
+	return 1;
+}
+
+
+AndroidPort::AndroidPort(PreferencesWindow *pwindow, int x, int y)
+ : BC_TextBox(x, y, 72, 1, pwindow->thread->preferences->android_port)
+{
+	this->pwindow = pwindow;
+}
+
+int AndroidPort::handle_event()
+{
+	unsigned short port = atoi(get_text());
+	if( port < 1024 ) port = 1024;
+	pwindow->thread->preferences->android_port = port;
+	char str[BCSTRLEN];
+	sprintf(str,"%u",port);
+	update(str);
+	return 1;
+}
 

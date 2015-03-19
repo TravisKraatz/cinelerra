@@ -2296,6 +2296,11 @@ void MWindow::age_caches()
 	}
 }
 
+void MWindow::reset_android_remote()
+{
+	gui->use_android_remote(preferences->android_remote);
+}
+
 
 void MWindow::show_keyframe_gui(Plugin *plugin)
 {

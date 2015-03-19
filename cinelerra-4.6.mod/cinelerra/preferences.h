@@ -132,7 +132,10 @@ public:
 	int use_tipwindow;
 // Scan for commercials
 	int scan_commercials;
-
+// Android remote control
+	int android_remote;
+	int android_port;
+	char android_pin[BCSTRLEN];
 
 // ====================================== Plugin Set ==============================
 	char plugin_dir[BCTEXTLEN];

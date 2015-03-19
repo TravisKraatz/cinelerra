@@ -208,6 +208,8 @@ int PreferencesThread::apply_settings()
 	else
 		MWindow::finit_fileserver();
 
+	mwindow->reset_android_remote();
+
 //edl->session->recording_format->dump();
 //mwindow->edl->session->recording_format->dump();
 

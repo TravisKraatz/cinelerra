@@ -104,6 +104,10 @@ Preferences::Preferences()
 	use_tipwindow = 1;
 	scan_commercials = 0;
 
+	android_remote = 0;
+	android_port = 23432;
+	strcpy(android_pin, "cinelerra");
+
 	for(int i = 0; i < MAXCHANNELS; i++)
 	{
 		for(int j = 0; j < i + 1; j++)
@@ -170,7 +174,9 @@ void Preferences::copy_from(Preferences *that)
 
 	use_tipwindow = that->use_tipwindow;
 	scan_commercials = that->scan_commercials;
-
+	android_remote = that->android_remote;
+	android_port = that->android_port;
+	strcpy(android_pin, that->android_pin);
 	cache_size = that->cache_size;
 	force_uniprocessor = that->force_uniprocessor;
 	trap_sigsegv = that->trap_sigsegv;
@@ -281,6 +287,9 @@ int Preferences::load_defaults(BC_Hash *defaults)
 
 	use_tipwindow = defaults->get("USE_TIPWINDOW", use_tipwindow);
 	scan_commercials = defaults->get("SCAN_COMMERCIALS", scan_commercials);
+	android_remote = defaults->get("ANDROID_REMOTE", android_remote);
+	android_port = defaults->get("ANDROID_PORT", android_port);
+	defaults->get("ANDROID_PIN", android_pin);
 	defaults->get("INDEX_DIRECTORY", index_directory);
 	index_size = defaults->get("INDEX_SIZE", index_size);
 	index_count = defaults->get("INDEX_COUNT", index_count);
@@ -378,6 +387,9 @@ int Preferences::save_defaults(BC_Hash *defaults)
 
 	defaults->update("USE_TIPWINDOW", use_tipwindow);
 	defaults->update("SCAN_COMMERCIALS", scan_commercials);
+	defaults->update("ANDROID_REMOTE", android_remote);
+	defaults->update("ANDROID_PIN", android_pin);
+	defaults->update("ANDROID_PORT", android_port);
 
 	defaults->update("CACHE_SIZE", cache_size);
 	defaults->update("INDEX_DIRECTORY", index_directory);

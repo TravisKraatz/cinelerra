@@ -68,6 +68,7 @@ OBJS = \
 	$(OBJDIR)/aedits.o \
 	$(OBJDIR)/affine.o \
 	$(OBJDIR)/amodule.o \
+	$(OBJDIR)/androidcontrol.o \
 	$(OBJDIR)/apatchgui.o \
 	$(OBJDIR)/aplugin.o \
 	$(OBJDIR)/apluginarray.o \
@@ -645,6 +646,7 @@ $(OBJDIR)/aedit.o: 				  aedit.C
 $(OBJDIR)/aedits.o: 				  aedits.C
 $(OBJDIR)/affine.o: 				  affine.C
 $(OBJDIR)/amodule.o: 				  amodule.C
+$(OBJDIR)/androidcontrol.o:			  androidcontrol.C
 $(OBJDIR)/apanel.o: 				  apanel.C
 $(OBJDIR)/apatchgui.o:  			  apatchgui.C
 $(OBJDIR)/aplugin.o: 				  aplugin.C

@@ -466,13 +466,13 @@ public:
 	void dump_exe(FILE *fp=stdout);
 	static void trap_hook(FILE *fp, void *vp);
 	
+	void reset_android_remote();
 	
 	
 
 // Send new EDL to caches
 	void age_caches();
 	int optimize_assets();            // delete unused assets from the cache and assets
-
 
 	void select_point(double position);
 	int set_loop_boundaries();         // toggle loop playback and set boundaries for loop playback
