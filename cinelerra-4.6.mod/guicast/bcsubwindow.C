@@ -23,8 +23,8 @@
 
 
 
-BC_SubWindow::BC_SubWindow(int x, int y, int w, int h, int bg_color)
- : BC_WindowBase()
+BC_SubWindow::BC_SubWindow(int x, int y, int w, int h, int bg_color, int opts)
+ : BC_WindowBase(opts)
 {
 	this->x = x; 
 	this->y = y; 
@@ -40,22 +40,10 @@ BC_SubWindow::~BC_SubWindow()
 
 int BC_SubWindow::initialize()
 {
-	create_window(parent_window, 
-			"Sub Window", 
-			x, 
-			y, 
-			w, 
-			h, 
-			0, 
-			0, 
-			0, 
-			0, 
-			1, 
-			bg_color, 
-			NULL, 
-			SUB_WINDOW, 
-			0,
-			0);
+	create_window(parent_window, "Sub Window", 
+			x, y, w, h, 0, 0, 0, 0, 1,
+			bg_color, NULL, SUB_WINDOW, 
+			0, 0);
 	return 0;
 }
 

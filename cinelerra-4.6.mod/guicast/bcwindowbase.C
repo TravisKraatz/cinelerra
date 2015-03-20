@@ -87,8 +87,9 @@ Window XGroupLeader = 0;
 Mutex BC_KeyboardHandlerLock::keyboard_listener_mutex("keyboard_listener",0);
 ArrayList<BC_KeyboardHandler*> BC_KeyboardHandler::listeners;
 
-BC_WindowBase::BC_WindowBase()
+BC_WindowBase::BC_WindowBase(int opts)
 {
+	this->options = opts;
 //printf("BC_WindowBase::BC_WindowBase 1\n");
 	BC_WindowBase::initialize();
 }
@@ -134,15 +135,13 @@ BC_WindowBase::~BC_WindowBase()
 		delete subwindows;
 	}
 
-	if(widgetgrids)
-	{
-                while (widgetgrids->total)
-                {
+	if(widgetgrids) {
+		while (widgetgrids->total) {
 			delete widgetgrids->last();
 			widgetgrids->remove();
-                }
-                delete widgetgrids;
-        }
+		}
+		delete widgetgrids;
+	}
 
 
 	delete pixmap;
@@ -388,8 +387,7 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 				const char *display_name,
 				int window_type,
 				BC_Pixmap *bg_pixmap,
-				int group_it,
-				int options)
+				int group_it)
 {
 	XSetWindowAttributes attr;
 	unsigned long mask;
@@ -397,7 +395,7 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 	int root_w;
 	int root_h;
 #ifdef HAVE_LIBXXF86VM
-    int vm;
+	int vm;
 #endif
 
 	id = get_resources()->get_id();
@@ -467,26 +465,11 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 		root_h = get_root_h(0);
 
 #if HAVE_GL
-		GLXFBConfig *fb_cfgs = glx_window_fb_configs();
-		XVisualInfo *vis_info = 0;
-		if( fb_cfgs ) {
-			for( int i=0; !vis_info && i<n_fbcfgs_window; ++i ) {
-				if( vis_info ) { XFree(vis_info);  vis_info = 0; }
-				glx_fb_config = fb_cfgs[i];
-				vis_info = glXGetVisualFromFBConfig(display, glx_fb_config);
-			}
-		}
-		if( vis_info ) {
-			vis = vis_info->visual;
-			XFree(vis_info);
-		}
-		else {
-			glx_fb_config = 0;
-			vis = DefaultVisual(display, screen);
-		}
-#else
-		vis = DefaultVisual(display, screen);
+		vis = get_glx_visual(display);
+		if( !vis )
 #endif
+			vis = DefaultVisual(display, screen);
+
 		default_depth = DefaultDepth(display, screen);
 
 		client_byte_order = (*(const u_int32_t*)"a   ") & 0x00000001;
@@ -535,8 +518,8 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			top_level->default_depth, InputOutput,
 			vis, mask, &attr);
 #if HAVE_GL
-		if( glx_fb_config )
-			glx_win = glXCreateWindow(display, glx_fb_config, win, 0);
+		if(options & WINDOW_GLX)
+			glx_win = glx_create_window();
 #endif
 		XGetNormalHints(display, win, &size_hints);
 
@@ -595,17 +578,17 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 	}
 
 #ifdef HAVE_LIBXXF86VM
-    if(window_type == VIDMODE_SCALED_WINDOW && vm != -1)
-    {
-	    scale_vm (vm);
-	    vm_switched = 1;
-    }
+	if(window_type == VIDMODE_SCALED_WINDOW && vm != -1)
+	{
+		scale_vm (vm);
+		vm_switched = 1;
+	}
 #endif
 
 #ifdef HAVE_LIBXXF86VM
-    if(window_type == POPUP_WINDOW || window_type == VIDMODE_SCALED_WINDOW)
+	if(window_type == POPUP_WINDOW || window_type == VIDMODE_SCALED_WINDOW)
 #else
-    if(window_type == POPUP_WINDOW)
+	if(window_type == POPUP_WINDOW)
 #endif
 	{
 		mask = CWEventMask | CWBackPixel | CWColormap |
@@ -631,8 +614,8 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			top_level->default_depth, InputOutput, top_level->vis, mask,
 			&attr);
 #if HAVE_GL
-		if( top_level->glx_fb_config )
-			glx_win = glXCreateWindow(get_display(), top_level->glx_fb_config, win, 0);
+		if(options & WINDOW_GLX)
+			glx_win = glx_create_window();
 #endif
 		top_level->add_popup(this);
 	}
@@ -651,8 +634,8 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			top_level->default_depth, InputOutput, top_level->vis, mask,
 			&attr);
 #if HAVE_GL
-		if( top_level->glx_fb_config )
-			glx_win = glXCreateWindow(get_display(), top_level->glx_fb_config, win, 0);
+		if(options & WINDOW_GLX)
+			glx_win = glx_create_window();
 #endif
 		init_window_shape();
 		if(!hidden) XMapWindow(top_level->display, win);
@@ -684,9 +667,9 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 
 // Set up options for popup window
 #ifdef HAVE_LIBXXF86VM
-    if(window_type == POPUP_WINDOW || window_type == VIDMODE_SCALED_WINDOW)
+	if(window_type == POPUP_WINDOW || window_type == VIDMODE_SCALED_WINDOW)
 #else
-    if(window_type == POPUP_WINDOW)
+	if(window_type == POPUP_WINDOW)
 #endif
 	{
 		init_window_shape();
@@ -703,20 +686,16 @@ Display* BC_WindowBase::init_display(const char *display_name)
 	Display* display;
 
 	if(display_name && display_name[0] == 0) display_name = NULL;
-	if((display = XOpenDisplay(display_name)) == NULL)
-	{
+	if((display = XOpenDisplay(display_name)) == NULL) {
   		printf("BC_WindowBase::init_display: cannot connect to X server %s\n",
 			display_name);
-  		if(getenv("DISPLAY") == NULL)
-    	{
+  		if(getenv("DISPLAY") == NULL) {
 			printf("'DISPLAY' environment variable not set.\n");
   			exit(1);
 		}
-		else
+		else {
 // Try again with default display.
-		{
-			if((display = XOpenDisplay(0)) == NULL)
-			{
+			if((display = XOpenDisplay(0)) == NULL) {
 				printf("BC_WindowBase::init_display: cannot connect to default X server.\n");
 				exit(1);
 			}
@@ -953,7 +932,7 @@ int BC_WindowBase::dispatch_event(XEvent *event)
 	{
 		event = get_event();
 // Lock out window deletions
-        lock_window("BC_WindowBase::dispatch_event 1");
+		lock_window("BC_WindowBase::dispatch_event 1");
 locking_event = event->type;
 locking_task = pthread_self();
 locking_message = event->xclient.message_type;
@@ -1921,7 +1900,7 @@ int BC_WindowBase::set_repeat(int64_t duration)
 	BC_Repeater *repeater = new BC_Repeater(this, duration);
 	repeater->initialize();
 	repeaters.append(repeater);
-    repeater->start_repeating();
+	repeater->start_repeating();
 #endif
 	return 0;
 }
@@ -2050,7 +2029,7 @@ void BC_WindowBase::init_cursors()
 	Pixmap pixmap_bottom = XCreateBitmapFromData(display,
 		rootwin, cursor_data, 8, 8);
 	XColor black, dummy;
-    XAllocNamedColor(display, colormap, "black", &black, &dummy);
+	XAllocNamedColor(display, colormap, "black", &black, &dummy);
 	transparent_cursor = XCreatePixmapCursor(display,
 		pixmap_bottom, pixmap_bottom, &black, &black, 0, 0);
 //	XDefineCursor(display, win, transparent_cursor);
@@ -2236,12 +2215,8 @@ int BC_WindowBase::init_window_shape()
 	if(bg_pixmap && bg_pixmap->use_alpha())
 	{
 		XShapeCombineMask(top_level->display,
-    		this->win,
-    		ShapeBounding,
-    		0,
-    		0,
-    		bg_pixmap->get_alpha(),
-    		ShapeSet);
+			this->win, ShapeBounding, 0, 0,
+			bg_pixmap->get_alpha(), ShapeSet);
 	}
 	return 0;
 }
@@ -2554,16 +2529,12 @@ void BC_WindowBase::set_inverse()
 void BC_WindowBase::set_line_width(int value)
 {
 	this->line_width = value;
-	XSetLineAttributes(top_level->display,
-		top_level->gc,
-    	value,	/* line_width */
-    	line_dashes == 0 ? LineSolid : LineOnOffDash,			/* line_style */
-    	line_dashes == 0 ? CapRound : CapNotLast,			/* cap_style */
-    	JoinMiter			/* join_style */
-		);
+	XSetLineAttributes(top_level->display, top_level->gc, value,	/* line_width */
+		line_dashes == 0 ? LineSolid : LineOnOffDash,		/* line_style */
+		line_dashes == 0 ? CapRound : CapNotLast,		/* cap_style */
+		JoinMiter);						/* join_style */
 
-	if(line_dashes > 0)
-	{
+	if(line_dashes > 0) {
 		const char dashes = line_dashes;
 		XSetDashes(top_level->display, top_level->gc, 0, &dashes, 1);
 	}
@@ -2951,10 +2922,9 @@ int BC_WindowBase::get_text_descent(int font)
 	if(fstruct = get_xft_struct(font))
 		return fstruct->descent;
 #endif
-	if(get_resources()->use_fontset && top_level->get_fontset(font))
-	{
+	if(get_resources()->use_fontset && top_level->get_fontset(font)) {
 		XFontSetExtents *extents;
-        	extents = XExtentsOfFontSet(top_level->get_fontset(font));
+		extents = XExtentsOfFontSet(top_level->get_fontset(font));
 	        return (extents->max_logical_extent.height
 			+ extents->max_logical_extent.y);
 	}
@@ -3061,8 +3031,8 @@ int BC_WindowBase::grab_port_id(BC_WindowBase *window, int color_model)
 {
 	int numFormats, i, j, k;
 	unsigned int ver, rev, numAdapt, reqBase, eventBase, errorBase;
-    XvAdaptorInfo *info;
-    XvImageFormatValues *formats;
+	XvAdaptorInfo *info;
+	XvImageFormatValues *formats;
 	int x_color_model;
 
 	if(!get_resources()->use_xvideo) return -1;
@@ -3074,25 +3044,22 @@ int BC_WindowBase::grab_port_id(BC_WindowBase *window, int color_model)
 	if(!resources.use_shm) return -1;
 
 // XV extension is available
-    if(Success != XvQueryExtension(window->display, &ver, &rev,
-				  &reqBase, &eventBase, &errorBase))
-    {
+	if(Success != XvQueryExtension(window->display, &ver, &rev,
+				  &reqBase, &eventBase, &errorBase)) {
 		return -1;
-    }
+	}
 
 // XV adaptors are available
 	XvQueryAdaptors(window->display,
 		DefaultRootWindow(window->display),
 		&numAdapt, &info);
 
-	if(!numAdapt)
-	{
+	if(!numAdapt) {
 		return -1;
 	}
 
 // Get adaptor with desired color model
-    for(i = 0; i < (int)numAdapt && xvideo_port_id == -1; i++)
-    {
+	for(i = 0; i < (int)numAdapt && xvideo_port_id == -1; i++) {
 /* adaptor supports XvImages */
 		if(info[i].type & XvImageMask)
 		{
@@ -3127,7 +3094,7 @@ int BC_WindowBase::grab_port_id(BC_WindowBase *window, int color_model)
 		}
 	}
 
-    XvFreeAdaptorInfo(info);
+	XvFreeAdaptorInfo(info);
 
 	return xvideo_port_id;
 }
@@ -4403,7 +4370,6 @@ int BC_WindowBase::get_id()
 {
 	return id;
 }
-
 
 
 

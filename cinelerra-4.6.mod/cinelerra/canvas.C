@@ -887,7 +887,7 @@ CanvasOutput::CanvasOutput(Canvas *canvas,
     int y,
     int w,
     int h)
- : BC_SubWindow(x, y, w, h, BLACK)
+ : BC_SubWindow(x, y, w, h, BLACK, WINDOW_GLX)
 {
 	this->canvas = canvas;
 }

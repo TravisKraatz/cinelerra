@@ -110,6 +110,7 @@ BC_Synchronous::BC_Synchronous()
 	next_command = new Condition(0, "BC_Synchronous::next_command", 0);
 	command_lock = new Mutex("BC_Synchronous::command_lock");
 	table_lock = new Mutex("BC_Synchronous::table_lock");
+	gl_lock = new Mutex("BC_Synchronous::gl_lock");
 	done = 0;
 	is_running = 0;
 	current_window = 0;
@@ -119,6 +120,20 @@ BC_Synchronous::BC_Synchronous()
 BC_Synchronous::~BC_Synchronous()
 {
 	commands.remove_all_objects();
+	delete next_command;
+	delete command_lock;
+	delete table_lock;
+	delete gl_lock;
+}
+
+void BC_Synchronous::sync_lock(const char *cp)
+{
+	gl_lock->lock(cp);
+}
+
+void BC_Synchronous::sync_unlock()
+{
+	gl_lock->unlock();
 }
 
 BC_SynchronousCommand* BC_Synchronous::new_command()
@@ -191,7 +206,7 @@ void BC_Synchronous::run()
 
 void BC_Synchronous::handle_command_base(BC_SynchronousCommand *command)
 {
-
+	sync_lock("BC_Synchronous::handle_command_base");
 	if(command)
 	{
 //printf("BC_Synchronous::handle_command_base 1 %d\n", command->command);
@@ -213,6 +228,7 @@ void BC_Synchronous::handle_command_base(BC_SynchronousCommand *command)
 	{
 		command->command_done->unlock();
 	}
+	sync_unlock();
 }
 
 void BC_Synchronous::handle_command(BC_SynchronousCommand *command)

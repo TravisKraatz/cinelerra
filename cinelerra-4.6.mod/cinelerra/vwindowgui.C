@@ -290,23 +290,27 @@ int VWindowGUI::translation_event()
 	return 0;
 }
 
-// int VWindowGUI::close_event()
-// {
-// // TODO: destroy window if not the default VWindow
-// 
-// 	hide_window();
-// 	mwindow->session->show_vwindow = 0;
-// 	unlock_window();
-// 	
-// 	
-// 	mwindow->gui->lock_window("VWindowGUI::close_event");
-// 	mwindow->gui->mainmenu->show_vwindow->set_checked(0);
-// 	mwindow->gui->unlock_window();
-// 
-// 	lock_window("VWindowGUI::close_event");
-// 	mwindow->save_defaults();
-// 	return 1;
-// }
+int VWindowGUI::close_event()
+{
+	hide_window();
+	int i = mwindow->vwindows.size();
+	while( --i >= 0 && mwindow->vwindows.get(i)->gui != this );
+	if( i > 0 ) {
+		set_done(0);
+		return 1; 
+	}
+
+	mwindow->session->show_vwindow = 0;
+	unlock_window();
+
+	mwindow->gui->lock_window("VWindowGUI::close_event");
+	mwindow->gui->mainmenu->show_vwindow->set_checked(0);
+	mwindow->gui->unlock_window();
+
+	lock_window("VWindowGUI::close_event");
+	mwindow->save_defaults();
+	return 1;
+}
 
 int VWindowGUI::keypress_event()
 {

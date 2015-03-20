@@ -41,7 +41,7 @@ BC_Window::BC_Window(const char *title,
 				const char *display_name,
 				int group_it,
 				int options)
- : BC_WindowBase()
+ : BC_WindowBase(options)
 {
 	create_window(0,
 				title,
@@ -60,8 +60,7 @@ BC_Window::BC_Window(const char *title,
 						0,
 				MAIN_WINDOW,
 				0,
-				group_it,
-				options);
+				group_it);
 }
 
 

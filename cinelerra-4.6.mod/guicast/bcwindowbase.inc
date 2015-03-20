@@ -33,8 +33,9 @@ class BC_WindowList;
 
 // Window options
 // Splash is not implemented
-#define WINDOW_SPLASH  0x80
-#define WINDOW_UTF8    0x01
+#define WINDOW_SPLASH  0x0080
+#define WINDOW_UTF8    0x0001
+#define WINDOW_GLX     0x0100
 
 // mouse wheel
 #define WHEEL_UP 4

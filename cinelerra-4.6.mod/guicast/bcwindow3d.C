@@ -90,6 +90,27 @@ GLXFBConfig *BC_WindowBase::glx_window_fb_configs()
 	return glx_fbcfgs_window;
 }
 
+Visual *BC_WindowBase::get_glx_visual(Display *display)
+{
+	Visual *visual = 0;
+	XVisualInfo *vis_info = 0;
+	GLXFBConfig *fb_cfgs = glx_window_fb_configs();
+	if( fb_cfgs ) {
+		for( int i=0; !vis_info && i<n_fbcfgs_window; ++i ) {
+			if( vis_info ) { XFree(vis_info);  vis_info = 0; }
+			glx_fb_config = fb_cfgs[i];
+			vis_info = glXGetVisualFromFBConfig(display, glx_fb_config);
+		}
+	}
+	if( vis_info ) {
+		visual = vis_info->visual;
+		XFree(vis_info);
+	}
+	else
+		glx_fb_config = 0;
+	return visual;
+}
+
 GLXFBConfig *BC_WindowBase::glx_pbuffer_fb_configs()
 {
 	static int msgs = 0;
@@ -147,6 +168,24 @@ GLXContext BC_WindowBase::glx_get_context()
 	return glx_win_context;
 }
 
+void BC_WindowBase::sync_lock(const char *cp)
+{
+	get_synchronous()->sync_lock(cp);
+}
+
+void BC_WindowBase::sync_unlock()
+{
+	get_synchronous()->sync_unlock();
+}
+
+GLXWindow BC_WindowBase::glx_create_window()
+{
+	sync_lock("BC_WindowbBase::glx_create_window");
+	GLXWindow gwin = glXCreateWindow(top_level->display, top_level->glx_fb_config, win, 0);
+	sync_unlock();
+	return gwin;
+}
+
 bool BC_WindowBase::glx_make_current(GLXDrawable draw, GLXContext glx_ctxt)
 {
 	return glXMakeContextCurrent(get_display(), draw, draw, glx_ctxt);
@@ -154,7 +193,7 @@ bool BC_WindowBase::glx_make_current(GLXDrawable draw, GLXContext glx_ctxt)
 
 bool BC_WindowBase::glx_make_current(GLXDrawable draw)
 {
-	return glXMakeContextCurrent(get_display(), draw, draw, glx_win_context);
+	return glx_make_current(draw, glx_win_context);
 }
 
 #endif

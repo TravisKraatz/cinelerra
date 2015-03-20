@@ -148,6 +148,7 @@ public:
 
 class BC_Synchronous : public Thread
 {
+	Mutex *gl_lock;
 public:
 	BC_Synchronous();
 	virtual ~BC_Synchronous();
@@ -165,6 +166,9 @@ public:
 	void create_objects();
 	void start();
 	void run();
+
+	void sync_lock(const char *cp=0);
+	void sync_unlock();
 
 	virtual BC_SynchronousCommand* new_command();
 // Handle extra commands not part of the base class.

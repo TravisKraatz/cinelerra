@@ -135,7 +135,7 @@ public:
 class BC_WindowBase : public BC_RelocatableWidget
 {
 public:
-	BC_WindowBase();
+	BC_WindowBase(int opts=0);
 	virtual ~BC_WindowBase();
 
 	friend class BC_Bar;
@@ -527,8 +527,7 @@ private:
 		const char *title, int x, int y, int w, int h,
 		int minw, int minh, int allow_resize, int private_color,
 		int hide, int bg_color, const char *display_name,
-		int window_type, BC_Pixmap *bg_pixmap, int group_it,
-		int options = 0);
+		int window_type, BC_Pixmap *bg_pixmap, int group_it);
 
 	static Display* init_display(const char *display_name);
 // Get display from top level
@@ -718,6 +717,7 @@ private:
 	BC_Popup *tooltip_popup;
 // If this subwindow has already shown a tooltip since the last EnterNotify
 	int tooltip_done;
+	int options;
 
 
 
@@ -770,6 +770,11 @@ private:
 	int n_fbcfgs_pbuffer;
 	GLXFBConfig *glx_fbcfgs_pixmap, *glx_pixmap_fb_configs();
 	int n_fbcfgs_pixmap;
+	Visual *get_glx_visual(Display *display);
+
+	void sync_lock(const char *cp);
+	void sync_unlock();
+	GLXWindow glx_create_window();
 
 // The first context to be created and the one whose texture id
 // space is shared with the other contexts.
@@ -781,6 +786,7 @@ private:
 	GLXContext glx_win_context;
 	GLXWindow glx_win;
 #endif
+
 	int window_lock;
 	GC gc;
 // Depth given by the X Server
