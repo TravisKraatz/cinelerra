@@ -83,7 +83,6 @@ OBJS = \
 	$(OBJDIR)/attachmentpoint.o \
 	$(OBJDIR)/audio1394.o \
 	$(OBJDIR)/audioalsa.o \
-	$(OBJDIR)/audiocine.o \
 	$(OBJDIR)/audiodevice.o \
 	$(OBJDIR)/audiodvb.o \
 	$(OBJDIR)/audioesound.o \
@@ -663,7 +662,6 @@ $(OBJDIR)/atrack.o: 				  atrack.C
 $(OBJDIR)/attachmentpoint.o: 			  attachmentpoint.C
 $(OBJDIR)/audio1394.o:  			  audio1394.C
 $(OBJDIR)/audioalsa.o:  			  audioalsa.C
-$(OBJDIR)/audiocine.o:                            audiocine.C
 $(OBJDIR)/audioconfig.o: 			  audioconfig.C
 $(OBJDIR)/audiodevice.o: 			  audiodevice.C
 $(OBJDIR)/audiodvb.o: 			    	  audiodvb.C
