@@ -29,6 +29,7 @@
 
 #include <limits.h>
 #include <stdio.h>
+#include <string.h>
 #include "config.h"
 #include "global.h"
 #include "cpu_accel.h"
@@ -1391,7 +1392,6 @@ static void fullsearch(motion_engine_t *engine,
 	int fh = h >> 1;
 	int qh = h >> 2;
 
-
 	/* xmax and ymax into more useful form... */
 	xmax -= 16;
 	ymax -= h;
@@ -1422,6 +1422,7 @@ static void fullsearch(motion_engine_t *engine,
 		 a basis for setting thresholds for rejecting really dud 4*4
 		 and 2*2 sub-sampled matches.
 	*/
+	memset(&best, 0, sizeof(best));
 	best.sad = (*pdist1_00)(ref + i0 + j0 * lx,
 		ssblk->mb,
 		lx,
@@ -3065,7 +3066,7 @@ void start_motion_engines()
 	motion_engines = calloc(1, sizeof(motion_engine_t) * processors);
 	for(i = 0; i < processors; i++)
 	{
-		motion_engines[i].start_row = current_row * i * 16;
+		motion_engines[i].start_row = current_row * 16;
 		current_row += rows_per_processor;
 		if(current_row > height2 / 16) current_row = height2 / 16;
 		motion_engines[i].end_row = current_row * 16;

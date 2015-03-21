@@ -477,7 +477,7 @@ int FileMPEG::open_file(int rd, int wr)
 // Construct command line
 			if(!result)
 			{
-				char string[BCTEXTLEN];
+				char string[BCTEXTLEN];  string[0] = 0;
 				sprintf(mjpeg_command, "%s%s", 
 					file->preferences->plugin_dir, HVPEG_EXE);
 				append_vcommand_line(string);
@@ -529,7 +529,6 @@ int FileMPEG::open_file(int rd, int wr)
 // mjpegtools encoder
 //  this one is cinelerra-x.x.x/thirdparty/mjpegtools/mpeg2enc
 		{
-			char string[BCTEXTLEN];
 			sprintf(mjpeg_command, "%s%s -v 0 ", 
 				file->preferences->plugin_dir, MJPEG_EXE);
 
@@ -545,6 +544,7 @@ int FileMPEG::open_file(int rd, int wr)
 
 // The current usage of mpeg2enc requires bitrate of 0 when quantization is fixed and
 // quantization of 1 when bitrate is fixed.  Perfectly intuitive.
+			char string[BCTEXTLEN];
 			if(asset->vmpeg_fix_bitrate)
 			{
 				sprintf(string, " -b %d -q 1", asset->vmpeg_bitrate / 1000);
@@ -670,7 +670,7 @@ int FileMPEG::open_file(int rd, int wr)
 
 		if(asset->ampeg_derivative == 2)
 		{
-			char string[BCTEXTLEN];
+			char string[BCTEXTLEN];  string[0] = 0;
 			append_acommand_line("toolame");
 			append_acommand_line("-m");
 			append_acommand_line((asset->channels >= 2) ? "j" : "m");
@@ -835,7 +835,7 @@ int FileMPEG::create_index()
 				eprintf("cant access commercials database");
 		}
 
-		char progress_title[BCTEXTLEN], string[BCTEXTLEN];
+		char progress_title[BCTEXTLEN];  progress_title[0] = 0;
 		BC_ProgressBox *progress = 0;
 		if( !result ) {
 			sprintf(progress_title, "Creating %s\n", index_filename);
@@ -857,6 +857,7 @@ int FileMPEG::create_index()
                                   elapsed_seconds * total_bytes / bytes_processed;
 				int64_t eta = total_seconds - elapsed_seconds;
 				progress->update(bytes_processed, 1);
+				char string[BCTEXTLEN];
 				sprintf(string, "%sETA: " _LD "m" _LD "s",
 					progress_title, eta / 60, eta % 60);
 				progress->update_title(string, 1);

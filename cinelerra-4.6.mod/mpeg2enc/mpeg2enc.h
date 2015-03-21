@@ -95,7 +95,7 @@
 #define T_STDIN 5
 #define T_BUFFERS 6
 
-#define BUFFER_ALIGN 16
+#define BUFFER_ALIGN 64
 
 /* macroblock information */
 struct mbinfo {

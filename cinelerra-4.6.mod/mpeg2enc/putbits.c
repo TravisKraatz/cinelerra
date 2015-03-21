@@ -110,6 +110,7 @@ void slice_finishslice(slice_engine_t *engine)
 {
 	int i;
 	slice_alignbits(engine);
+	if( !engine->slice_size ) return;
 
 	if(!fwrite(engine->slice_buffer, 1, engine->slice_size, outfile))
 	{
