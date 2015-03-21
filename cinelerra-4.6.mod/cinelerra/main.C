@@ -162,9 +162,6 @@ int main(int argc, char *argv[])
 	textdomain (PACKAGE);
 	setlocale (LC_MESSAGES, "");
 	setlocale (LC_CTYPE, "");
-	time_t t;  time(&t);
-	struct tm *tm = localtime(&t);
-	setenv("TZ",tm->tm_zone,0);
 	tzset();
 
 
