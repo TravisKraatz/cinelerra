@@ -23,5 +23,27 @@
 #define PERFORMANCEPREFS_INC
 
 class PerformancePrefs;
+class PrefsUseBRender;
+class PrefsBRenderFragment;
+class PrefsRenderPreroll;
+class PrefsBRenderPreroll;
+class PrefsForceUniprocessor;
+class PrefsTrapSigSEGV;
+class PrefsTrapSigINTR;
+class PrefsFileForking;
+class PrefsRenderFarm;
+class PrefsRenderFarmConsolidate;
+class PrefsRenderFarmPort;
+class PrefsRenderFarmJobs;
+class PrefsRenderFarmMountpoint;
+class PrefsRenderFarmVFS;
+class PrefsRenderFarmNodes;
+class PrefsRenderFarmEditNode;
+class PrefsRenderFarmNewNode;
+class PrefsRenderFarmReplaceNode;
+class PrefsRenderFarmDelNode;
+class PrefsRenderFarmSortNodes;
+class PrefsRenderFarmReset;
+class CICacheSize;
 
 #endif

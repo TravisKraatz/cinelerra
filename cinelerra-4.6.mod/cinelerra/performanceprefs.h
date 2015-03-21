@@ -25,13 +25,9 @@
 
 #include "formattools.inc"
 #include "mwindow.inc"
+#include "performanceprefs.inc"
 #include "preferencesthread.h"
 
-
-class CICacheSize;
-class PrefsRenderFarmEditNode;
-class PrefsRenderFarmNodes;
-class PrefsRenderFarmPort;
 
 class PerformancePrefs : public PreferencesDialog
 {
@@ -64,6 +60,7 @@ public:
 	PrefsRenderFarmNodes *node_list;
 	FormatTools *brender_tools;
 	BC_Title *master_rate;
+	PrefsFileForking *file_forking;
 };
 
 
@@ -129,33 +126,33 @@ public:
 class PrefsTrapSigSEGV : public BC_CheckBox
 {
 public:
-	PrefsTrapSigSEGV(PreferencesWindow *pwindow, int x, int y);
+	PrefsTrapSigSEGV(PerformancePrefs *perf_prefs, int x, int y);
 	~PrefsTrapSigSEGV();
 	int handle_event();
 	
-	PreferencesWindow *pwindow;
+	PerformancePrefs *perf_prefs;
 };
 
 class PrefsTrapSigINTR : public BC_CheckBox
 {
 public:
-	PrefsTrapSigINTR(PreferencesWindow *pwindow, int x, int y);
+	PrefsTrapSigINTR(PerformancePrefs *perf_prefs, int x, int y);
 	~PrefsTrapSigINTR();
 	int handle_event();
 	
-	PreferencesWindow *pwindow;
+	PerformancePrefs *perf_prefs;
 };
 
 class PrefsFileForking : public BC_CheckBox
 {
 public:
-	PrefsFileForking(PreferencesWindow *pwindow, int x, int y);
+	PrefsFileForking(PerformancePrefs *perf_prefs, int x, int y);
 	~PrefsFileForking();
 	
 	int handle_event();
-	
-	
-	PreferencesWindow *pwindow;
+	void check_enable();
+
+	PerformancePrefs *perf_prefs;
 };
 
 

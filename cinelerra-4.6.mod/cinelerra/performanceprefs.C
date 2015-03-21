@@ -95,16 +95,19 @@ void PerformancePrefs::create_objects()
 	int x1 = force_1cpu->get_x() + force_1cpu->get_w() + 50;
 	int y1 = force_1cpu->get_y();
 
-	PrefsTrapSigSEGV *trap_segv = new PrefsTrapSigSEGV(pwindow, x1, y1);
+	PrefsTrapSigSEGV *trap_segv = new PrefsTrapSigSEGV(this, x1, y1);
 	add_subwindow(trap_segv);
 	int x2 = x1 + trap_segv->get_w() + 10;
 	add_subwindow(new BC_Title(x2, y1, _("(must be root)"), MEDIUMFONT, RED));
 	y1 += 30;
-	PrefsTrapSigINTR *trap_intr = new PrefsTrapSigINTR(pwindow, x1, y1);
+	PrefsTrapSigINTR *trap_intr = new PrefsTrapSigINTR(this, x1, y1);
 	add_subwindow(trap_intr);
 	add_subwindow(new BC_Title(x2, y1, _("(must be root)"), MEDIUMFONT, RED));
 	y += 30;
-	add_subwindow(new PrefsFileForking(pwindow, x, y));
+
+	file_forking = new PrefsFileForking(this, x, y);
+	add_subwindow(file_forking);
+	file_forking->check_enable();
 
 	y += 35;
 
@@ -242,7 +245,6 @@ void PerformancePrefs::create_objects()
 // 		x + xmargin3, 
 // 		y));
 // 	y += 30;
-
 }
 
 void PerformancePrefs::generate_node_list()
@@ -500,56 +502,68 @@ int PrefsForceUniprocessor::handle_event()
 	return 1;
 }
 
-PrefsTrapSigSEGV::PrefsTrapSigSEGV(PreferencesWindow *pwindow, int x, int y)
- : BC_CheckBox(x, 
- 	y, 
-	pwindow->thread->preferences->trap_sigsegv,
+PrefsTrapSigSEGV::PrefsTrapSigSEGV(PerformancePrefs *perf_prefs, int x, int y)
+ : BC_CheckBox(x, y, 
+	perf_prefs->pwindow->thread->preferences->trap_sigsegv,
 	_("trap sigSEGV"))
 {
-	this->pwindow = pwindow;
+	this->perf_prefs = perf_prefs;
 }
 PrefsTrapSigSEGV::~PrefsTrapSigSEGV()
 {
 }
 int PrefsTrapSigSEGV::handle_event()
 {
-	pwindow->thread->preferences->trap_sigsegv = get_value();
+	perf_prefs->pwindow->thread->preferences->trap_sigsegv = get_value();
+	perf_prefs->file_forking->check_enable();
 	return 1;
 }
 
-PrefsTrapSigINTR::PrefsTrapSigINTR(PreferencesWindow *pwindow, int x, int y)
- : BC_CheckBox(x, 
- 	y, 
-	pwindow->thread->preferences->trap_sigintr,
+PrefsTrapSigINTR::PrefsTrapSigINTR(PerformancePrefs *perf_prefs, int x, int y)
+ : BC_CheckBox(x, y, 
+	perf_prefs->pwindow->thread->preferences->trap_sigintr,
 	_("trap sigINT"))
 {
-	this->pwindow = pwindow;
+	this->perf_prefs = perf_prefs;
 }
 PrefsTrapSigINTR::~PrefsTrapSigINTR()
 {
 }
 int PrefsTrapSigINTR::handle_event()
 {
-	pwindow->thread->preferences->trap_sigintr = get_value();
+	perf_prefs->pwindow->thread->preferences->trap_sigintr = get_value();
+	perf_prefs->file_forking->check_enable();
 	return 1;
 }
 
 
-PrefsFileForking::PrefsFileForking(PreferencesWindow *pwindow, int x, int y)
- : BC_CheckBox(x, 
- 	y, 
-	pwindow->thread->preferences->file_forking,
+PrefsFileForking::PrefsFileForking(PerformancePrefs *perf_prefs, int x, int y)
+ : BC_CheckBox(x, y, 
+	perf_prefs->pwindow->thread->preferences->file_forking,
 	_("enable/disable file fork"))
 {
-	this->pwindow = pwindow;
+	this->perf_prefs = perf_prefs;
 }
 PrefsFileForking::~PrefsFileForking()
 {
 }
 int PrefsFileForking::handle_event()
 {
-	pwindow->thread->preferences->file_forking = get_value();
+	perf_prefs->pwindow->thread->preferences->file_forking = get_value();
 	return 1;
+}
+
+void PrefsFileForking::check_enable()
+{
+	Preferences *preferences = perf_prefs->pwindow->thread->preferences;
+	if( preferences->trap_sigsegv || preferences->trap_sigintr ) {
+		preferences->file_forking = 0;
+		update(0, 0);
+		disable();
+	}
+	else if( !preferences->trap_sigsegv && !preferences->trap_sigintr ) {
+		enable();
+	}
 }
 
 
