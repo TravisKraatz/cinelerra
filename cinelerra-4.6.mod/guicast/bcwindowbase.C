@@ -146,17 +146,22 @@ BC_WindowBase::~BC_WindowBase()
 
 	delete pixmap;
 
-// Destroyed in synchronous thread if gl context exists.
 #ifdef HAVE_GL
+	if( get_resources()->get_synchronous() ) {
+		if( !glx_win ) {
 // NVIDIA library threading problem, XCloseDisplay SEGVs without this
-	if(!glx_win_context && get_resources()->get_synchronous())
-		glXMakeContextCurrent(top_level->display, 0, 0, 0);
-
-	if(!glx_win_context || !get_resources()->get_synchronous())
-#endif
-	{
-		XDestroyWindow(top_level->display, win);
+			sync_lock("BC_WindowBase::~BC_WindowBase:XDestroyWindow");
+			glXMakeContextCurrent(top_level->display, 0, 0, 0);
+			XDestroyWindow(top_level->display, win);
+			sync_unlock();
+		}
+		else
+			get_resources()->get_synchronous()->delete_window(this);
 	}
+	else
+#endif
+		XDestroyWindow(top_level->display, win);
+
 	if(bg_pixmap && !shared_bg_pixmap) delete bg_pixmap;
 	if(icon_pixmap) delete icon_pixmap;
 	if(temp_bitmap) delete temp_bitmap;
@@ -199,40 +204,26 @@ BC_WindowBase::~BC_WindowBase()
 		xinerama_screens = 0;
 		xinerama_info = 0;
 
-
+		unlock_window();
 // Can't close display if another thread is waiting for events.
-// Synchronous thread must delete display if gl_context exists.
+// Synchronous thread must delete display it owns a GLX_WINDOW
+// Must be last reference to display.
 #ifndef SINGLE_THREAD
 #ifdef HAVE_GL
-		if(!glx_win_context || !get_resources()->get_synchronous())
-#endif // HAVE_GL
-
-		{
-			unlock_window();
-			XCloseDisplay(display);
+		if( (options & GLX_DISPLAY) != 0 && get_resources()->get_synchronous() ) {
+			printf("BC_WindowBase::~BC_WindowBase window deleted but opengl deletion is not\n"
+				"implemented for BC_Pixmap.\n");
+			get_resources()->get_synchronous()->delete_display(this);
 		}
+		else
+#endif
+			XCloseDisplay(display);
 
 // clipboard uses a different display connection
 		clipboard->stop_clipboard();
 		delete clipboard;
 #endif // SINGLE_THREAD
 	}
-	else
-	{
-//		flush();
-	}
-
-// Must be last reference to display.
-// This only works if it's a MAIN_WINDOW since the display deletion for
-// a subwindow is not determined by the subwindow.
-#ifdef HAVE_GL
-	if(glx_win_context && get_resources()->get_synchronous())
-	{
-		printf("BC_WindowBase::~BC_WindowBase window deleted but opengl deletion is not\n"
-			"implemented for BC_Pixmap.\n");
-		get_resources()->get_synchronous()->delete_window(this);
-	}
-#endif
 
 	resize_history.remove_all_objects();
 

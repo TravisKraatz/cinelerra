@@ -143,6 +143,7 @@ int PluginServer::reset_parameters()
 	title = 0;
 	path = 0;
 	audio = video = theme = 0;
+	fileio = 0;
 	uses_gui = 0;
 	realtime = multichannel = fileio = 0;
 	synthesis = 0;
@@ -402,19 +403,9 @@ void PluginServer::write_table(FILE *fd)
 	char *ptr = strrchr(new_path, '/');
 	if(ptr) ptr++;
 	if(!ptr) ptr = new_path;
-	fprintf(fd, "\"%s\" \"%s\" %d %d %d %d %d %d %d %d %d %d %d\n", 
-		ptr, 
-		title, 
-		audio,
-		video,
-		theme,
-		realtime,
-		fileio,
-		uses_gui,
-		multichannel,
-		synthesis,
-		transition,
-		is_lad /* ,
+	fprintf(fd, "\"%s\" \"%s\" %d %d %d %d %d %d %d %d %d %d\n", // %d\n", 
+		ptr, title, audio, video, theme, realtime, fileio,
+		uses_gui, multichannel, synthesis, transition, is_lad /* ,
 		lad_index */);
 }
 
@@ -483,17 +474,9 @@ int PluginServer::read_table(char *text)
 	{
 		ptr2++;
 		sscanf(ptr2,
-			"%d %d %d %d %d %d %d %d %d %d %d",
-			&audio,
-			&video,
-			&theme,
-			&realtime,
-			&fileio,
-			&uses_gui,
-			&multichannel,
-			&synthesis,
-			&transition,
-			&is_lad /* ,
+			"%d %d %d %d %d %d %d %d %d %d", // %d",
+			&audio, &video, &theme, &realtime, &fileio, &uses_gui,
+			&multichannel, &synthesis, &transition, &is_lad /* ,
 			&lad_index */);
 //write_table(stdout);
 	}

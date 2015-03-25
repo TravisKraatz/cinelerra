@@ -33,11 +33,11 @@ LevelWindow::LevelWindow(MWindow *mwindow)
 
 LevelWindow::~LevelWindow()
 {
-	if(gui) 
-	{
+	if(gui && running()) {
 		gui->set_done(0);
-		join();  delete gui;  gui = 0;
+		join();
 	}
+	delete gui;  gui = 0;
 }
 
 void LevelWindow::create_objects()

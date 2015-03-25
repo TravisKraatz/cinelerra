@@ -122,6 +122,7 @@ public:
 		DELETE_WINDOW,
 		DELETE_PIXMAP,
 // subclasses create new commands starting with this enumeration
+		DELETE_DISPLAY,
 		LAST_COMMAND
 	};
 
@@ -231,7 +232,7 @@ public:
 // This function returns immediately instead of waiting for the synchronous
 // part to finish.
 	void delete_window(BC_WindowBase *window);
-
+	void delete_display(BC_WindowBase *window);
 
 	int send_command(BC_SynchronousCommand *command);
 	void send_garbage(BC_SynchronousCommand *command);
@@ -250,6 +251,7 @@ private:
 // Called from the garbage collector only
 	void delete_window_sync(BC_SynchronousCommand *command);
 	void delete_pixmap_sync(BC_SynchronousCommand *command);
+	void delete_display_sync(BC_SynchronousCommand *command);
 
 	Condition *next_command;
 	Mutex *command_lock;

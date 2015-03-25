@@ -1,6 +1,7 @@
 #include "testwindow.h"
 // c++ -g -I../guicast testwindow.C ../guicast/x86_64/libguicast.a \
-//  -DHAVE_GL -lGL -lX11 -lXext -lXinerama -lXv -lpng -pthread
+//  -DHAVE_GL -DHAVE_XFT -I/usr/include/freetype2 -lGL -lX11 -lXext \
+//  -lXinerama -lXv -lpng  -lfontconfig -lfreetype -lXft -pthread
 
 TestWindowGUI::
 TestWindowGUI()

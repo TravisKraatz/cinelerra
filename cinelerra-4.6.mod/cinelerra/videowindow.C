@@ -43,11 +43,11 @@ VideoWindow::VideoWindow(MWindow *mwindow)
 
 VideoWindow::~VideoWindow()
 {
-	if(gui)
-	{
+	if(gui && running()) {
 		gui->set_done(0);
-		join();  delete gui;  gui = 0;
+		join();
 	}
+	delete gui;  gui = 0;
 }
 
 int VideoWindow::load_defaults(BC_Hash *defaults)

@@ -185,7 +185,7 @@ public:
 // Find the plugin whose title matches title and return it
 	static PluginServer* scan_plugindb(char *title,
 		int data_type);
-	int dump_plugindb(FILE *fp);
+	void dump_plugindb(FILE *fp);
 	void stop_playback();
 
 

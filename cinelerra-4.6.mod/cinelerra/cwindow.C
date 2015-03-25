@@ -63,10 +63,11 @@ CWindow::CWindow(MWindow *mwindow)
 
 CWindow::~CWindow()
 {
-	if(gui) {
+	if(gui && running()) {
 		gui->set_done(0);
-		join();  delete gui;  gui = 0;
+		join();
 	}
+	delete gui;  gui = 0;
 	delete playback_engine;
 	delete playback_cursor;
 }

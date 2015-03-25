@@ -68,7 +68,7 @@ int BC_WindowBase::glx_test_fb_configs(int *attrs, GLXFBConfig *&cfgs,
 GLXFBConfig *BC_WindowBase::glx_window_fb_configs()
 {
 	static int msgs = 0;
-	if( !glx_fbcfgs_window && !msgs ) {
+	if( !glx_fbcfgs_window ) {
 		int fb_attrs[] = {
 			GLX_CONFIG_CAVEAT,	GLX_SLOW_CONFIG,
 			GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT | GLX_PBUFFER | GLX_PIXMAP_BIT,
@@ -94,6 +94,7 @@ Visual *BC_WindowBase::get_glx_visual(Display *display)
 {
 	Visual *visual = 0;
 	XVisualInfo *vis_info = 0;
+	sync_lock("BC_WindowbBase::get_glx_visual");
 	GLXFBConfig *fb_cfgs = glx_window_fb_configs();
 	if( fb_cfgs ) {
 		for( int i=0; !vis_info && i<n_fbcfgs_window; ++i ) {
@@ -108,13 +109,14 @@ Visual *BC_WindowBase::get_glx_visual(Display *display)
 	}
 	else
 		glx_fb_config = 0;
+	sync_unlock();
 	return visual;
 }
 
 GLXFBConfig *BC_WindowBase::glx_pbuffer_fb_configs()
 {
 	static int msgs = 0;
-	if( !glx_fbcfgs_pbuffer && !msgs ) {
+	if( !glx_fbcfgs_pbuffer ) {
 		int fb_attrs[] = {
 			GLX_CONFIG_CAVEAT,	GLX_SLOW_CONFIG,
 			GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT | GLX_PBUFFER | GLX_PIXMAP_BIT,
@@ -139,7 +141,7 @@ GLXFBConfig *BC_WindowBase::glx_pbuffer_fb_configs()
 GLXFBConfig *BC_WindowBase::glx_pixmap_fb_configs()
 {
 	static int msgs = 0;
-	if( !glx_fbcfgs_pixmap && !msgs ) {
+	if( !glx_fbcfgs_pixmap ) {
 		static int fb_attrs[] = {
 			GLX_CONFIG_CAVEAT,	GLX_SLOW_CONFIG,
 			GLX_DRAWABLE_TYPE,	GLX_PIXMAP_BIT | GLX_PBUFFER,
@@ -182,6 +184,7 @@ GLXWindow BC_WindowBase::glx_create_window()
 {
 	sync_lock("BC_WindowbBase::glx_create_window");
 	GLXWindow gwin = glXCreateWindow(top_level->display, top_level->glx_fb_config, win, 0);
+	top_level->options |= GLX_DISPLAY;
 	sync_unlock();
 	return gwin;
 }

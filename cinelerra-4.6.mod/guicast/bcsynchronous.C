@@ -259,6 +259,10 @@ void BC_Synchronous::handle_garbage()
 			case BC_SynchronousCommand::DELETE_PIXMAP:
 				delete_pixmap_sync(command);
 				break;
+
+			case BC_SynchronousCommand::DELETE_DISPLAY:
+				delete_display_sync(command);
+				break;
 		}
 
 		delete command;
@@ -466,6 +470,24 @@ int debug = 0;
 #endif
 }
 
+void BC_Synchronous::delete_display(BC_WindowBase *window)
+{
+#ifdef HAVE_GL
+	BC_SynchronousCommand *command = new_command();
+	command->command = BC_SynchronousCommand::DELETE_DISPLAY;
+	command->display = window->get_display();
+
+	send_garbage(command);
+#endif
+}
+
+void BC_Synchronous::delete_display_sync(BC_SynchronousCommand *command)
+{
+#ifdef HAVE_GL
+	Display *display = command->display;
+	XCloseDisplay(display);
+#endif
+}
 
 
 #ifdef HAVE_GL

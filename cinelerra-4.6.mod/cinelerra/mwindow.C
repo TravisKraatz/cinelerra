@@ -3066,6 +3066,7 @@ void MWindow::remove_assets_from_disk()
 
 void MWindow::dump_plugins(FILE *fp)
 {
+	if( !plugindb ) return;
 	for(int i = 0; i < plugindb->total; i++)
 	{
 		fprintf(fp, "audio=%d video=%d rt=%d multi=%d"
@@ -3083,11 +3084,13 @@ void MWindow::dump_plugins(FILE *fp)
 
 void MWindow::dump_edl(FILE *fp)
 {
+	if( !edl ) return;
 	edl->dump(fp);
 }
 
 void MWindow::dump_undo(FILE *fp)
 {
+	if( !undo ) return;
 	undo->dump(fp);
 }
 
@@ -3509,8 +3512,9 @@ int MWindow::select_asset(int vtrack, int delete_tracks)
 	return select_asset(asset, edit->channel, 0, delete_tracks);
 }
 
-int MWindow::dump_plugindb(FILE *fp)
+void MWindow::dump_plugindb(FILE *fp)
 {
+	if( !plugindb ) return;
 	for(int i = 0; i < plugindb->total; i++)
 		plugindb->values[i]->dump(fp);
 }

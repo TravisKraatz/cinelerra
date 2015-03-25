@@ -36,6 +36,7 @@ class BC_WindowList;
 #define WINDOW_SPLASH  0x0080
 #define WINDOW_UTF8    0x0001
 #define WINDOW_GLX     0x0100
+#define GLX_DISPLAY    0x0200
 
 // mouse wheel
 #define WHEEL_UP 4
