@@ -119,10 +119,11 @@ public:
 		NONE,
 		QUIT,
 // Used by garbage collector
+		COLLECT_GARBAGE,
 		DELETE_WINDOW,
 		DELETE_PIXMAP,
-// subclasses create new commands starting with this enumeration
 		DELETE_DISPLAY,
+// subclasses create new commands starting with this enumeration
 		LAST_COMMAND
 	};
 
@@ -233,6 +234,7 @@ public:
 // part to finish.
 	void delete_window(BC_WindowBase *window);
 	void delete_display(BC_WindowBase *window);
+	void collect_garbage(BC_WindowBase *window);
 
 	int send_command(BC_SynchronousCommand *command);
 	void send_garbage(BC_SynchronousCommand *command);
@@ -245,7 +247,7 @@ private:
 	void handle_command_base(BC_SynchronousCommand *command);
 
 // Execute commands which can't be executed until the caller returns.
-	void handle_garbage();
+	void handle_garbage(BC_SynchronousCommand *command);
 
 // Release OpenGL objects related to the window id.
 // Called from the garbage collector only

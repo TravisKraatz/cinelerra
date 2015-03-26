@@ -216,13 +216,15 @@ void BC_Synchronous::handle_command_base(BC_SynchronousCommand *command)
 				done = 1;
 				break;
 
+			case BC_SynchronousCommand::COLLECT_GARBAGE:
+				handle_garbage(command);
+				break;
+
 			default:
 				handle_command(command);
 				break;
 		}
 	}
-
-	handle_garbage();
 
 	if(command)
 	{
@@ -235,38 +237,36 @@ void BC_Synchronous::handle_command(BC_SynchronousCommand *command)
 {
 }
 
-void BC_Synchronous::handle_garbage()
+void BC_Synchronous::handle_garbage(BC_SynchronousCommand *command)
 {
-	while(1)
-	{
-		table_lock->lock("BC_Synchronous::handle_garbage");
-		if(!garbage.total)
-		{
-			table_lock->unlock();
-			return;
-		}
-
-		BC_SynchronousCommand *command = garbage.values[0];
-		garbage.remove_number(0);
+	if(!garbage.total) return;
+	table_lock->lock("BC_Synchronous::handle_garbage 0");
+	int i = 0;
+	while( i < garbage.total ) {
+		BC_SynchronousCommand *cmd = garbage.get(i);
+		if( cmd->display != command->display ) { ++i;  continue; }
+		garbage.remove_number(i);
 		table_lock->unlock();
 
-		switch(command->command)
-		{
-			case BC_SynchronousCommand::DELETE_WINDOW:
-				delete_window_sync(command);
-				break;
+		switch(cmd->command) {
+		case BC_SynchronousCommand::DELETE_WINDOW:
+			delete_window_sync(cmd);
+			break;
 
-			case BC_SynchronousCommand::DELETE_PIXMAP:
-				delete_pixmap_sync(command);
-				break;
+		case BC_SynchronousCommand::DELETE_PIXMAP:
+			delete_pixmap_sync(cmd);
+			break;
 
-			case BC_SynchronousCommand::DELETE_DISPLAY:
-				delete_display_sync(command);
-				break;
+		case BC_SynchronousCommand::DELETE_DISPLAY:
+			delete_display_sync(cmd);
+			break;
 		}
 
-		delete command;
+		delete cmd;
+		table_lock->lock("BC_Synchronous::handle_garbage 1");
+		i = 0;
 	}
+	table_lock->unlock();
 }
 
 void BC_Synchronous::put_texture(int id, int w, int h, int components)
@@ -486,6 +486,17 @@ void BC_Synchronous::delete_display_sync(BC_SynchronousCommand *command)
 #ifdef HAVE_GL
 	Display *display = command->display;
 	XCloseDisplay(display);
+#endif
+}
+
+void BC_Synchronous::collect_garbage(BC_WindowBase *window)
+{
+#ifdef HAVE_GL
+	BC_SynchronousCommand *command = new_command();
+	command->command = BC_SynchronousCommand::COLLECT_GARBAGE;
+	command->display = window->get_display();
+
+	send_garbage(command);
 #endif
 }
 

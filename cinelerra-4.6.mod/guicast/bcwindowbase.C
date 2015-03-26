@@ -3280,6 +3280,10 @@ int BC_WindowBase::unlock_window()
 #else
 		XUnlockDisplay(top_level->display);
 #endif
+		if( !top_level->display_lock_owner ) {
+			BC_Synchronous *synch = get_resources()->get_synchronous();
+			if( synch ) synch->collect_garbage(this);
+		}
 	}
 	else
 	{
@@ -3740,17 +3744,14 @@ int BC_WindowBase::get_cursor_over_window()
 	unsigned int temp_mask;
 	Window root_return, child_return;
 
-	if (!XQueryPointer(display, win,
+	int ret = XQueryPointer(display, win,
 		&root_return, &child_return, &abs_x, &abs_y,
-		&win_x, &win_y, &temp_mask)) return 0;
+		&win_x, &win_y, &temp_mask);
+//printf("BC_WindowBase::get_cursor_over_window %d %s 0x%x %d 0x%x\n",
+//  __LINE__, title, win, ret, child_return);
 
-// printf("BC_WindowBase::get_cursor_over_window %d %s 0x%x 0x%x\n",
-// __LINE__,
-// title,
-// win,
-// child_return);
-
-	int result = match_window(child_return);
+	int result = !ret || child_return == None ? 0 :
+		match_window(child_return);
 	return result;
 }
 
