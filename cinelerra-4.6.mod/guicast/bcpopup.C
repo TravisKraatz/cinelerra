@@ -27,7 +27,7 @@ BC_FullScreen::BC_FullScreen(BC_WindowBase *parent_window, int w, int h,
 			   int vm_scale,
 			   int hide,
 			   BC_Pixmap *bg_pixmap)
- : BC_WindowBase(WINDOW_GLX)
+ : BC_WindowBase()
 {
 #ifdef HAVE_LIBXXF86VM
    if (vm_scale) 

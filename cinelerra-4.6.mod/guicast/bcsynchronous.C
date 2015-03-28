@@ -440,7 +440,9 @@ void BC_Synchronous::dump_shader(unsigned int handle)
 	if(!got_it) printf("BC_Synchronous::dump_shader couldn't find %d\n", handle);
 }
 
-
+// has to run in sync_garbage thread, because mwindow playback_3d
+// thread ends before all windows are deleted.  runs as synchronous
+// command since resources must be freed immediately
 void BC_Synchronous::delete_window(BC_WindowBase *window)
 {
 #ifdef HAVE_GL
@@ -453,6 +455,7 @@ void BC_Synchronous::delete_window(BC_WindowBase *window)
 	command->glx_context = window->glx_win_context;
 
 	send_garbage(command);
+	command->command_done->lock("BC_Synchronous::delete_window");
 #endif
 }
 
@@ -514,6 +517,7 @@ int debug = 0;
 	XDestroyWindow(display, win);
 	if( glx_context )
 		glXDestroyContext(display, glx_context);
+	command->command_done->unlock();
 #endif
 }
 

@@ -36,6 +36,7 @@ class TipWindow : public BC_DialogThread
 {
 public:
 	TipWindow(MWindow *mwindow);
+	void handle_close_event(int result);
 
 	BC_Window* new_gui();
 	char* get_current_tip();

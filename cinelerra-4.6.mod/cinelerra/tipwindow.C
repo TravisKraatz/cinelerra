@@ -87,6 +87,11 @@ TipWindow::TipWindow(MWindow *mwindow)
 	this->mwindow = mwindow;
 }
 
+void TipWindow::handle_close_event(int result)
+{
+	gui = 0;
+}
+
 BC_Window* TipWindow::new_gui()
 {
 	BC_DisplayInfo display_info;

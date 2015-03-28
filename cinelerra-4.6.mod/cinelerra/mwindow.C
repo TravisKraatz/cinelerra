@@ -237,11 +237,14 @@ MWindow::~MWindow()
 	save_defaults();
 
 // Give up and go to a movie
+//  cant run valgrind if this is used
 //	if( !reload_status ) exit(0);
 
 	gui->del_keyboard_listener(
 		(int (BC_WindowBase::*)(BC_WindowBase *))
 		&MWindowGUI::keyboard_listener);
+#if 0
+// release the hounds
 	if( awindow && awindow->gui ) awindow->gui->close(0);
 	if( cwindow && cwindow->gui ) cwindow->gui->close(0);
 	if( lwindow && lwindow->gui ) lwindow->gui->close(0);
@@ -255,6 +258,20 @@ MWindow::~MWindow()
 	if( twindow ) twindow->join();
 	if( gwindow ) gwindow->join();
 	join();
+#else
+// one at a time, or nouveau chokes
+#define close_gui(win) if( win ) { \
+  if( win->gui ) win->gui->close(0); \
+  win->join(); }
+	close_gui(awindow);
+	close_gui(cwindow);
+	close_gui(lwindow);
+	close_gui(gwindow);
+	close_gui(twindow);
+	vwindows.remove_all_objects();
+	gui->close(0);
+	join();
+#endif
 	reset_caches();
 	delete_plugins();
 	dead_plugins->remove_all();
@@ -265,10 +282,11 @@ MWindow::~MWindow()
 	delete gui;		gui = 0;
 	delete render;          render = 0;
 	delete awindow;         awindow = 0;
-	delete cwindow;         cwindow = 0;
 	delete lwindow;         lwindow = 0;
 	delete twindow;         twindow = 0;
 	delete gwindow;         gwindow = 0;
+	// must be last or nouveau chokes
+	delete cwindow;         cwindow = 0;
 	//delete file_server;  file_server = 0; // reusable
 	delete mainindexes;     mainindexes = 0;
 	delete mainprogress;    mainprogress = 0;

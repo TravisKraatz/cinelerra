@@ -32,11 +32,9 @@ class BC_WindowList;
 #define VIDEO_CURSOR_TIMEOUT 2000
 
 // Window options
-// Splash is not implemented
-#define WINDOW_SPLASH  0x0080
-#define WINDOW_UTF8    0x0001
-#define WINDOW_GLX     0x0100
-#define GLX_DISPLAY    0x0200
+#define WINDOW_UTF8	0x0001
+//used to flag top_level window in glx_window / glXCreateWindow
+#define GLX_DISPLAY	0x0002
 
 // mouse wheel
 #define WHEEL_UP 4
