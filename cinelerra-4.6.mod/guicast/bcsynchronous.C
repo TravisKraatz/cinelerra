@@ -72,6 +72,99 @@ PBufferID::PBufferID(int window_id, GLXPbuffer glx_pbuffer, GLXContext glx_conte
 
 
 
+BC_SynchGarbage::BC_SynchGarbage(BC_Synchronous *synchronous)
+ : Thread(1, 0, 0)
+{
+	this->synchronous = synchronous;
+	more_garbage = new Condition(0, "BC_SynchGarbage::more_garbage", 0);
+	garbage_lock = new Mutex("BC_SyncGarbage::garbage_lock");
+	done = -1;
+}
+
+BC_SynchGarbage::~BC_SynchGarbage()
+{
+	if( running() ) {
+		quit();
+		join();
+	}
+	garbage.remove_all_objects();
+	delete more_garbage;
+	delete garbage_lock;
+}
+
+void BC_SynchGarbage::send_garbage(BC_SynchronousCommand *command)
+{
+	garbage_lock->lock("BC_SynchGarbage::send_garbage");
+	garbage.append(command);
+	garbage_lock->unlock();
+	more_garbage->unlock();
+}
+
+void BC_SynchGarbage::handle_garbage()
+{
+	garbage_lock->lock("BC_SynchGarbage::handle_garbage 0");
+	while( !done && garbage.total ) {
+		BC_SynchronousCommand *command = garbage.get(0);
+		garbage.remove_number(0);
+		garbage_lock->unlock();
+
+		synchronous->sync_lock("BC_Synchronous::handle_garbage");
+		switch(command->command) {
+		case BC_SynchronousCommand::QUIT:
+			done = 1;
+			break;
+
+		case BC_SynchronousCommand::DELETE_WINDOW:
+			synchronous->delete_window_sync(command);
+			break;
+
+		case BC_SynchronousCommand::DELETE_PIXMAP:
+			synchronous->delete_pixmap_sync(command);
+			break;
+
+		case BC_SynchronousCommand::DELETE_DISPLAY:
+			synchronous->delete_display_sync(command);
+			break;
+		}
+		synchronous->sync_unlock();
+
+		delete command;
+		garbage_lock->lock("BC_SynchGarbage::handle_garbage 1");
+	}
+	garbage_lock->unlock();
+}
+
+
+void BC_SynchGarbage::start()
+{
+	done = 0;
+	Thread::start();
+}
+
+void BC_SynchGarbage::stop()
+{
+	if( running() ) {
+		quit();
+		join();
+	}
+}
+
+void BC_SynchGarbage::quit()
+{
+	BC_SynchronousCommand *command = new BC_SynchronousCommand();
+	command->command = BC_SynchronousCommand::QUIT;
+	send_garbage(command);
+}
+
+void BC_SynchGarbage::run()
+{
+	while( !done ) {
+		more_garbage->lock("BC_SynchGarbage::run");
+		handle_garbage();
+	}
+}
+
+
 BC_SynchronousCommand::BC_SynchronousCommand()
 {
 	command = BC_SynchronousCommand::NONE;
@@ -88,17 +181,15 @@ BC_SynchronousCommand::~BC_SynchronousCommand()
 
 void BC_SynchronousCommand::copy_from(BC_SynchronousCommand *command)
 {
-	this->command = 	      command->command;
-	this->colormodel =      command->colormodel;
-	this->window = 	      command->window;
-	this->frame = 	      command->frame;
-	this->window_id =       command->window_id;
-
-	this->frame_return =    command->frame_return;
-
-	this->id = 		      command->id;
-	this->w = 		      command->w;
-	this->h = 		      command->h;
+	this->command =		command->command;
+	this->colormodel =	command->colormodel;
+	this->window =		command->window;
+	this->frame =		command->frame;
+	this->window_id =	command->window_id;
+	this->frame_return =	command->frame_return;
+	this->id =		command->id;
+	this->w =		command->w;
+	this->h =		command->h;
 }
 
 
@@ -107,10 +198,11 @@ void BC_SynchronousCommand::copy_from(BC_SynchronousCommand *command)
 BC_Synchronous::BC_Synchronous()
  : Thread(1, 0, 0)
 {
+	lock_sync = new Mutex("BC_Synchronous::lock_sync");
+	sync_garbage = new BC_SynchGarbage(this);
 	next_command = new Condition(0, "BC_Synchronous::next_command", 0);
 	command_lock = new Mutex("BC_Synchronous::command_lock");
 	table_lock = new Mutex("BC_Synchronous::table_lock");
-	gl_lock = new Mutex("BC_Synchronous::gl_lock");
 	done = 0;
 	is_running = 0;
 	current_window = 0;
@@ -119,26 +211,32 @@ BC_Synchronous::BC_Synchronous()
 
 BC_Synchronous::~BC_Synchronous()
 {
+	if( running() ) {
+		quit();
+		join();
+	}
 	commands.remove_all_objects();
+	delete sync_garbage;
+	delete lock_sync;
 	delete next_command;
 	delete command_lock;
 	delete table_lock;
-	delete gl_lock;
 }
 
 void BC_Synchronous::sync_lock(const char *cp)
 {
-	gl_lock->lock(cp);
+	lock_sync->lock(cp);
 }
 
 void BC_Synchronous::sync_unlock()
 {
-	gl_lock->unlock();
+	lock_sync->unlock();
 }
 
+void sync_unlock();
 BC_SynchronousCommand* BC_Synchronous::new_command()
 {
-	return new BC_SynchronousCommand;
+	return new BC_SynchronousCommand();
 }
 
 void BC_Synchronous::create_objects()
@@ -147,34 +245,33 @@ void BC_Synchronous::create_objects()
 
 void BC_Synchronous::start()
 {
+	sync_garbage->start();
 	run();
 }
 
 void BC_Synchronous::quit()
 {
-	command_lock->lock("BC_Synchronous::quit");
 	BC_SynchronousCommand *command = new_command();
-	commands.append(command);
 	command->command = BC_SynchronousCommand::QUIT;
+	command_lock->lock("BC_Synchronous::quit");
+	commands.append(command);
 	command_lock->unlock();
-
 	next_command->unlock();
 }
 
-int BC_Synchronous::send_command(BC_SynchronousCommand *command)
+long BC_Synchronous::send_command(BC_SynchronousCommand *command)
 {
-	command_lock->lock("BC_Synchronous::send_command");
 	BC_SynchronousCommand *command2 = new_command();
-	commands.append(command2);
 	command2->copy_from(command);
+	command_lock->lock("BC_Synchronous::send_command");
+	commands.append(command2);
 	command_lock->unlock();
-
 	next_command->unlock();
 //printf("BC_Synchronous::send_command 1 %d\n", next_command->get_value());
 
 // Wait for completion
 	command2->command_done->lock("BC_Synchronous::send_command");
-	int result = command2->result;
+	long result = command2->result;
 	delete command2;
 	return result;
 }
@@ -182,24 +279,19 @@ int BC_Synchronous::send_command(BC_SynchronousCommand *command)
 void BC_Synchronous::run()
 {
 	is_running = 1;
-	while(!done)
-	{
+	while(!done) {
 		next_command->lock("BC_Synchronous::run");
-
-
 		command_lock->lock("BC_Synchronous::run");
 		BC_SynchronousCommand *command = 0;
-		if(commands.total)
-		{
+		if(commands.total) {
 			command = commands.values[0];
 			commands.remove_number(0);
 		}
-// Prevent executing the same command twice if spurious unlock.
 		command_lock->unlock();
-//printf("BC_Synchronous::run %d\n", command->command);
+		if( !command ) continue;
 
+//printf("BC_Synchronous::run %d\n", command->command);
 		handle_command_base(command);
-//		delete command;
 	}
 	is_running = 0;
 }
@@ -207,66 +299,21 @@ void BC_Synchronous::run()
 void BC_Synchronous::handle_command_base(BC_SynchronousCommand *command)
 {
 	sync_lock("BC_Synchronous::handle_command_base");
-	if(command)
-	{
-//printf("BC_Synchronous::handle_command_base 1 %d\n", command->command);
-		switch(command->command)
-		{
-			case BC_SynchronousCommand::QUIT:
-				done = 1;
-				break;
+	switch(command->command) {
+	case BC_SynchronousCommand::QUIT:
+		done = 1;
+		break;
 
-			case BC_SynchronousCommand::COLLECT_GARBAGE:
-				handle_garbage(command);
-				break;
-
-			default:
-				handle_command(command);
-				break;
-		}
+	default:
+		handle_command(command);
+		break;
 	}
-
-	if(command)
-	{
-		command->command_done->unlock();
-	}
+	command->command_done->unlock();
 	sync_unlock();
 }
 
 void BC_Synchronous::handle_command(BC_SynchronousCommand *command)
 {
-}
-
-void BC_Synchronous::handle_garbage(BC_SynchronousCommand *command)
-{
-	if(!garbage.total) return;
-	table_lock->lock("BC_Synchronous::handle_garbage 0");
-	int i = 0;
-	while( i < garbage.total ) {
-		BC_SynchronousCommand *cmd = garbage.get(i);
-		if( cmd->display != command->display ) { ++i;  continue; }
-		garbage.remove_number(i);
-		table_lock->unlock();
-
-		switch(cmd->command) {
-		case BC_SynchronousCommand::DELETE_WINDOW:
-			delete_window_sync(cmd);
-			break;
-
-		case BC_SynchronousCommand::DELETE_PIXMAP:
-			delete_pixmap_sync(cmd);
-			break;
-
-		case BC_SynchronousCommand::DELETE_DISPLAY:
-			delete_display_sync(cmd);
-			break;
-		}
-
-		delete cmd;
-		table_lock->lock("BC_Synchronous::handle_garbage 1");
-		i = 0;
-	}
-	table_lock->unlock();
 }
 
 void BC_Synchronous::put_texture(int id, int w, int h, int components)
@@ -489,18 +536,6 @@ void BC_Synchronous::delete_display_sync(BC_SynchronousCommand *command)
 #endif
 }
 
-void BC_Synchronous::collect_garbage(BC_WindowBase *window)
-{
-#ifdef HAVE_GL
-	BC_SynchronousCommand *command = new_command();
-	command->command = BC_SynchronousCommand::COLLECT_GARBAGE;
-	command->display = window->get_display();
-
-	send_garbage(command);
-#endif
-}
-
-
 #ifdef HAVE_GL
 void BC_Synchronous::put_pbuffer(int w, int h,
 		GLXPbuffer glx_pbuffer, GLXContext glx_context)
@@ -589,11 +624,7 @@ void BC_Synchronous::delete_pixmap_sync(BC_SynchronousCommand *command)
 
 void BC_Synchronous::send_garbage(BC_SynchronousCommand *command)
 {
-	table_lock->lock("BC_Synchronous::delete_window");
-	garbage.append(command);
-	table_lock->unlock();
-
-	next_command->unlock();
+	sync_garbage->send_garbage(command);
 }
 
 BC_WindowBase* BC_Synchronous::get_window()

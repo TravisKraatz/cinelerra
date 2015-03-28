@@ -110,7 +110,7 @@ public:
 	virtual void copy_from(BC_SynchronousCommand *command);
 
 	Condition *command_done;
-	int result;
+	long result;
 	int command;
 
 // Commands
@@ -119,7 +119,6 @@ public:
 		NONE,
 		QUIT,
 // Used by garbage collector
-		COLLECT_GARBAGE,
 		DELETE_WINDOW,
 		DELETE_PIXMAP,
 		DELETE_DISPLAY,
@@ -147,10 +146,31 @@ public:
 #endif
 };
 
+class BC_Synchronous;
+
+class BC_SynchGarbage : public Thread
+{
+public:
+	BC_SynchGarbage(BC_Synchronous*sync);
+	~BC_SynchGarbage();
+
+	void send_garbage(BC_SynchronousCommand *command);
+	void handle_garbage();
+	void start();
+	void run();
+	void quit();
+	void stop();
+
+	BC_Synchronous *synchronous;
+	Condition *more_garbage;
+	Mutex *garbage_lock;
+	ArrayList<BC_SynchronousCommand*> garbage;
+	int done;
+};
 
 class BC_Synchronous : public Thread
 {
-	Mutex *gl_lock;
+	BC_SynchGarbage *sync_garbage;
 public:
 	BC_Synchronous();
 	virtual ~BC_Synchronous();
@@ -160,17 +180,13 @@ public:
 	friend class BC_PBuffer;
 	friend class BC_Pixmap;
 	friend class BC_Texture;
+	friend class BC_SynchGarbage;
 
-// Called by another thread
-// Quits the loop
 	void quit();
 // Must be called after constructor to create inherited objects.
 	void create_objects();
 	void start();
 	void run();
-
-	void sync_lock(const char *cp=0);
-	void sync_unlock();
 
 	virtual BC_SynchronousCommand* new_command();
 // Handle extra commands not part of the base class.
@@ -234,11 +250,13 @@ public:
 // part to finish.
 	void delete_window(BC_WindowBase *window);
 	void delete_display(BC_WindowBase *window);
-	void collect_garbage(BC_WindowBase *window);
 
-	int send_command(BC_SynchronousCommand *command);
+	long send_command(BC_SynchronousCommand *command);
 	void send_garbage(BC_SynchronousCommand *command);
 
+	void delete_pixmap_sync(BC_SynchronousCommand *command);
+	void delete_window_sync(BC_SynchronousCommand *command);
+	void delete_display_sync(BC_SynchronousCommand *command);
 
 // Get the window currently bound to the context.
 	BC_WindowBase* get_window();
@@ -246,14 +264,11 @@ public:
 private:
 	void handle_command_base(BC_SynchronousCommand *command);
 
-// Execute commands which can't be executed until the caller returns.
-	void handle_garbage(BC_SynchronousCommand *command);
+	Mutex *lock_sync;
+	void sync_lock(const char *cp=0);
+	void sync_unlock();
 
-// Release OpenGL objects related to the window id.
-// Called from the garbage collector only
-	void delete_window_sync(BC_SynchronousCommand *command);
-	void delete_pixmap_sync(BC_SynchronousCommand *command);
-	void delete_display_sync(BC_SynchronousCommand *command);
+	void get_display_sync(Display *display, const char *cp);
 
 	Condition *next_command;
 	Mutex *command_lock;
@@ -274,8 +289,6 @@ private:
 	ArrayList<ShaderID*> shader_ids;
  	ArrayList<TextureID*> texture_ids;
  	ArrayList<PBufferID*> pbuffer_ids;
-// Commands which can't be executed until the caller returns.
-	ArrayList<BC_SynchronousCommand*> garbage;
 
 // When the context is bound to a pbuffer, this
 // signals glCopyTexSubImage2D to use the front buffer.

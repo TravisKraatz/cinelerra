@@ -774,7 +774,7 @@ private:
 
 	void sync_lock(const char *cp);
 	void sync_unlock();
-	GLXWindow glx_create_window();
+	GLXWindow glx_window();
 
 // The first context to be created and the one whose texture id
 // space is shared with the other contexts.

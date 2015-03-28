@@ -94,7 +94,6 @@ Visual *BC_WindowBase::get_glx_visual(Display *display)
 {
 	Visual *visual = 0;
 	XVisualInfo *vis_info = 0;
-	sync_lock("BC_WindowbBase::get_glx_visual");
 	GLXFBConfig *fb_cfgs = glx_window_fb_configs();
 	if( fb_cfgs ) {
 		for( int i=0; !vis_info && i<n_fbcfgs_window; ++i ) {
@@ -109,7 +108,6 @@ Visual *BC_WindowBase::get_glx_visual(Display *display)
 	}
 	else
 		glx_fb_config = 0;
-	sync_unlock();
 	return visual;
 }
 
@@ -180,13 +178,17 @@ void BC_WindowBase::sync_unlock()
 	get_synchronous()->sync_unlock();
 }
 
-GLXWindow BC_WindowBase::glx_create_window()
+GLXWindow BC_WindowBase::glx_window()
 {
-	sync_lock("BC_WindowbBase::glx_create_window");
-	GLXWindow gwin = glXCreateWindow(top_level->display, top_level->glx_fb_config, win, 0);
-	top_level->options |= GLX_DISPLAY;
-	sync_unlock();
-	return gwin;
+	if( !glx_win ) {
+		if( !(options & WINDOW_GLX) ) {
+			printf("BC_WindowBase::glx_window %d: no WINDOW_GLX\n", __LINE__);
+			exit(1);
+		}
+		top_level->options |= GLX_DISPLAY;
+		glx_win = glXCreateWindow(top_level->display, top_level->glx_fb_config, win, 0);
+	}
+	return glx_win;
 }
 
 bool BC_WindowBase::glx_make_current(GLXDrawable draw, GLXContext glx_ctxt)
@@ -204,6 +206,11 @@ bool BC_WindowBase::glx_make_current(GLXDrawable draw)
 void BC_WindowBase::enable_opengl()
 {
 #ifdef HAVE_GL
+	glx_win = glx_window();
+	if( !glx_win ) {
+		printf("BC_WindowBase::enable_opengl %d: no glx window\n", __LINE__);
+		exit(1);
+	}
 	GLXContext glx_context = glx_get_context();
 	if( !glx_context ) {
 		printf("BC_WindowBase::enable_opengl %d: no glx context\n", __LINE__);

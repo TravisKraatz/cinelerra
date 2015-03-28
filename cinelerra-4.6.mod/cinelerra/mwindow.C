@@ -288,11 +288,14 @@ MWindow::~MWindow()
 	delete theme;           theme = 0;
 	delete channeldb_buz;
 	delete channeldb_v4l2jpeg;
+// This must be last thread to exit
+	delete playback_3d;	playback_3d = 0;
 	delete dead_plugin_lock;
 	delete plugin_gui_lock;
 	delete vwindows_lock;
 	delete brender_lock;
 	delete keyframe_gui_lock;
+	sighandler->terminate();
 	delete sighandler;
 }
 
@@ -301,9 +304,6 @@ void MWindow::quit(int unlock)
 {
 	stop_playback();
 	if(unlock) gui->unlock_window();
-
-
-
 
 	brender_lock->lock("MWindow::quit");
 	delete brender;         brender = 0;

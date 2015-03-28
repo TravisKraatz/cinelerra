@@ -502,6 +502,19 @@ void BC_Signals::initialize()
 	initialize2();
 }
 
+void BC_Signals::terminate()
+{
+	BC_Signals::global_signals = 0;
+	uncatch_segv();  uncatch_intr();
+	signal(SIGHUP, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
+	signal(SIGQUIT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGFPE, SIG_DFL);
+	signal(SIGPIPE, SIG_DFL);
+	signal(SIGUSR2, SIG_DFL);
+}
+
 // callable from debugger
 extern "C"
 void dump()

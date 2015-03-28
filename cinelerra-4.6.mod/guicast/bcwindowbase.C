@@ -218,7 +218,6 @@ BC_WindowBase::~BC_WindowBase()
 		else
 #endif
 			XCloseDisplay(display);
-
 // clipboard uses a different display connection
 		clipboard->stop_clipboard();
 		delete clipboard;
@@ -508,10 +507,6 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			this->x, this->y, this->w, this->h, 0,
 			top_level->default_depth, InputOutput,
 			vis, mask, &attr);
-#if HAVE_GL
-		if(options & WINDOW_GLX)
-			glx_win = glx_create_window();
-#endif
 		XGetNormalHints(display, win, &size_hints);
 
 		size_hints.flags = PSize | PMinSize | PMaxSize;
@@ -604,10 +599,6 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			top_level->rootwin, this->x, this->y, this->w, this->h, 0,
 			top_level->default_depth, InputOutput, top_level->vis, mask,
 			&attr);
-#if HAVE_GL
-		if(options & WINDOW_GLX)
-			glx_win = glx_create_window();
-#endif
 		top_level->add_popup(this);
 	}
 
@@ -624,10 +615,6 @@ int BC_WindowBase::create_window(BC_WindowBase *parent_window,
 			parent_window->win, this->x, this->y, this->w, this->h, 0,
 			top_level->default_depth, InputOutput, top_level->vis, mask,
 			&attr);
-#if HAVE_GL
-		if(options & WINDOW_GLX)
-			glx_win = glx_create_window();
-#endif
 		init_window_shape();
 		if(!hidden) XMapWindow(top_level->display, win);
 	}
@@ -3280,10 +3267,6 @@ int BC_WindowBase::unlock_window()
 #else
 		XUnlockDisplay(top_level->display);
 #endif
-		if( !top_level->display_lock_owner ) {
-			BC_Synchronous *synch = get_resources()->get_synchronous();
-			if( synch ) synch->collect_garbage(this);
-		}
 	}
 	else
 	{

@@ -63,6 +63,7 @@ public:
 	BC_Signals();
 	void initialize();
 	void initialize2();
+	void terminate();
 
 
 	virtual void signal_handler(int signum);
