@@ -491,6 +491,16 @@ void BC_Signals::unset_temp(char *string)
 }
 
 
+int BC_Signals::x_error_handler(Display *display, XErrorEvent *event)
+{
+	char string[1024];
+	XGetErrorText(event->display, event->error_code, string, 1024);
+	fprintf(stderr, "BC_Resources::x_error_handler: error_code=%d opcode=%d,%d %s\n",
+		event->error_code, event->request_code, event->minor_code, string);
+	return 0;
+}
+
+
 void BC_Signals::initialize()
 {
 	BC_Signals::global_signals = this;
@@ -498,7 +508,7 @@ void BC_Signals::initialize()
 	handler_lock = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
 	pthread_mutex_init(lock, 0);
 	pthread_mutex_init(handler_lock, 0);
-
+	old_err_handler = XSetErrorHandler(x_error_handler);
 	initialize2();
 }
 
@@ -513,6 +523,7 @@ void BC_Signals::terminate()
 	signal(SIGFPE, SIG_DFL);
 	signal(SIGPIPE, SIG_DFL);
 	signal(SIGUSR2, SIG_DFL);
+	XSetErrorHandler(old_err_handler);
 }
 
 // callable from debugger

@@ -149,7 +149,7 @@ int BC_Menu::dispatch_motion_event()
 		result = menu_popup->dispatch_motion_event();
 	}
 
-	if(!result)
+	if(!result && top_level->match_window(top_level->event_win))
 	{
 		top_level->translate_coordinates(top_level->event_win, 
 			menu_bar->win,

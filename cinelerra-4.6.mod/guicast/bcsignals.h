@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <signal.h>
+#include <X11/Xlib.h>
 
 #define TRON(x) BC_Signals::new_function(x);
 #define TROFF(x) BC_Signals::delete_function(x);
@@ -59,6 +60,8 @@ typedef struct
 
 class BC_Signals
 {
+	int (*old_err_handler)(Display *, XErrorEvent *);
+	static int x_error_handler(Display *display, XErrorEvent *event);
 public:
 	BC_Signals();
 	void initialize();

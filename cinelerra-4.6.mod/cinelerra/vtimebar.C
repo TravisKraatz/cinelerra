@@ -122,7 +122,8 @@ double VTimeBar::pixel_to_position(int pixel)
 
 void VTimeBar::update_cursor()
 {
-	double position = pixel_to_position(get_cursor_x());
+	int rx = get_relative_cursor_x();
+	double position = pixel_to_position(rx);
 	gui->vwindow->update_position(position);
 	update(1);
 }

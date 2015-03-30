@@ -1,6 +1,8 @@
 #include "../libzmpeg3.h"
 
+#ifdef __x86_64__
 #define USE_MMX
+#endif
 #define MMX_ACCURATE
 
 #ifdef USE_MMX

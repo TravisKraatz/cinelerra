@@ -404,8 +404,8 @@ CUTOBJS = $(CUTOBJ) \
 	$(OBJDIR)/mediadb.o \
 	$(OBJDIR)/filexml.o
 CUTLIBS = \
-	../libzmpeg3/x86_64/libzmpeg3.a -lX11 \
-	../db/x86_64/db.a
+	../libzmpeg3/$(OBJDIR)/libzmpeg3.a -lX11 \
+	../db/$(OBJDIR)/db.a
 
 #ifeq ($(HAVE_AVIFILE), y)
 AVIFILE_DIR := $(shell expr ../avifile* )

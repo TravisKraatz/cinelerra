@@ -582,12 +582,17 @@ for(int i = 0; i < frame_h; i++)
 		delete tmp_frame;
 		delete blurry_frame;
 
+		if( minima_r < 1e-3) minima_r = 1e-3;
+		if( minima_g < 1e-3) minima_g = 1e-3;
+		if( minima_b < 1e-3) minima_b = 1e-3;
 		values.min_r = minima_r;
 		values.min_g = minima_g;
 		values.min_b = minima_b;
 		values.light = (minima_r / maxima_r) * 0.95;
-		values.gamma_g = logf(maxima_r / minima_r) / logf(maxima_g / minima_g);
-		values.gamma_b = logf(maxima_r / minima_r) / logf(maxima_b / minima_b);
+		values.gamma_g = fabs(maxima_g - minima_g) < 1e-3 ? 1. :
+			logf(maxima_r / minima_r) / logf(maxima_g / minima_g);
+		values.gamma_b = fabs(maxima_b - minima_b) < 1e-3 ? 1. :
+			logf(maxima_r / minima_r) / logf(maxima_b / minima_b);
 
 		// Update GUI
 		send_render_gui(&values);
@@ -599,9 +604,12 @@ for(int i = 0; i < frame_h; i++)
 		for(int i = 0; i < frame_h; i++) {
 			float *row = (float*)frame->get_rows()[i];
 			for(int j = 0; j < frame_w; j++, row += components) {
-				row[0] = (config.fix_min_r / row[0]) - config.fix_light;
-				row[1] = myPow((config.fix_min_g / row[1]), config.fix_gamma_g) - config.fix_light;
-				row[2] = myPow((config.fix_min_b / row[2]), config.fix_gamma_b) - config.fix_light;
+				row[0] = row[0] < 1e-3 ? 1.f :
+					(config.fix_min_r / row[0]) - config.fix_light;
+				row[1] = row[1] < 1e-3 ? 1.f :
+					myPow((config.fix_min_g / row[1]), config.fix_gamma_g) - config.fix_light;
+				row[2] = row[2] < 1e-3 ? 1.f :
+					myPow((config.fix_min_b / row[2]), config.fix_gamma_b) - config.fix_light;
 			}
 		}
 	}

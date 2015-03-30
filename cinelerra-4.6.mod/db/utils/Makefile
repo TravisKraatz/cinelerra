@@ -1,7 +1,9 @@
 
+OBJDIR := $(shell uname --machine)
+
 TOPDIR=../..
 CXXFLAGS:=-ggdb -I.. -Wall $(CFLAGS)
-LDLIBS:=../x86_64/db.a
+LDLIBS:=../$(OBJDIR)/db.a
 LDFLAGS:=
 
 TARGETS:=clip_accesses \
@@ -39,8 +41,8 @@ all:	$(TARGETS)
 dbtv:	dbtv.C
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) dbtv.C $(LDLIBS) -lX11 -o $@
 
-XTV_MEDIA_OBJS:=$(TOPDIR)/cinelerra/x86_64/mediadb.o $(TOPDIR)/cinelerra/x86_64/filexml.o
-XTV_LIBS:=$(TOPDIR)/libzmpeg3/x86_64/libzmpeg3.a $(TOPDIR)/db/x86_64/db.a -lX11 -lXext -lasound -lm
+XTV_MEDIA_OBJS:=$(TOPDIR)/cinelerra/$(OBJDIR)/mediadb.o $(TOPDIR)/cinelerra/$(OBJDIR)/filexml.o
+XTV_LIBS:=$(TOPDIR)/libzmpeg3/$(OBJDIR)/libzmpeg3.a $(TOPDIR)/db/$(OBJDIR)/db.a -lX11 -lXext -lasound -lm
 XTV_INCLUDES:=-I$(TOPDIR) -I$(TOPDIR)/guicast
 
 xtv:	xtv.C $(XTV_MEDIA_OBJS) $(XTV_LIBS)

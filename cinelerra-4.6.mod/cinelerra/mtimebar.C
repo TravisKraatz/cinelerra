@@ -561,7 +561,8 @@ void MTimeBar::update_clock(double position)
 
 void MTimeBar::update_cursor()
 {
-	double position = pixel_to_position(get_cursor_x());
+	int rx = get_relative_cursor_x();
+	double position = pixel_to_position(rx);
 	
 	position = mwindow->edl->align_to_frame(position, 0);
 	position = MAX(0, position);
@@ -650,7 +651,7 @@ int MTimeBar::button_press_event()
 {
 	int result = 0;
 
-	if(is_event_win() && cursor_inside() && get_buttonpress() == 3)
+	if(is_event_win() && cursor_above() && get_buttonpress() == 3)
 	{
 		menu->update();
 		menu->activate_menu();

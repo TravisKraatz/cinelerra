@@ -295,6 +295,8 @@ public:
 // Return 1 if cursor is over an unobscured part of this window.
 // An argument is provided for excluding a drag popup
 	int get_cursor_over_window();
+// Return 1 if cursor is above/inside window
+	int cursor_above();
 // For traversing windows... return 1 if this or any subwindow is win
  	int match_window(Window win);
 
@@ -316,8 +318,6 @@ public:
 // Cursor position of drag start
 	int get_drag_x();
 	int get_drag_y();
-	int relative_cursor_x(BC_WindowBase *pov);
-	int relative_cursor_y(BC_WindowBase *pov);
 	int alt_down();
 	int shift_down();
 	int ctrl_down();

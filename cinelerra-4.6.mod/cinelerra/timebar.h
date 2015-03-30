@@ -131,15 +131,6 @@ public:
 	int cursor_leave_event();
 	virtual void update_clock(double position);
 
-//get_cursor_x/y may return label relative coords, cant be used here
-	int get_cursor_x() { return relative_cursor_x(this); }
-	int get_cursor_y() { return relative_cursor_y(this); }
-	int cursor_inside() {  int x, y;
-		if( (x=get_cursor_x()) < 0 || x >= get_w() ) return 0;
-		if( (y=get_cursor_y()) < 0 || y >= get_h() ) return 0;
-		return 1;
-	}
-
 // Synchronize label, in/out, presentation display with master EDL
 	virtual void update(int flush);
 	virtual void draw_time();

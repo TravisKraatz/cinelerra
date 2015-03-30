@@ -420,7 +420,7 @@ void TimeBar::update(int flush)
 
  	EDL *edl = get_edl();
 	int64_t pixel = -1;
-	int x = get_cursor_x();
+	int x = get_relative_cursor_x();
 // Draw highlight position
 	if(edl &&
 		(highlighted || current_operation == TIMEBAR_DRAG) &&
@@ -610,7 +610,7 @@ int TimeBar::test_preview(int buttonpress)
 
 	if(get_edl() && cursor_inside() && buttonpress >= 0)
 	{
-		int x1, x2, x = get_cursor_x();
+		int x1, x2, x = get_relative_cursor_x();
 		get_preview_pixels(x1, x2);
 //printf("TimeBar::test_preview %d %d %d\n", x1, x2, x);
 // Inside left handle
@@ -669,7 +669,7 @@ int TimeBar::test_preview(int buttonpress)
 
 int TimeBar::move_preview(int &redraw)
 {
-	int result = 0, x = get_cursor_x();
+	int result = 0, x = get_relative_cursor_x();
 
 	if(current_operation == TIMEBAR_DRAG_LEFT)
 	{
@@ -738,7 +738,7 @@ void TimeBar::stop_playback()
 int TimeBar::button_press_event()
 {
 	int result = 0;
-	if(cursor_inside())
+	if(is_event_win() && cursor_above())
 	{
 		if(has_preview() && get_buttonpress() == 3)
 		{
@@ -761,7 +761,7 @@ int TimeBar::button_press_event()
 // Select region between two labels
 			if(get_double_click())
 			{
-				int x = get_cursor_x();
+				int x = get_relative_cursor_x();
 				double position = pixel_to_position(x);
 // Test labels
 				select_region(position);
@@ -811,7 +811,7 @@ int TimeBar::cursor_motion_event()
  			break;
 
 		default:
-			if(cursor_inside())
+			if(cursor_above())
 			{
 				highlighted = 1;
 				redraw = 1;
@@ -868,7 +868,7 @@ int TimeBar::button_release_event()
 			break;
 	}
 	
-	if((!cursor_inside() && highlighted) || need_redraw)
+	if((!cursor_above() && highlighted) || need_redraw)
 	{
 		highlighted = 0;
 		update(1);

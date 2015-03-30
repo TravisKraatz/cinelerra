@@ -3738,22 +3738,13 @@ int BC_WindowBase::get_cursor_over_window()
 	return result;
 }
 
-int BC_WindowBase::relative_cursor_x(BC_WindowBase *pov)
+int BC_WindowBase::cursor_above()
 {
-	int x = 0, y = 0;
-
-	translate_coordinates(top_level->event_win, pov->win,
-		top_level->cursor_x, top_level->cursor_y, &x, &y);
-	return x;
-}
-
-int BC_WindowBase::relative_cursor_y(BC_WindowBase *pov)
-{
-	int x = 0, y = 0;
-
-	translate_coordinates(top_level->event_win, pov->win,
-		top_level->cursor_x, top_level->cursor_y, &x, &y);
-	return y;
+	int rx = get_relative_cursor_x();
+	if( rx < 0 || rx >= get_w() ) return 0;
+	int ry = get_relative_cursor_y();
+	if( ry < 0 || ry >= get_h() ) return 0;
+	return 1;
 }
 
 int BC_WindowBase::get_drag_x()

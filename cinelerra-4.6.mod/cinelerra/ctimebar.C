@@ -89,7 +89,8 @@ double CTimeBar::pixel_to_position(int pixel)
 
 void CTimeBar::update_cursor()
 {
-	double position = pixel_to_position(get_cursor_x());
+	int rx = get_relative_cursor_x();
+	double position = pixel_to_position(rx);
 	mwindow->cwindow->update_position(position);
 }
 

@@ -177,8 +177,8 @@ int BC_Resources::x_error_handler(Display *display, XErrorEvent *event)
 
 	BC_Resources::error = 1;
 // This bug only happens in 32 bit mode.
-	if(sizeof(long) == 4)
-		BC_WindowBase::get_resources()->use_xft = 0;
+//	if(sizeof(long) == 4)
+//		BC_WindowBase::get_resources()->use_xft = 0;
 	return 0;
 }
 
@@ -734,7 +734,8 @@ int BC_Resources::initialize_display(BC_WindowBase *window)
 void BC_Resources::init_shm(BC_WindowBase *window)
 {
 	use_shm = 0;
-	XSetErrorHandler(BC_Resources::x_error_handler);
+	int (*old_handler)(Display *, XErrorEvent *) =
+		XSetErrorHandler(BC_Resources::x_error_handler);
 
 	if(XShmQueryExtension(window->display))
 	{
@@ -762,6 +763,7 @@ void BC_Resources::init_shm(BC_WindowBase *window)
 		XDestroyImage(test_image);
 		if(BC_Resources::error) use_shm = 0;
 	}
+	XSetErrorHandler(old_handler);
 }
 
 
