@@ -230,10 +230,16 @@ void PluginServer::set_title(const char *string)
 
 void PluginServer::generate_display_title(char *string)
 {
-	if(plugin && plugin->track) 
-		sprintf(string, "%s: %s", plugin->track->title, title);
+	char ltitle[BCTEXTLEN];
+	if(BC_Resources::locale_utf8)
+		strcpy(ltitle, _(title));
 	else
-		strcpy(string, title);
+		BC_Resources::encode(BC_Resources::encoding, 0,
+				_(title),strlen(title)+1, ltitle,BCTEXTLEN);
+	if(plugin && plugin->track) 
+		sprintf(string, "%s: %s", plugin->track->title, ltitle);
+	else
+		strcpy(string, ltitle);
 }
 
 // Open plugin for signal processing

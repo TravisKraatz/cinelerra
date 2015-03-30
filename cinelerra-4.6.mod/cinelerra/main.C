@@ -26,6 +26,7 @@
 #include "fileserver.h"
 #include "filesystem.h"
 #include "language.h"
+#include "langinfo.h"
 #include "loadfile.inc"
 #include "mainmenu.h"
 #include "mutex.h"
@@ -161,7 +162,40 @@ int main(int argc, char *argv[])
 	bindtextdomain (PACKAGE, locale_path);
 	textdomain (PACKAGE);
 	setlocale (LC_MESSAGES, "");
-	setlocale (LC_CTYPE, "");
+#ifdef X_HAVE_UTF8_STRING
+	char *loc = setlocale(LC_CTYPE, "");
+	if( loc ) {
+		strcpy(BC_Resources::encoding, nl_langinfo(CODESET));
+		BC_Resources::locale_utf8 = !strcmp(BC_Resources::encoding, "UTF-8");
+
+		// Extract from locale language & region
+		char locbuf[32], *p;
+		locbuf[0] = 0;
+		if((p = strchr(loc, '.')) && p - loc < sizeof(locbuf)-1) {
+			strncpy(locbuf, loc, p - loc);
+			locbuf[p - loc] = 0;
+		}
+		else if(strlen(loc) < sizeof(locbuf)-1)
+			strcpy(locbuf, loc);
+
+                // Locale 'C' does not give useful language info - assume en
+		if(!locbuf[0] || locbuf[0] == 'C')
+			strcpy(locbuf, "en");
+
+		if((p = strchr(locbuf, '_')) && p - locbuf < LEN_LANG) {
+			*p++ = 0;
+			strcpy(BC_Resources::language, locbuf);
+			if(strlen(p) < LEN_LANG)
+				strcpy(BC_Resources::region, p);
+		}
+		else if(strlen(locbuf) < LEN_LANG)
+			strcpy(BC_Resources::language, locbuf);
+	}
+	else
+		printf(PROGRAM_NAME ": Could not set locale.\n");
+#else
+        setlocale(LC_CTYPE, "");
+#endif
 	tzset();
 
 
