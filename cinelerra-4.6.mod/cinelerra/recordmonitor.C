@@ -198,6 +198,7 @@ int RecordMonitor::get_channel_y()
 
 void RecordMonitor::stop_playback()
 {
+	if( thread->finished() ) return;
 	window->enable_signal_status(0);
 	if( thread ) {
 		thread->stop_playback();

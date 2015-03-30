@@ -282,7 +282,11 @@ public:
   class zlock_t : zloc_t {
     void *owner;
     void *self() {
+#ifdef __x86_64__
      void *vp; asm ("movq %%fs:%c1,%q0" : "=r" (vp) : "i" (16));
+#else
+     void *vp; asm ("mov %%fs:%c1,%q0" : "=r" (vp) : "i" (16));
+#endif
      return vp;
    }
   protected:

@@ -309,6 +309,7 @@ char *strchr(), *strrchr();
     }
   #elif (defined(__i386__) && defined(__GNUC__))
     #define HAS_LRINTF
+    #if defined(__x86_64__)
     // from http://www.stereopsis.com/FPU.html
     static INLINE int lrintf(float f)
     {
@@ -320,6 +321,7 @@ char *strchr(), *strrchr();
             : "m" (f));
         return i;
     }
+    #endif
   #endif
 
 

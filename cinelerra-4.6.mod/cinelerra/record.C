@@ -950,6 +950,12 @@ void Record::stop_input_threads()
 	pause_lock->unlock();
 }
 
+void Record::stop_playback()
+{
+	if( record_monitor )
+		record_monitor->stop_playback();
+}
+
 void Record::open_audio_input()
 {
 	close_audio_input();

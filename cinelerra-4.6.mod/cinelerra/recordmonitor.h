@@ -143,6 +143,17 @@ class RecVideoOverlay;
 
 class RecordMonitorThread : public Thread
 {
+	void show_output_frame();
+	void render_uncompressed();
+	int render_jpeg();
+	int render_dv();
+	void process_scope();
+	void process_hist();
+
+	int ready;   // Ready to recieve the next frame
+	int done;
+	RecVideoMJPGThread *jpeg_engine;
+	RecVideoDVThread *dv_engine;
 public:
 	RecordMonitorThread(MWindow *mwindow, 
 		Record *record, 
@@ -163,6 +174,7 @@ public:
 	void display_vframe(VFrame *in, int x, int y,
 		int alpha, double secs, double scale);
 	void undisplay_vframe();
+	int finished() { return done; }
 
 // Input frame being rendered
 	VFrame *input_frame;    
@@ -180,19 +192,6 @@ public:
 	int shared_data;
 // overlay data
 	RecVideoOverlay *ovly;
-
-private:
-	void show_output_frame();
-	void render_uncompressed();
-	int render_jpeg();
-	int render_dv();
-	void process_scope();
-	void process_hist();
-
-	int ready;   // Ready to recieve the next frame
-	int done;
-	RecVideoMJPGThread *jpeg_engine;
-	RecVideoDVThread *dv_engine;
 };
 
 class RecordMonitorFullsize : public BC_MenuItem

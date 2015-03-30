@@ -120,6 +120,7 @@ public:
 	void stop_audio_thread();
 	void stop_video_thread();
 	void stop_input_threads();
+	void stop_playback();
 	void open_audio_input();
 	void open_video_input();
 	void start();
