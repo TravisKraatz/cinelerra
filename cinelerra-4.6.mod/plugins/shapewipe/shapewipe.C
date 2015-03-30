@@ -462,6 +462,7 @@ int ShapeWipeMain::read_pattern_image(int new_frame_width, int new_frame_height)
 
 	if (!is_png)
 	{
+		fclose(fp);
 		return 1;
 	}
 
@@ -470,7 +471,8 @@ int ShapeWipeMain::read_pattern_image(int new_frame_width, int new_frame_height)
 
 	if (!png_ptr)
 	{
-	return 1;
+		fclose(fp);
+		return 1;
 	}
 
 	/* Tell libpng we already checked the first 8 bytes */
@@ -480,6 +482,7 @@ int ShapeWipeMain::read_pattern_image(int new_frame_width, int new_frame_height)
 	if (!info_ptr)
 	{
 		png_destroy_read_struct(&png_ptr, NULL, NULL);
+		fclose(fp);
 		return 1;
 	}
 
@@ -487,6 +490,7 @@ int ShapeWipeMain::read_pattern_image(int new_frame_width, int new_frame_height)
 	if (!end_info)
 	{
 		png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+		fclose(fp);
 		return 1;
 	}
 

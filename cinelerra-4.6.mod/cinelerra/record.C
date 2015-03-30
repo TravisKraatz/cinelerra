@@ -945,6 +945,7 @@ void Record::stop_input_threads()
 {
 	pause_lock->lock("Record::stop_input_threads");
 	stop_skimming();
+	stop_playback();
 	stop_audio_thread();
 	stop_video_thread();
 	pause_lock->unlock();

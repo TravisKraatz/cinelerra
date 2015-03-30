@@ -548,7 +548,7 @@ void BatchRenderThread::start_rendering(char *config_path,
 	Preferences *preferences;
 	Render *render;
 	BC_Signals *signals = new BC_Signals;
-
+	// XXX the above stuff is leaked,
 //PRINT_TRACE
 // Initialize stuff which MWindow does.
 	signals->initialize();
@@ -557,9 +557,12 @@ void BatchRenderThread::start_rendering(char *config_path,
 	preferences = new Preferences;
 	preferences->load_defaults(boot_defaults);
 	MWindow::init_plugins(0, preferences, 0);
+	char font_path[BCTEXTLEN];
+	strcpy(font_path, preferences->plugin_dir);
+	strcat(font_path, "/fonts");
+	BC_Resources::init_fontconfig(font_path);
 	BC_WindowBase::get_resources()->vframe_shm = 1;
 	MWindow::init_fileserver(preferences);
-
 
 //PRINT_TRACE
 	load_jobs(batch_path, preferences);
