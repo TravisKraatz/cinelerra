@@ -192,7 +192,9 @@ public class MainActivity extends Activity
 		img = (ImageButton)findViewById(R.id.play);
 		img.setOnClickListener(this);
 		
-		img = (ImageButton)findViewById(R.id.menu);
+		img = (ImageButton)findViewById(R.id.config);
+		img.setOnLongClickListener(this);
+		img = (ImageButton)findViewById(R.id.suspend);
 		img.setOnLongClickListener(this);
 		img = (ImageButton)findViewById(R.id.stop);
 		img.setOnLongClickListener(this);
@@ -271,13 +273,19 @@ public class MainActivity extends Activity
 	public boolean onLongClick(View v) {
         if (v instanceof ImageButton) {
 			int id = ((ImageButton)v).getId();
-			if (id == R.id.menu) {
+			if (id == R.id.config) {
 		        Intent it = new Intent(this, ConfigActivity.class);
 		        it.putExtra("IP_ADDR", ip_addr);
 		        it.putExtra("PIN", pin);
 		        it.putExtra("PORT", dport);
 		        startActivity(it);
 		        finish();
+				return true;
+			}
+			if (id == R.id.suspend) {
+				send("suspend");
+				save_defaults();
+				finish();
 				return true;
 			}
 			if (id == R.id.stop) {

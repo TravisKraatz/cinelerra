@@ -255,7 +255,16 @@
                 android:cropToPadding="false"
                 android:scaleType="fitXY"
                 android:src="@drawable/media_rt" />
-        </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/suspend"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:cropToPadding="false"
+                android:scaleType="fitXY"
+                android:src="@drawable/suspend" />
+            </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -287,7 +296,16 @@
                 android:cropToPadding="false"
                 android:scaleType="fitXY"
                 android:src="@drawable/slow_rt" />
-        </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/config"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:cropToPadding="false"
+                android:scaleType="fitXY"
+                android:src="@drawable/config" />
+            </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"

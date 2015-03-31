@@ -124,6 +124,9 @@ void AndroidControl::run()
 		else if( is_msg("key D") ) press('d');
 		else if( is_msg("key E") ) press('e');
 		else if( is_msg("key F") ) press('f');
+		else if( is_msg("suspend") ) {
+			system("sync; sleep 1; pm-suspend");
+		}
 		else {
 			printf("AndroidControl::run: unkn msg: %s\n", msg);
 			sleep(1);
